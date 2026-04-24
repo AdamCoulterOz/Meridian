@@ -17,13 +17,13 @@ Current state:
 
 ## Architecture And Structure
 
-- `src/Meridian.Core` contains AST contracts, schema model/loading, identity assignment, nested content expansion/collapse, three-way merge mechanics, raw opaque handling, template-host composition, template placeholder contracts, and conflict marker helpers.
-- `src/Formats/Meridian.Formats.Data` contains XML, JSON, JSON5, and YAML adapters.
-- `src/Formats/Meridian.Formats.Web` contains HTML fragment, CSS, and JavaScript adapters.
-- `src/Formats/Meridian.Formats.Images` contains image placeholder adapters for PNG, JPEG, GIF, and ICO payloads.
+- `src/Core` contains AST contracts, schema model/loading, identity assignment, nested content expansion/collapse, three-way merge mechanics, raw opaque handling, template-host composition, template placeholder contracts, and conflict marker helpers.
+- `src/Formats/Data` contains XML, JSON, JSON5, and YAML adapters.
+- `src/Formats/Web` contains HTML fragment, CSS, and JavaScript adapters.
+- `src/Formats/Images` contains image placeholder adapters for PNG, JPEG, GIF, and ICO payloads.
 - `src/Formats` also contains dedicated projects for Liquid, template text, and `xap`.
-- `src/Meridian.Tools.GitMerge` contains a thin Git merge-driver style command.
-- `tests/Meridian.Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, template-host composition, Git conflict marker rendering, and file-based generic fixtures.
+- `src/Tools/GitMerge` contains a thin Git merge-driver style command.
+- `tests/Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, template-host composition, Git conflict marker rendering, and file-based generic fixtures.
 
 ## Key Decisions And Invariants
 

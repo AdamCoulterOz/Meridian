@@ -19,13 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Meridian.Core\Meridian.Core.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Data\Meridian.Formats.Data.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Images\Meridian.Formats.Images.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Liquid\Meridian.Formats.Liquid.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.TemplateText\Meridian.Formats.TemplateText.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Web\Meridian.Formats.Web.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Xap\Meridian.Formats.Xap.csproj" />
+    <ProjectReference Include="..\..\src\Core\Meridian.Core.csproj" />
+    <ProjectReference Include="..\..\src\Formats\Data\Meridian.Formats.Data.csproj" />
+    <ProjectReference Include="..\..\src\Formats\Images\Meridian.Formats.Images.csproj" />
+    <ProjectReference Include="..\..\src\Formats\Liquid\Meridian.Formats.Liquid.csproj" />
+    <ProjectReference Include="..\..\src\Formats\TemplateText\Meridian.Formats.TemplateText.csproj" />
+    <ProjectReference Include="..\..\src\Formats\Web\Meridian.Formats.Web.csproj" />
+    <ProjectReference Include="..\..\src\Formats\Xap\Meridian.Formats.Xap.csproj" />
   </ItemGroup>
 
   <ItemGroup>

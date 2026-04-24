@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Meridian.Core\Meridian.Core.csproj" />
-    <ProjectReference Include="..\Formats\Meridian.Formats.Data\Meridian.Formats.Data.csproj" />
-    <ProjectReference Include="..\Formats\Meridian.Formats.Web\Meridian.Formats.Web.csproj" />
+    <ProjectReference Include="..\..\Core\Meridian.Core.csproj" />
+    <ProjectReference Include="..\..\Formats\Data\Meridian.Formats.Data.csproj" />
+    <ProjectReference Include="..\..\Formats\Web\Meridian.Formats.Web.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
