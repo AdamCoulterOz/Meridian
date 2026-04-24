@@ -11,12 +11,12 @@ public sealed class GenericCatalogFixtureTests
     public void GenericCatalogFixtureMergesSchemaDrivenXml()
     {
         var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "GenericCatalog");
-        var schema = AstSchemaYamlLoader
+        var schema = MergeSchemaYamlLoader
             .LoadFile(Path.Combine(fixturePath, "catalog.schema.yaml"))
             .CompileForFile("catalog.xml", "Catalog");
         var xml = new XmlAdapter();
 
-        var result = new AstMerger().Merge(
+        var result = new Merger().Merge(
             xml.Parse(ReadFixture(fixturePath, "base.xml"), "catalog.xml", schema),
             xml.Parse(ReadFixture(fixturePath, "ours.xml"), "catalog.xml", schema),
             xml.Parse(ReadFixture(fixturePath, "theirs.xml"), "catalog.xml", schema),

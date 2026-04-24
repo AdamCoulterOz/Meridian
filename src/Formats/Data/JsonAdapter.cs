@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Encodings.Web;
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
@@ -19,17 +19,17 @@ public class JsonAdapter : IFormatAdapter
 
     public virtual string Format => "json";
 
-    public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
+    public DocumentTree Parse(string sourceText, string? sourcePath, MergeSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
         var node = ParseJsonNode(sourceText);
-        return new AstDocument(Format, ParseNode(node, "$root"), sourcePath, sourceText);
+        return new DocumentTree(Format, ParseNode(node, "$root"), sourcePath, sourceText);
     }
 
-    public string RenderDocument(AstDocument document) => RenderNode(document.Root) + Environment.NewLine;
+    public string RenderDocument(DocumentTree document) => RenderNode(document.Root) + Environment.NewLine;
 
-    public string RenderNode(AstNode node)
+    public string RenderNode(TreeNode node)
     {
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
@@ -43,7 +43,7 @@ public class JsonAdapter : IFormatAdapter
         AllowTrailingCommas = true
     });
 
-    private static AstNode ParseNode(JsonNode? node, string kind) => node switch
+    private static TreeNode ParseNode(JsonNode? node, string kind) => node switch
     {
         JsonObject obj => ParseObject(obj, kind),
         JsonArray array => ParseArray(array, kind),
@@ -52,40 +52,40 @@ public class JsonAdapter : IFormatAdapter
         _ => throw new NotSupportedException($"Unsupported JSON node type '{node.GetType().Name}'.")
     };
 
-    private static AstNode ParseObject(JsonObject obj, string kind)
+    private static TreeNode ParseObject(JsonObject obj, string kind)
     {
         var children = obj
             .Select(property =>
             {
-                var child = ParseNode(property.Value, AstNodeMetadata.EncodeKind(property.Key));
+                var child = ParseNode(property.Value, NodeMetadata.EncodeKind(property.Key));
                 return child with { Fields = AddName(child.Fields, property.Key) };
             })
             .ToArray();
 
-        return new AstNode(kind, AstNodeMetadata.Create("object"), children: children);
+        return new TreeNode(kind, NodeMetadata.Create("object"), children: children);
     }
 
-    private static AstNode ParseArray(JsonArray array, string kind)
+    private static TreeNode ParseArray(JsonArray array, string kind)
     {
         var children = array
             .Select((item, index) => ParseNode(item, $"$item{index:D6}"))
             .ToArray();
 
-        return new AstNode(kind, AstNodeMetadata.Create("array"), children: children);
+        return new TreeNode(kind, NodeMetadata.Create("array"), children: children);
     }
 
-    private static AstNode ParseNull(string kind)
+    private static TreeNode ParseNull(string kind)
     {
-        var fields = AstNodeMetadata.Create("null");
+        var fields = NodeMetadata.Create("null");
         fields[ValueKindField] = nameof(JsonValueKind.Null);
-        return new AstNode(kind, fields);
+        return new TreeNode(kind, fields);
     }
 
-    private static AstNode ParseValue(JsonValue value, string kind)
+    private static TreeNode ParseValue(JsonValue value, string kind)
     {
         using var document = JsonDocument.Parse(value.ToJsonString());
         var element = document.RootElement;
-        var fields = AstNodeMetadata.Create("value");
+        var fields = NodeMetadata.Create("value");
         fields[ValueKindField] = element.ValueKind.ToString();
 
         var scalar = element.ValueKind switch
@@ -98,17 +98,17 @@ public class JsonAdapter : IFormatAdapter
             _ => element.GetRawText()
         };
 
-        return new AstNode(kind, fields, scalar);
+        return new TreeNode(kind, fields, scalar);
     }
 
     private static IReadOnlyDictionary<string, string> AddName(IReadOnlyDictionary<string, string> fields, string name)
     {
         var copy = fields.ToDictionary(field => field.Key, field => field.Value, StringComparer.Ordinal);
-        copy[AstNodeMetadata.NameField] = name;
+        copy[NodeMetadata.NameField] = name;
         return copy;
     }
 
-    private static JsonNode? RenderJsonNode(AstNode node)
+    private static JsonNode? RenderJsonNode(TreeNode node)
     {
         var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
@@ -123,7 +123,7 @@ public class JsonAdapter : IFormatAdapter
         };
     }
 
-    private static JsonObject RenderObject(AstNode node)
+    private static JsonObject RenderObject(TreeNode node)
     {
         var obj = new JsonObject();
         foreach (var child in node.Children)
@@ -132,7 +132,7 @@ public class JsonAdapter : IFormatAdapter
         return obj;
     }
 
-    private static JsonArray RenderArray(AstNode node)
+    private static JsonArray RenderArray(TreeNode node)
     {
         var array = new JsonArray();
         foreach (var child in node.Children)
@@ -141,7 +141,7 @@ public class JsonAdapter : IFormatAdapter
         return array;
     }
 
-    private static JsonNode? RenderValue(AstNode node)
+    private static JsonNode? RenderValue(TreeNode node)
     {
         if (!node.Fields.TryGetValue(ValueKindField, out var valueKind))
             return node.Value is null ? null : JsonValue.Create(node.Value);
@@ -157,5 +157,5 @@ public class JsonAdapter : IFormatAdapter
         };
     }
 
-    private static string InferType(AstNode node) => node.Children.Count > 0 ? "object" : "value";
+    private static string InferType(TreeNode node) => node.Children.Count > 0 ? "object" : "value";
 }

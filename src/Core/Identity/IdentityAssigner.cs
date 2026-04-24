@@ -1,12 +1,12 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats.Mapped;
 using Meridian.Core.Schema;
 
 namespace Meridian.Core.Identity;
 
-public sealed class AstIdentityAssigner
+public sealed class IdentityAssigner
 {
-    public IdentityAssignmentResult Assign(AstDocument document, AstSchema schema)
+    public IdentityAssignmentResult Assign(DocumentTree document, MergeSchema schema)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(schema);
@@ -19,14 +19,14 @@ public sealed class AstIdentityAssigner
         return new IdentityAssignmentResult(document with { Root = root }, diagnostics);
     }
 
-    private static AstNode AssignNode(
-        AstNode node,
-        AstSchema schema,
+    private static TreeNode AssignNode(
+        TreeNode node,
+        MergeSchema schema,
         string path,
         string identity,
         List<IdentityDiagnostic> diagnostics)
     {
-        var assignedChildren = new List<AstNode>(node.Children.Count);
+        var assignedChildren = new List<TreeNode>(node.Children.Count);
         var siblingIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
 
         for (var index = 0; index < node.Children.Count; index++)
@@ -52,7 +52,7 @@ public sealed class AstIdentityAssigner
         return node.WithPathAndIdentity(path, identity).WithChildren(assignedChildren);
     }
 
-    private static ResolvedKey ResolveKey(AstNode node, AstSchema schema, string path, int ordinal)
+    private static ResolvedKey ResolveKey(TreeNode node, MergeSchema schema, string path, int ordinal)
     {
         var explicitRule = schema.IdentityRules.LastOrDefault(rule => rule.Path.IsMatch(path));
         if (explicitRule is not null)
@@ -69,7 +69,7 @@ public sealed class AstIdentityAssigner
         return new ResolvedKey("path");
     }
 
-    private static ResolvedKey ResolveExplicitKey(AstNode node, DiscriminatorKey key, int ordinal) => key switch
+    private static ResolvedKey ResolveExplicitKey(TreeNode node, DiscriminatorKey key, int ordinal) => key switch
     {
         DiscriminatorKey.Field field => ResolveField(node, field.Name),
         DiscriminatorKey.PathValue pathValue => ResolvePathValue(node, pathValue.Path),
@@ -79,19 +79,19 @@ public sealed class AstIdentityAssigner
         _ => new ResolvedKey("path")
     };
 
-    private static ResolvedKey ResolveField(AstNode node, string field) => node.Fields.TryGetValue(field, out var value) && !string.IsNullOrEmpty(value)
+    private static ResolvedKey ResolveField(TreeNode node, string field) => node.Fields.TryGetValue(field, out var value) && !string.IsNullOrEmpty(value)
             ? new ResolvedKey(field + "=" + value)
             : new ResolvedKey("missing:" + field);
 
-    private static ResolvedKey ResolvePathValue(AstNode node, string path)
+    private static ResolvedKey ResolvePathValue(TreeNode node, string path)
     {
-        var value = AstPath.ReadValue(node, path);
+        var value = TreePath.ReadValue(node, path);
         return !string.IsNullOrEmpty(value)
             ? new ResolvedKey(path + "=" + value)
             : new ResolvedKey("missing:" + path);
     }
 
-    private static ResolvedKey ResolveComposite(AstNode node, DiscriminatorKey.Composite composite)
+    private static ResolvedKey ResolveComposite(TreeNode node, DiscriminatorKey.Composite composite)
     {
         var parts = new List<string>(composite.Parts.Count);
 
@@ -114,7 +114,7 @@ public sealed class AstIdentityAssigner
     private sealed record ResolvedKey(string Value);
 }
 
-public sealed record IdentityAssignmentResult(AstDocument Document, IReadOnlyList<IdentityDiagnostic> Diagnostics)
+public sealed record IdentityAssignmentResult(DocumentTree Document, IReadOnlyList<IdentityDiagnostic> Diagnostics)
 {
     public bool HasErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == IdentityDiagnosticSeverity.Error);
 }

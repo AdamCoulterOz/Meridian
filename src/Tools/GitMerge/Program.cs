@@ -34,7 +34,7 @@ var baseDocument = adapter.Parse(await File.ReadAllTextAsync(basePath), basePath
 var oursDocument = adapter.Parse(await File.ReadAllTextAsync(oursPath), oursPath, schema);
 var theirsDocument = adapter.Parse(await File.ReadAllTextAsync(theirsPath), theirsPath, schema);
 
-var result = new AstMerger().Merge(baseDocument, oursDocument, theirsDocument, schema, adapter);
+var result = new Merger().Merge(baseDocument, oursDocument, theirsDocument, schema, adapter);
 await File.WriteAllTextAsync(oursPath, adapter.RenderDocument(result.Document));
 
 foreach (var diagnostic in result.IdentityDiagnostics)
@@ -82,12 +82,12 @@ static IFormatAdapter? CreateAdapter(string repoPath)
     };
 }
 
-static AstSchema LoadSchema(IReadOnlyDictionary<string, string> options, string repoPath)
+static MergeSchema LoadSchema(IReadOnlyDictionary<string, string> options, string repoPath)
 {
     if (options.TryGetValue("schema", out var schemaPath))
-        return AstSchemaYamlLoader.LoadFile(schemaPath).CompileForFile(repoPath);
+        return MergeSchemaYamlLoader.LoadFile(schemaPath).CompileForFile(repoPath);
 
-    return new AstSchema
+    return new MergeSchema
     {
         GlobalDiscriminatorFields = ["id", "Id", "languagecode"]
     };

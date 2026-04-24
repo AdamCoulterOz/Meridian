@@ -1,6 +1,6 @@
 using System.Net;
 using AngleSharp.Html.Parser;
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
@@ -16,7 +16,7 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
 
     public string Format => "html:fragment";
 
-    public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
+    public DocumentTree Parse(string sourceText, string? sourcePath, MergeSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
@@ -26,12 +26,12 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
             .Select((node, index) => ParseNode(node, index))
             .ToArray() ?? [];
 
-        return new AstDocument(Format, new AstNode("$fragment", AstNodeMetadata.Create("fragment"), children: children), sourcePath, sourceText);
+        return new DocumentTree(Format, new TreeNode("$fragment", NodeMetadata.Create("fragment"), children: children), sourcePath, sourceText);
     }
 
-    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
+    public string RenderDocument(DocumentTree document) => RenderNode(document.Root);
 
-    public string RenderNode(AstNode node)
+    public string RenderNode(TreeNode node)
     {
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
@@ -39,26 +39,26 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
         return RenderHtmlNode(node);
     }
 
-    private static AstNode ParseNode(AngleSharp.Dom.INode node, int index) => node switch
+    private static TreeNode ParseNode(AngleSharp.Dom.INode node, int index) => node switch
     {
         AngleSharp.Dom.IElement element => ParseElement(element, index),
-        AngleSharp.Dom.IText text => new AstNode(
+        AngleSharp.Dom.IText text => new TreeNode(
             $"$text{index:D6}",
-            AstNodeMetadata.Create("text"),
+            NodeMetadata.Create("text"),
             text.Data),
-        AngleSharp.Dom.IComment comment => new AstNode(
+        AngleSharp.Dom.IComment comment => new TreeNode(
             $"$comment{index:D6}",
-            AstNodeMetadata.Create("comment"),
+            NodeMetadata.Create("comment"),
             comment.Data),
-        _ => new AstNode(
+        _ => new TreeNode(
             $"$node{index:D6}",
-            AstNodeMetadata.Create("raw"),
+            NodeMetadata.Create("raw"),
             node.TextContent)
     };
 
-    private static AstNode ParseElement(AngleSharp.Dom.IElement element, int index)
+    private static TreeNode ParseElement(AngleSharp.Dom.IElement element, int index)
     {
-        var fields = AstNodeMetadata.Create("element", element.LocalName);
+        var fields = NodeMetadata.Create("element", element.LocalName);
         foreach (var attribute in element.Attributes)
             fields[attribute.Name] = attribute.Value;
 
@@ -66,10 +66,10 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
                             .Select((child, childIndex) => ParseNode(child, childIndex))
                             .ToArray();
 
-        return new AstNode($"{AstNodeMetadata.EncodeKind(element.LocalName)}{index:D6}", fields, children: children);
+        return new TreeNode($"{NodeMetadata.EncodeKind(element.LocalName)}{index:D6}", fields, children: children);
     }
 
-    private static string RenderHtmlNode(AstNode node)
+    private static string RenderHtmlNode(TreeNode node)
     {
         var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
@@ -86,7 +86,7 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
         };
     }
 
-    private static string RenderElement(AstNode node)
+    private static string RenderElement(TreeNode node)
     {
         var tag = node.GetMetadataName();
         var attributes = node.VisibleFields()

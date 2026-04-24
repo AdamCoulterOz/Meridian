@@ -1,11 +1,11 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 
 namespace Meridian.Core.Formats.Nested;
 
 public sealed class NestedContentCollapser
 {
-    public static AstDocument Collapse(AstDocument document, IFormatRegistry registry)
+    public static DocumentTree Collapse(DocumentTree document, IFormatRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(registry);
@@ -13,7 +13,7 @@ public sealed class NestedContentCollapser
         return document with { Root = CollapseNode(document.Root, registry) };
     }
 
-    private static AstNode CollapseNode(AstNode node, IFormatRegistry registry)
+    private static TreeNode CollapseNode(TreeNode node, IFormatRegistry registry)
     {
         var collapsedChildren = node.Children
             .Select(child => CollapseNode(child, registry))
@@ -33,7 +33,7 @@ public sealed class NestedContentCollapser
             throw new InvalidOperationException($"Nested content under '{node.Path ?? node.Kind}' does not declare a format.");
 
         if (content.Children.Count != 1)
-            throw new InvalidOperationException($"Nested content under '{node.Path ?? node.Kind}' must contain exactly one AST root.");
+            throw new InvalidOperationException($"Nested content under '{node.Path ?? node.Kind}' must contain exactly one tree root.");
 
         var nestedRoot = content.Children[0];
         if (HasConflict(nestedRoot))
@@ -41,9 +41,9 @@ public sealed class NestedContentCollapser
                 $"Cannot collapse unresolved nested content conflicts under '{node.Path ?? node.Kind}'. " +
                 "Project the conflict at the owning encoded scalar boundary before rendering.");
 
-        var nestedDocument = new AstDocument(format, nestedRoot);
+        var nestedDocument = new DocumentTree(format, nestedRoot);
         if (!registry.TryRender(format, nestedDocument, out var renderedContent))
-            throw new InvalidOperationException($"No AST renderer is registered for nested content format '{format}'.");
+            throw new InvalidOperationException($"No renderer is registered for nested content format '{format}'.");
 
         var remainingChildren = collapsedChildren
                             .Where(child => !string.Equals(child.Kind, "$content", StringComparison.Ordinal))
@@ -53,5 +53,5 @@ public sealed class NestedContentCollapser
             .WithChildren(remainingChildren);
     }
 
-    private static bool HasConflict(AstNode node) => node.IsConflict || node.Children.Any(HasConflict);
+    private static bool HasConflict(TreeNode node) => node.IsConflict || node.Children.Any(HasConflict);
 }

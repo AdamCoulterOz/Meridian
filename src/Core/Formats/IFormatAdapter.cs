@@ -1,12 +1,12 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
 namespace Meridian.Core.Formats;
 
-public interface IFormatAdapter : IAstTextRenderer
+public interface IFormatAdapter : ITextRenderer
 {
     string Format { get; }
 
-    AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema);
+    DocumentTree Parse(string sourceText, string? sourcePath, MergeSchema schema);
 }

@@ -1,18 +1,19 @@
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Meridian.Core.Tree;
 
 namespace Meridian.Core.Schema;
 
-public sealed record AstSchema
+public sealed record MergeSchema
 {
     public IReadOnlyList<string> GlobalDiscriminatorFields { get; init; } = [];
     public IReadOnlyList<NodeIdentityRule> IdentityRules { get; init; } = [];
     public IReadOnlyList<PathSelector> OrderedChildren { get; init; } = [];
     public IReadOnlyList<ContentRule> ContentRules { get; init; } = [];
     public IReadOnlyList<CompanionRule> CompanionRules { get; init; } = [];
-    public IReadOnlyDictionary<string, AstSchema> NestedSchemas { get; init; } =
-        new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase);
-    public static AstSchema Empty { get; } = new();
+    public IReadOnlyDictionary<string, MergeSchema> NestedSchemas { get; init; } =
+        new Dictionary<string, MergeSchema>(StringComparer.OrdinalIgnoreCase);
+    public static MergeSchema Empty { get; } = new();
 }
 
 public sealed record NodeIdentityRule(PathSelector Path, DiscriminatorKey Key, string? Note = null);
@@ -29,13 +30,13 @@ public sealed record CompanionRule(
     string? SchemaRef = null,
     string? Note = null)
 {
-    public string ResolveFormat(Ast.AstNode metadataRoot)
+    public string ResolveFormat(TreeNode metadataRoot)
     {
         ArgumentNullException.ThrowIfNull(metadataRoot);
 
         if (FormatFrom is not null)
         {
-            var rawValue = AstPath.ReadValue(metadataRoot, FormatFrom.Path);
+            var rawValue = TreePath.ReadValue(metadataRoot, FormatFrom.Path);
             if (rawValue is not null && FormatFrom.TryResolve(rawValue, out var mappedFormat))
                 return mappedFormat;
         }
@@ -49,7 +50,7 @@ public sealed record CompanionRule(
         throw new InvalidOperationException("Companion rule does not define a format, formatFrom mapping, or defaultFormat.");
     }
 
-    public string? ResolvePath(Ast.AstNode metadataRoot, string? matchedPath = null)
+    public string? ResolvePath(TreeNode metadataRoot, string? matchedPath = null)
     {
         ArgumentNullException.ThrowIfNull(metadataRoot);
 
@@ -75,7 +76,7 @@ public sealed record CompanionRule(
 
         return string.IsNullOrWhiteSpace(PathFrom)
                             ? null
-                            : AstPath.ReadValue(metadataRoot, PathFrom);
+                            : TreePath.ReadValue(metadataRoot, PathFrom);
     }
 
     private static string ResolveStaticPath(string path, string? matchedPath)
@@ -92,13 +93,13 @@ public sealed record CompanionRule(
             : directory + "/" + path;
     }
 
-    private static string ExpandTemplate(Ast.AstNode metadataRoot, string template) => System.Text.RegularExpressions.Regex.Replace(
+    private static string ExpandTemplate(TreeNode metadataRoot, string template) => System.Text.RegularExpressions.Regex.Replace(
             template,
             "\\{(?<path>[^}]+)\\}",
             match =>
             {
                 var path = match.Groups["path"].Value;
-                return AstPath.ReadValue(metadataRoot, path) ??
+                return TreePath.ReadValue(metadataRoot, path) ??
                     throw new InvalidOperationException($"Companion path template references missing metadata path '{path}'.");
             });
 }
@@ -217,9 +218,9 @@ public enum StructuralDiscriminator
     OrderedSlot
 }
 
-public static class AstPath
+public static class TreePath
 {
-    public static string? ReadValue(Ast.AstNode node, string path)
+    public static string? ReadValue(TreeNode node, string path)
     {
         ArgumentNullException.ThrowIfNull(node);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

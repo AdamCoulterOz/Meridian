@@ -7,9 +7,9 @@ This document is for people extending Meridian. If you only want to use Meridian
 Meridian treats a merge as:
 
 ```text
-base source  -> adapter -> base AST
-ours source  -> adapter -> ours AST
-theirs source -> adapter -> theirs AST
+base source  -> adapter -> base tree
+ours source  -> adapter -> ours tree
+theirs source -> adapter -> theirs tree
 
 schema + identity assignment
 three-way structural merge
@@ -22,7 +22,7 @@ Git still supplies the normal three inputs: base, ours, and theirs. Meridian cha
 
 `Meridian.Core` owns format-independent behavior:
 
-- AST document and node contracts;
+- document tree and node contracts;
 - schema model and YAML loading;
 - identity assignment and ambiguity diagnostics;
 - three-way merge mechanics;
@@ -37,10 +37,10 @@ It should not know about product-specific formats such as Power Platform solutio
 
 A format adapter owns everything physical about a format:
 
-- parsing source text into AST nodes;
+- parsing source text into tree nodes;
 - choosing node kinds, field names, and source metadata;
 - escaping and unescaping scalar values;
-- rendering AST nodes back into source text;
+- rendering tree nodes back into source text;
 - deciding which mapped-token contexts are safe for that host language.
 
 Adapters exist under `src/Formats` by cohesive format family:
@@ -75,7 +75,7 @@ This is deliberately schema-driven because order importance is not a property of
 
 ## Nested Content
 
-Nested content lets a scalar node become another AST.
+Nested content lets a scalar node become another document tree.
 
 Example:
 
@@ -83,7 +83,7 @@ Example:
 <Metadata>{"color":"orange"}</Metadata>
 ```
 
-With a schema rule saying `Metadata` is `json`, Meridian expands that scalar into a nested JSON AST before merge. After merging, it collapses the nested AST back through the parent adapter so escaping remains valid for the parent format.
+With a schema rule saying `Metadata` is `json`, Meridian expands that scalar into a nested JSON tree before merge. After merging, it collapses the nested tree back through the parent adapter so escaping remains valid for the parent format.
 
 Conflict projection is intentionally conservative. If unresolved nested conflict markers cannot be safely represented inside the parent scalar, Meridian should fail rather than embed corrupt escaped content.
 
@@ -98,7 +98,7 @@ Current mapped token contexts:
 - `ChildNode`: token appears where a child node can exist.
 - `FieldValue`: token appears inside a field/attribute value.
 
-The mapped adapter stitches host-safe placeholders into the literal source, lets the host parser build an AST, then replaces placeholders with mapped-token AST nodes. If the token location is unsafe, the document falls back to opaque mapped-source behavior.
+The mapped adapter stitches host-safe placeholders into the literal source, lets the host parser build a tree, then replaces placeholders with mapped-token tree nodes. If the token location is unsafe, the document falls back to opaque mapped-source behavior.
 
 This avoids pretending the host language can parse invalid source such as conditionally split XML tags.
 
@@ -121,7 +121,7 @@ The core model is generic. Power Platform WebResource metadata is one consumer u
 - parse Git merge-driver arguments;
 - select an adapter;
 - load an optional schema;
-- call `AstMerger`;
+- call `Merger`;
 - write the result to Git’s `%A` file;
 - return Git-compatible exit codes.
 

@@ -1,4 +1,4 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
@@ -8,15 +8,15 @@ public sealed class RawAdapter : IFormatAdapter
 {
     public string Format => "raw";
 
-    public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
+    public DocumentTree Parse(string sourceText, string? sourcePath, MergeSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return new AstDocument(Format, new AstNode("$raw", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
+        return new DocumentTree(Format, new TreeNode("$raw", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
     }
 
-    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
+    public string RenderDocument(DocumentTree document) => RenderNode(document.Root);
 
-    public string RenderNode(AstNode node) => node.Conflict is null
+    public string RenderNode(TreeNode node) => node.Conflict is null
             ? node.Value ?? string.Empty
             : ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
 }

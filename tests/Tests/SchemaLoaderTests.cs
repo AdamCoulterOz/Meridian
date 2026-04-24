@@ -43,7 +43,7 @@ public sealed class SchemaLoaderTests
     [Fact]
     public void SchemaLoaderCompilesCompanionPathFromMatchedPathRules()
     {
-        var schemaSet = AstSchemaYamlLoader.Load("""
+        var schemaSet = MergeSchemaYamlLoader.Load("""
 schemaVersion: 0.1
 name: test
 files:
@@ -65,7 +65,7 @@ files:
     [Fact]
     public void CompanionPathFromMatchedPathFailsWhenMetadataTemplateDisagrees()
     {
-        var schemaSet = AstSchemaYamlLoader.Load("""
+        var schemaSet = MergeSchemaYamlLoader.Load("""
 schemaVersion: 0.1
 name: test
 files:
@@ -88,7 +88,7 @@ files:
     [Fact]
     public void SchemaLoaderBindsCompanionFormatFromIntegerEnumKeys()
     {
-        var schemaSet = AstSchemaYamlLoader.Load("""
+        var schemaSet = MergeSchemaYamlLoader.Load("""
 schemaVersion: 0.1
 name: test
 files:
@@ -113,9 +113,9 @@ files:
     }
 
     [Fact]
-    public void AstSchemaRoundTripsPolymorphicRuntimeSchemaWithStj()
+    public void MergeSchemaRoundTripsPolymorphicRuntimeSchemaWithStj()
     {
-        var schema = new AstSchema
+        var schema = new MergeSchema
         {
             IdentityRules =
             [
@@ -140,7 +140,7 @@ files:
         };
 
         var json = JsonSerializer.Serialize(schema, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        var roundTripped = JsonSerializer.Deserialize<AstSchema>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var roundTripped = JsonSerializer.Deserialize<MergeSchema>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
         Assert.Contains("\"$type\":\"composite\"", json);
         var composite = Assert.IsType<DiscriminatorKey.Composite>(Assert.Single(roundTripped!.IdentityRules).Key);
@@ -154,7 +154,7 @@ files:
     [Fact]
     public void SchemaLoaderCompilesChildElementDiscriminatorRules()
     {
-        var schemaSet = AstSchemaYamlLoader.Load("""
+        var schemaSet = MergeSchemaYamlLoader.Load("""
 schemaVersion: 0.1
 name: test
 files:
@@ -173,7 +173,7 @@ files:
 </WebResources>
 """, null, schema);
 
-        var result = new AstIdentityAssigner().Assign(document, schema);
+        var result = new IdentityAssigner().Assign(document, schema);
 
         Assert.False(result.HasErrors);
         Assert.Contains("Name=a", result.Document.Root.Children[0].Identity);
@@ -183,7 +183,7 @@ files:
     [Fact]
     public void SchemaLoaderCompilesDescendantCompositeDiscriminatorRules()
     {
-        var schemaSet = AstSchemaYamlLoader.Load("""
+        var schemaSet = MergeSchemaYamlLoader.Load("""
 schemaVersion: 0.1
 name: test
 files:
@@ -216,7 +216,7 @@ files:
 </ImportExportXml>
 """, null, schema);
 
-        var result = new AstIdentityAssigner().Assign(document, schema);
+        var result = new IdentityAssigner().Assign(document, schema);
 
         Assert.False(result.HasErrors);
         Assert.Contains("Dependent/@schemaName=contact", result.Document.Root.Children[0].Children[0].Children[0].Identity);

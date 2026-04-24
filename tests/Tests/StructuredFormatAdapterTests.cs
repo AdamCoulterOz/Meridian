@@ -17,7 +17,7 @@ public sealed class StructuredFormatAdapterTests
     {
         var adapter = new JsonAdapter();
 
-        var document = adapter.Parse("""{"name":"Safety","items":[1,true,null]}""", "test.json", AstSchema.Empty);
+        var document = adapter.Parse("""{"name":"Safety","items":[1,true,null]}""", "test.json", MergeSchema.Empty);
 
         Assert.Equal("$root", document.Root.Kind);
         Assert.Contains(document.Root.Children, child => child.Fields["$name"] == "name");
@@ -31,7 +31,7 @@ public sealed class StructuredFormatAdapterTests
     {
         var adapter = new Json5Adapter();
 
-        var document = adapter.Parse("""{ name: 'MAX', value: 10, trailing: [1, 2,], }""", "test.json5", AstSchema.Empty);
+        var document = adapter.Parse("""{ name: 'MAX', value: 10, trailing: [1, 2,], }""", "test.json5", MergeSchema.Empty);
 
         var rendered = adapter.RenderDocument(document);
         Assert.Contains("\"name\"", rendered);
@@ -49,7 +49,7 @@ kind: AdaptiveDialog
 actions:
   - id: sendMessage
     kind: SendActivity
-""", "data", AstSchema.Empty);
+""", "data", MergeSchema.Empty);
 
         Assert.Contains(document.Root.Children, child => child.Fields["$name"] == "kind");
         var rendered = adapter.RenderDocument(document);
@@ -62,7 +62,7 @@ actions:
     {
         var adapter = new HtmlFragmentAdapter();
 
-        var document = adapter.Parse("""<div class="hero">Hello <strong>team</strong></div>""", "fragment.html", AstSchema.Empty);
+        var document = adapter.Parse("""<div class="hero">Hello <strong>team</strong></div>""", "fragment.html", MergeSchema.Empty);
 
         var rendered = adapter.RenderDocument(document);
         Assert.Contains("<div class=\"hero\">", rendered);
@@ -86,7 +86,7 @@ actions:
 
         foreach (var adapter in adapters)
         {
-            var document = adapter.Parse("{% assign x = 1 %}\nplain text", "payload", AstSchema.Empty);
+            var document = adapter.Parse("{% assign x = 1 %}\nplain text", "payload", MergeSchema.Empty);
 
             Assert.Equal("{% assign x = 1 %}\nplain text", adapter.RenderDocument(document));
         }
@@ -103,7 +103,7 @@ actions:
 {% comment %}hidden {{ value }}{% endcomment %}
 """;
 
-        var document = adapter.Parse(source, "mapped.liquid", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.liquid", MergeSchema.Empty);
 
         Assert.Equal("$liquid", document.Root.Kind);
         Assert.Contains(document.Root.Children, child => child.Fields["$type"] == "output" && child.Value == " page.title ");
@@ -119,7 +119,7 @@ actions:
         var adapter = new LiquidAdapter();
         var source = """Hello {{- user.name -}}{% if user.active -%}yes{%- endif %}""";
 
-        var document = adapter.Parse(source, "mapped.liquid", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.liquid", MergeSchema.Empty);
 
         Assert.Equal(source, adapter.RenderDocument(document));
         Assert.Contains(document.Root.Children, child =>
@@ -140,7 +140,7 @@ actions:
 </ul>
 """;
 
-        var document = adapter.Parse(source, "mapped.xml", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.xml", MergeSchema.Empty);
 
         Assert.Equal("liquid:xml", document.Format);
         Assert.Equal("safe", document.Root.Fields["$mode"]);
@@ -165,10 +165,10 @@ actions:
         var adapter = new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """<div {{ dynamicAttrs }}>Hello</div>""";
 
-        var document = adapter.Parse(source, "mapped.xml", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.xml", MergeSchema.Empty);
 
         Assert.Equal("unsafe", document.Root.Fields["$mode"]);
-        Assert.Contains("no valid xml AST token context", document.Root.Fields["$unsafeReason"]);
+        Assert.Contains("no valid xml tree token context", document.Root.Fields["$unsafeReason"]);
         Assert.Equal(source, adapter.RenderDocument(document));
     }
 
@@ -178,7 +178,7 @@ actions:
         var adapter = new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """<div class="x {{ dynamic }}" id="hero" title="{{ title }}">Hello</div>""";
 
-        var document = adapter.Parse(source, "mapped.xml", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.xml", MergeSchema.Empty);
 
         Assert.Equal(source, adapter.RenderDocument(document));
     }
@@ -189,7 +189,7 @@ actions:
         var adapter = new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """<div data-marker="__MERIDIAN_MAPPED__not-a-real-marker__" class="x {{ dynamic }}"><__meridian_mapped id="mtk000000" /></div>""";
 
-        var document = adapter.Parse(source, "mapped.xml", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.xml", MergeSchema.Empty);
 
         var host = document.Root.Children.Single(child => child.Kind == "$host").Children.Single();
         var fieldValue = host.Children.Single(child => child.Kind == "$fieldValue:class");
@@ -208,7 +208,7 @@ actions:
         var adapter = new JavaScriptAdapter();
         var source = "const answer = 42;\nfunction greet(name) { return `Hi ${name}`; }\n";
 
-        var document = adapter.Parse(source, "script.js", AstSchema.Empty);
+        var document = adapter.Parse(source, "script.js", MergeSchema.Empty);
 
         Assert.Equal("javascript", document.Format);
         Assert.Equal("esprima", document.Root.Fields["parser"]);
@@ -218,22 +218,22 @@ actions:
     [Fact]
     public void NestedJsonInsideXmlIsDecodedAndReEscapedAcrossAdapters()
     {
-        var schema = new AstSchema
+        var schema = new MergeSchema
         {
             ContentRules =
             [
                 new ContentRule(PathSelector.Exact("outer/payload"), "json", "payloadJson")
             ],
-            NestedSchemas = new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase)
+            NestedSchemas = new Dictionary<string, MergeSchema>(StringComparer.OrdinalIgnoreCase)
             {
-                ["payloadJson"] = new AstSchema
+                ["payloadJson"] = new MergeSchema
                 {
                     ContentRules =
                     [
                         new ContentRule(PathSelector.Exact("$root/message"), "html:fragment", "messageHtml")
                     ]
                 },
-                ["messageHtml"] = AstSchema.Empty
+                ["messageHtml"] = MergeSchema.Empty
             }
         };
         var xml = new XmlAdapter();
@@ -300,7 +300,7 @@ actions:
                 _ => "ok"
             };
 
-            Assert.True(registry.TryParse(format, source, null, AstSchema.Empty, out var document));
+            Assert.True(registry.TryParse(format, source, null, MergeSchema.Empty, out var document));
             Assert.Equal(format, document.Format);
             Assert.True(registry.TryRender(format, document, out var rendered));
             Assert.False(string.IsNullOrWhiteSpace(rendered));

@@ -1,10 +1,10 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 
 namespace Meridian.Core.Merging;
 
-public static class AstStructuralComparer
+public static class StructuralComparer
 {
-    public static bool Equals(AstNode? left, AstNode? right)
+    public static bool Equals(TreeNode? left, TreeNode? right)
     {
         if (ReferenceEquals(left, right))
             return true;

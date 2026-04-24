@@ -1,4 +1,4 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Schema;
 
 namespace Meridian.Core.Formats;
@@ -49,7 +49,7 @@ public sealed class FormatRegistry : IFormatRegistry
         }
     }
 
-    public bool TryParse(string format, string sourceText, string? sourcePath, AstSchema schema, out AstDocument document)
+    public bool TryParse(string format, string sourceText, string? sourcePath, MergeSchema schema, out DocumentTree document)
     {
         if (TryResolveAdapterFormat(format, out var adapterFormat) &&
             _adapters.TryGetValue(adapterFormat, out var adapter))
@@ -65,7 +65,7 @@ public sealed class FormatRegistry : IFormatRegistry
         return false;
     }
 
-    public bool TryRender(string format, AstDocument document, out string sourceText)
+    public bool TryRender(string format, DocumentTree document, out string sourceText)
     {
         ArgumentNullException.ThrowIfNull(document);
 

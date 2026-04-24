@@ -1,6 +1,6 @@
 using Esprima;
 using Esprima.Utils;
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
@@ -11,27 +11,27 @@ public sealed class JavaScriptAdapter : IFormatAdapter
 {
     public string Format => "javascript";
 
-    public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
+    public DocumentTree Parse(string sourceText, string? sourcePath, MergeSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
         var parser = new JavaScriptParser(new ParserOptions { Tolerant = false });
         var program = parser.ParseScript(sourceText, sourcePath);
-        var fields = AstNodeMetadata.Create("script");
+        var fields = NodeMetadata.Create("script");
         fields["parser"] = "esprima";
         fields["sourceType"] = program.SourceType.ToString();
         fields["bodyCount"] = program.Body.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-        return new AstDocument(
+        return new DocumentTree(
             Format,
-            new AstNode("$javascript", fields, sourceText, sourceText: program.ToJsonString(indent: "  ")),
+            new TreeNode("$javascript", fields, sourceText, sourceText: program.ToJsonString(indent: "  ")),
             sourcePath,
             sourceText);
     }
 
-    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
+    public string RenderDocument(DocumentTree document) => RenderNode(document.Root);
 
-    public string RenderNode(AstNode node) => node.Conflict is null
+    public string RenderNode(TreeNode node) => node.Conflict is null
             ? node.Value ?? string.Empty
             : ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
 }

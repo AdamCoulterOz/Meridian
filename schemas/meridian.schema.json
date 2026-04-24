@@ -318,7 +318,7 @@
       }
     },
     "pathSelector": {
-      "description": "Selects AST paths. A string is an exact path unless it contains * or **, in which case Meridian converts it to a regex. Object form supports explicit regex or runtime pattern/isRegex.",
+      "description": "Selects document tree paths. A string is an exact path unless it contains * or **, in which case Meridian converts it to a regex. Object form supports explicit regex or runtime pattern/isRegex.",
       "oneOf": [
         {
           "type": "string",
@@ -331,7 +331,7 @@
           "properties": {
             "regex": {
               "type": "string",
-              "description": "Explicit regular expression used to match AST paths."
+              "description": "Explicit regular expression used to match document tree paths."
             }
           }
         },
@@ -396,11 +396,11 @@
         },
         "pathTemplate": {
           "type": "string",
-          "description": "Companion path template expanded from metadata AST values. Placeholders are AST paths in braces, for example WebResources/{WebResource/Name}."
+          "description": "Companion path template expanded from metadata tree values. Placeholders are document tree paths in braces, for example WebResources/{WebResource/Name}."
         },
         "pathFrom": {
           "type": "string",
-          "description": "AST path whose value is the companion path."
+          "description": "Document tree path whose value is the companion path."
         },
         "pathFromMatchedPath": {
           "$ref": "#/$defs/pathFromMatchedPathRule"
@@ -474,7 +474,7 @@
       "properties": {
         "path": {
           "type": "string",
-          "description": "AST path to the metadata value that selects the format."
+          "description": "Document tree path to the metadata value that selects the format."
         },
         "enum": {
           "description": "Map from metadata values to logical format names. YAML integer keys are accepted and treated as scalar integer values by Meridian.",

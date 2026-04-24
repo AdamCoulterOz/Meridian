@@ -2,22 +2,22 @@ using System.Text.Json.Serialization;
 
 namespace Meridian.Core.Schema;
 
-public sealed record AstSchemaSet(
+public sealed record MergeSchemaSet(
     string? SchemaVersion,
     string? Name,
-    AstSchema Defaults,
-    IReadOnlyDictionary<string, AstSchema> NestedSchemas,
+    MergeSchema Defaults,
+    IReadOnlyDictionary<string, MergeSchema> NestedSchemas,
     IReadOnlyList<FileSchemaRule> Files)
 {
     public IReadOnlyDictionary<string, string> FormatAliases { get; init; } =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-    public AstSchema CompileForFile(string path, string? root = null)
+    public MergeSchema CompileForFile(string path, string? root = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        var defaults = Defaults ?? AstSchema.Empty;
-        var nestedSchemas = NestedSchemas ?? new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase);
+        var defaults = Defaults ?? MergeSchema.Empty;
+        var nestedSchemas = NestedSchemas ?? new Dictionary<string, MergeSchema>(StringComparer.OrdinalIgnoreCase);
         var files = Files ?? [];
 
         var matchingFiles = files

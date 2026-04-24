@@ -1,4 +1,4 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Schema;
 
@@ -37,9 +37,9 @@ public static class MappedTokenFields
 public interface IMappedSourceAdapter : IFormatAdapter
 {
     string SourceName { get; }
-    bool IsLiteralNode(AstNode node);
-    string GetMappedKind(AstNode node);
-    string RenderMappedNode(AstNode node);
+    bool IsLiteralNode(TreeNode node);
+    string GetMappedKind(TreeNode node);
+    string RenderMappedNode(TreeNode node);
 }
 
 public interface IMappedTokenContextTracker
@@ -55,6 +55,6 @@ public interface IMappedHost
     IMappedTokenContextTracker CreateTokenContextTracker();
     bool CanRepresent(MappedToken token, MappedTokenContext context, out string? unsupportedReason);
     bool TryCreateToken(MappedToken token, MappedTokenContext context, out MappedTokenShape shape);
-    AstDocument ParseHostWithMappedTokens(string sourceText, string? sourcePath, AstSchema schema);
-    string RenderHostWithMappedTokens(AstDocument document, IReadOnlyDictionary<string, string> mappedSourceByTokenId);
+    DocumentTree ParseHostWithMappedTokens(string sourceText, string? sourcePath, MergeSchema schema);
+    string RenderHostWithMappedTokens(DocumentTree document, IReadOnlyDictionary<string, string> mappedSourceByTokenId);
 }

@@ -1,4 +1,4 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Schema;
 
@@ -6,7 +6,7 @@ namespace Meridian.Core.Formats.Nested;
 
 public sealed class NestedContentExpander
 {
-    public static AstDocument Expand(AstDocument document, AstSchema schema, IFormatRegistry registry)
+    public static DocumentTree Expand(DocumentTree document, MergeSchema schema, IFormatRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(schema);
@@ -15,20 +15,20 @@ public sealed class NestedContentExpander
         return Expand(document, schema, registry, schema.NestedSchemas);
     }
 
-    private static AstDocument Expand(
-        AstDocument document,
-        AstSchema schema,
+    private static DocumentTree Expand(
+        DocumentTree document,
+        MergeSchema schema,
         IFormatRegistry registry,
-        IReadOnlyDictionary<string, AstSchema> schemaCatalog) => document with
+        IReadOnlyDictionary<string, MergeSchema> schemaCatalog) => document with
         {
             Root = ExpandNode(document.Root, schema, registry, schemaCatalog, document.Root.Path ?? document.Root.Kind)
         };
 
-    private static AstNode ExpandNode(
-        AstNode node,
-        AstSchema schema,
+    private static TreeNode ExpandNode(
+        TreeNode node,
+        MergeSchema schema,
         IFormatRegistry registry,
-        IReadOnlyDictionary<string, AstSchema> schemaCatalog,
+        IReadOnlyDictionary<string, MergeSchema> schemaCatalog,
         string path)
     {
         var children = node.Children
@@ -46,7 +46,7 @@ public sealed class NestedContentExpander
             if (!string.IsNullOrWhiteSpace(contentRule.SchemaRef))
                 contentFields["schemaRef"] = contentRule.SchemaRef;
 
-            children.Add(new AstNode(
+            children.Add(new TreeNode(
                                         "$content",
                                         contentFields,
                                         children: [expandedNestedDocument.Root]));
@@ -57,9 +57,9 @@ public sealed class NestedContentExpander
         return node.WithChildren(children);
     }
 
-    private static AstSchema ResolveNestedSchema(
-        AstSchema schema,
-        IReadOnlyDictionary<string, AstSchema> schemaCatalog,
+    private static MergeSchema ResolveNestedSchema(
+        MergeSchema schema,
+        IReadOnlyDictionary<string, MergeSchema> schemaCatalog,
         ContentRule contentRule)
     {
         if (string.IsNullOrWhiteSpace(contentRule.SchemaRef))

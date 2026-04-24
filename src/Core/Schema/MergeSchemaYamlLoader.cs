@@ -3,23 +3,23 @@ using YamlDotNet.Serialization;
 
 namespace Meridian.Core.Schema;
 
-public static class AstSchemaYamlLoader
+public static class MergeSchemaYamlLoader
 {
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder().Build();
 
-    public static AstSchemaSet Load(string yaml)
+    public static MergeSchemaSet Load(string yaml)
     {
         ArgumentNullException.ThrowIfNull(yaml);
 
         var yamlObject = YamlDeserializer.Deserialize<object>(yaml) ??
             throw new InvalidOperationException("Schema YAML must contain a root mapping.");
-        var json = JsonSerializer.Serialize(ToJsonCompatible(yamlObject), AstSchemaJson.Options);
+        var json = JsonSerializer.Serialize(ToJsonCompatible(yamlObject), MergeSchemaJson.Options);
 
-        return JsonSerializer.Deserialize<AstSchemaSet>(json, AstSchemaJson.Options) ??
-            throw new InvalidOperationException("Schema YAML could not be converted into an AST schema set.");
+        return JsonSerializer.Deserialize<MergeSchemaSet>(json, MergeSchemaJson.Options) ??
+            throw new InvalidOperationException("Schema YAML could not be converted into a merge schema set.");
     }
 
-    public static AstSchemaSet LoadFile(string path)
+    public static MergeSchemaSet LoadFile(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return Load(File.ReadAllText(path));

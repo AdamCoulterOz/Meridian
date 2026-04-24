@@ -2,14 +2,14 @@
 
 ## Project Purpose And Current State
 
-Meridian is a general-purpose AST-aware three-way merge toolkit.
+Meridian is a general-purpose structure-aware three-way merge toolkit.
 
 It provides a format-agnostic merge core, pluggable format adapters, schema-driven node identity rules, nested content traversal, and a Git merge-driver command. Domain-specific repositories, such as PowerSource, should use Meridian by supplying schemas and workflow tooling rather than embedding domain rules in Meridian itself.
 
 Current state:
 
 - The repository targets .NET 11.
-- The core AST merge model and schema loader are implemented.
+- The core document tree merge model and schema loader are implemented.
 - Consumer usage is documented in `README.md`; deeper extension notes live in `docs/architecture.md`.
 - The Meridian schema authoring contract is documented as JSON Schema in `schemas/meridian.schema.json`, including descriptions for editor and LLM-assisted generation.
 - XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid, mapped-text fallback, CSS, image placeholder, `xap`, and raw adapters exist. Closely related external adapters are grouped into format-family projects under `src/Formats`.
@@ -19,7 +19,7 @@ Current state:
 
 ## Architecture And Structure
 
-- `src/Core` contains AST contracts, schema model/loading, identity assignment, three-way merge mechanics, conflict marker helpers, and generic format infrastructure.
+- `src/Core` contains document tree contracts, schema model/loading, identity assignment, three-way merge mechanics, conflict marker helpers, and generic format infrastructure.
 - `src/Core/Formats/Nested` contains nested content expansion/collapse.
 - `src/Core/Formats/Mapped` contains mapped-text fallback, mapped format composition, and mapped token contracts.
 - `src/Formats/Data` contains XML, JSON, JSON5, and YAML adapters.
@@ -32,7 +32,7 @@ Current state:
 ## Key Decisions And Invariants
 
 - Meridian is domain-neutral. Product-specific knowledge must live in external schemas or wrapper tools.
-- The merge engine operates on AST nodes, not plain text.
+- The merge engine operates on tree nodes, not plain text.
 - Format adapters own parsing, physical representation, escaping/encoding, and write-back behavior.
 - Format adapter projects are grouped by cohesive format family. Shared format helper assemblies should be avoided unless the shared contract is genuinely format-agnostic and belongs outside a concrete adapter.
 - Git integration remains outside `Meridian.Core`.
@@ -46,9 +46,9 @@ Current state:
 ## Mapped Format Model
 
 - Mapped format adapters compose a mapped source and a host format as `source:host`, such as `liquid:xml`.
-- Mapped sources parse mapped tokens; host adapters decide which AST-relative token contexts are safe.
+- Mapped sources parse mapped tokens; host adapters decide which tree-relative token contexts are safe.
 - Current token contexts are `ChildNode` and `FieldValue`.
-- Host context tracking can return multiple possible AST contexts. The composed adapter chooses the first context the host can represent.
+- Host context tracking can return multiple possible tree contexts. The composed adapter chooses the first context the host can represent.
 - Raw host syntax is not a valid token context; unsupported locations should make the document unsafe.
 - XML currently represents mapped tokens as child-node tokens and field-value tokens.
 - XML field-value support is a flat sequence of text and tokens; richer expression trees need explicit host representation before being marked safe.

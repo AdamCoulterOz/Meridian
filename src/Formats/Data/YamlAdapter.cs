@@ -1,5 +1,5 @@
 using System.Globalization;
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
@@ -13,7 +13,7 @@ public sealed class YamlAdapter : IFormatAdapter
 
     public string Format => "yaml";
 
-    public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
+    public DocumentTree Parse(string sourceText, string? sourcePath, MergeSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
@@ -22,12 +22,12 @@ public sealed class YamlAdapter : IFormatAdapter
         if (stream.Documents.Count == 0)
             throw new InvalidOperationException("YAML document is empty.");
 
-        return new AstDocument(Format, ParseNode(stream.Documents[0].RootNode, "$root"), sourcePath, sourceText);
+        return new DocumentTree(Format, ParseNode(stream.Documents[0].RootNode, "$root"), sourcePath, sourceText);
     }
 
-    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
+    public string RenderDocument(DocumentTree document) => RenderNode(document.Root);
 
-    public string RenderNode(AstNode node)
+    public string RenderNode(TreeNode node)
     {
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
@@ -38,7 +38,7 @@ public sealed class YamlAdapter : IFormatAdapter
         return writer.ToString();
     }
 
-    private static AstNode ParseNode(YamlNode node, string kind) => node switch
+    private static TreeNode ParseNode(YamlNode node, string kind) => node switch
     {
         YamlMappingNode mapping => ParseMapping(mapping, kind),
         YamlSequenceNode sequence => ParseSequence(sequence, kind),
@@ -46,7 +46,7 @@ public sealed class YamlAdapter : IFormatAdapter
         _ => throw new NotSupportedException($"Unsupported YAML node type '{node.GetType().Name}'.")
     };
 
-    private static AstNode ParseMapping(YamlMappingNode mapping, string kind)
+    private static TreeNode ParseMapping(YamlMappingNode mapping, string kind)
     {
         var children = mapping.Children.Select(pair =>
         {
@@ -54,37 +54,37 @@ public sealed class YamlAdapter : IFormatAdapter
                 throw new NotSupportedException("Only scalar YAML mapping keys are supported.");
 
             var name = key.Value ?? string.Empty;
-            var child = ParseNode(pair.Value, AstNodeMetadata.EncodeKind(name));
+            var child = ParseNode(pair.Value, NodeMetadata.EncodeKind(name));
             return child with { Fields = AddName(child.Fields, name) };
         }).ToArray();
 
-        return new AstNode(kind, AstNodeMetadata.Create("mapping"), children: children);
+        return new TreeNode(kind, NodeMetadata.Create("mapping"), children: children);
     }
 
-    private static AstNode ParseSequence(YamlSequenceNode sequence, string kind)
+    private static TreeNode ParseSequence(YamlSequenceNode sequence, string kind)
     {
         var children = sequence.Children
             .Select((item, index) => ParseNode(item, $"$item{index:D6}"))
             .ToArray();
 
-        return new AstNode(kind, AstNodeMetadata.Create("sequence"), children: children);
+        return new TreeNode(kind, NodeMetadata.Create("sequence"), children: children);
     }
 
-    private static AstNode ParseScalar(YamlScalarNode scalar, string kind)
+    private static TreeNode ParseScalar(YamlScalarNode scalar, string kind)
     {
-        var fields = AstNodeMetadata.Create("scalar");
+        var fields = NodeMetadata.Create("scalar");
         fields[ScalarStyleField] = scalar.Style.ToString();
-        return new AstNode(kind, fields, scalar.Value);
+        return new TreeNode(kind, fields, scalar.Value);
     }
 
     private static IReadOnlyDictionary<string, string> AddName(IReadOnlyDictionary<string, string> fields, string name)
     {
         var copy = fields.ToDictionary(field => field.Key, field => field.Value, StringComparer.Ordinal);
-        copy[AstNodeMetadata.NameField] = name;
+        copy[NodeMetadata.NameField] = name;
         return copy;
     }
 
-    private static YamlNode RenderYamlNode(AstNode node)
+    private static YamlNode RenderYamlNode(TreeNode node)
     {
         var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
@@ -98,7 +98,7 @@ public sealed class YamlAdapter : IFormatAdapter
         };
     }
 
-    private static YamlMappingNode RenderMapping(AstNode node)
+    private static YamlMappingNode RenderMapping(TreeNode node)
     {
         var mapping = new YamlMappingNode();
         foreach (var child in node.Children)
@@ -107,7 +107,7 @@ public sealed class YamlAdapter : IFormatAdapter
         return mapping;
     }
 
-    private static YamlSequenceNode RenderSequence(AstNode node)
+    private static YamlSequenceNode RenderSequence(TreeNode node)
     {
         var sequence = new YamlSequenceNode();
         foreach (var child in node.Children)

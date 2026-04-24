@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace Meridian.Core.Schema;
 
-public static class AstSchemaJson
+public static class MergeSchemaJson
 {
     public static JsonSerializerOptions Options { get; } = CreateOptions();
 

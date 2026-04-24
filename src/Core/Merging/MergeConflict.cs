@@ -1,4 +1,4 @@
-namespace Meridian.Core.Ast;
+namespace Meridian.Core.Merging;
 
 public sealed record MergeConflict(
     ConflictKind Kind,

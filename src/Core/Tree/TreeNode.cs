@@ -1,12 +1,14 @@
-namespace Meridian.Core.Ast;
+using Meridian.Core.Merging;
 
-public sealed record AstNode
+namespace Meridian.Core.Tree;
+
+public sealed record TreeNode
 {
-    public AstNode(
+    public TreeNode(
         string kind,
         IReadOnlyDictionary<string, string>? fields = null,
         string? value = null,
-        IReadOnlyList<AstNode>? children = null,
+        IReadOnlyList<TreeNode>? children = null,
         string? path = null,
         string? identity = null,
         string? sourceText = null,
@@ -23,7 +25,7 @@ public sealed record AstNode
     }
 
     private static readonly IReadOnlyDictionary<string, string> EmptyFields = new Dictionary<string, string>();
-    private static readonly IReadOnlyList<AstNode> EmptyChildren = [];
+    private static readonly IReadOnlyList<TreeNode> EmptyChildren = [];
 
     public string Kind { get; }
 
@@ -31,7 +33,7 @@ public sealed record AstNode
 
     public string? Value { get; init; }
 
-    public IReadOnlyList<AstNode> Children { get; init; }
+    public IReadOnlyList<TreeNode> Children { get; init; }
 
     public string? Path { get; init; }
 
@@ -43,13 +45,13 @@ public sealed record AstNode
 
     public bool IsConflict => Conflict is not null;
 
-    public AstNode WithChildren(IReadOnlyList<AstNode> children) => this with { Children = children };
+    public TreeNode WithChildren(IReadOnlyList<TreeNode> children) => this with { Children = children };
 
-    public AstNode WithFields(IReadOnlyDictionary<string, string> fields) => this with { Fields = fields };
+    public TreeNode WithFields(IReadOnlyDictionary<string, string> fields) => this with { Fields = fields };
 
-    public AstNode WithValue(string? value) => this with { Value = value };
+    public TreeNode WithValue(string? value) => this with { Value = value };
 
-    public AstNode WithPathAndIdentity(string path, string identity) => this with { Path = path, Identity = identity };
+    public TreeNode WithPathAndIdentity(string path, string identity) => this with { Path = path, Identity = identity };
 
-    public static AstNode ConflictNode(string kind, string path, string identity, MergeConflict conflict) => new(kind, path: path, identity: identity, conflict: conflict);
+    public static TreeNode ConflictNode(string kind, string path, string identity, MergeConflict conflict) => new(kind, path: path, identity: identity, conflict: conflict);
 }

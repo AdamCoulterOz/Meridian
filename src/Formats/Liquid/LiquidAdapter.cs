@@ -1,4 +1,4 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats.Mapped;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
@@ -17,20 +17,20 @@ public class LiquidAdapter : IMappedSourceAdapter
 
     public string SourceName => "liquid";
 
-    public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
+    public DocumentTree Parse(string sourceText, string? sourcePath, MergeSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
-        return new AstDocument(
+        return new DocumentTree(
             Format,
-            new AstNode("$liquid", AstNodeMetadata.Create("document"), children: ParseTokens(sourceText)),
+            new TreeNode("$liquid", NodeMetadata.Create("document"), children: ParseTokens(sourceText)),
             sourcePath,
             sourceText);
     }
 
-    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
+    public string RenderDocument(DocumentTree document) => RenderNode(document.Root);
 
-    public string RenderNode(AstNode node)
+    public string RenderNode(TreeNode node)
     {
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
@@ -49,10 +49,10 @@ public class LiquidAdapter : IMappedSourceAdapter
         };
     }
 
-    public bool IsLiteralNode(AstNode node) => node.TryGetMetadataType(out var nodeType) &&
+    public bool IsLiteralNode(TreeNode node) => node.TryGetMetadataType(out var nodeType) &&
             string.Equals(nodeType, "text", StringComparison.Ordinal);
 
-    public string GetMappedKind(AstNode node) => node.TryGetMetadataType(out var nodeType)
+    public string GetMappedKind(TreeNode node) => node.TryGetMetadataType(out var nodeType)
             ? nodeType switch
             {
                 "output" => "output",
@@ -63,11 +63,11 @@ public class LiquidAdapter : IMappedSourceAdapter
             }
             : "unknown";
 
-    public string RenderMappedNode(AstNode node) => RenderNode(node);
+    public string RenderMappedNode(TreeNode node) => RenderNode(node);
 
-    private static IReadOnlyList<AstNode> ParseTokens(string source)
+    private static IReadOnlyList<TreeNode> ParseTokens(string source)
     {
-        var tokens = new List<AstNode>();
+        var tokens = new List<TreeNode>();
         var position = 0;
         var ordinal = 0;
 
@@ -112,49 +112,49 @@ public class LiquidAdapter : IMappedSourceAdapter
         return tokens;
     }
 
-    private static void AddText(List<AstNode> tokens, string text, ref int ordinal)
+    private static void AddText(List<TreeNode> tokens, string text, ref int ordinal)
     {
         if (text.Length == 0)
             return;
 
-        tokens.Add(new AstNode(
+        tokens.Add(new TreeNode(
                             $"$text{ordinal++:D6}",
-                            AstNodeMetadata.Create("text"),
+                            NodeMetadata.Create("text"),
                             text));
     }
 
-    private static AstNode CreateToken(string kindPrefix, string type, DelimitedToken token, ref int ordinal, string? tagName = null)
+    private static TreeNode CreateToken(string kindPrefix, string type, DelimitedToken token, ref int ordinal, string? tagName = null)
     {
-        var fields = AstNodeMetadata.Create(type);
+        var fields = NodeMetadata.Create(type);
         fields[OpenField] = token.Open;
         fields[CloseField] = token.Close;
         if (!string.IsNullOrWhiteSpace(tagName))
             fields[TagNameField] = tagName;
 
-        return new AstNode($"{kindPrefix}{ordinal++:D6}", fields, token.Inner);
+        return new TreeNode($"{kindPrefix}{ordinal++:D6}", fields, token.Inner);
     }
 
-    private static AstNode CreateBlockToken(string tagName, DelimitedToken startTag, string body, DelimitedToken endTag, ref int ordinal)
+    private static TreeNode CreateBlockToken(string tagName, DelimitedToken startTag, string body, DelimitedToken endTag, ref int ordinal)
     {
         var type = string.Equals(tagName, "raw", StringComparison.OrdinalIgnoreCase)
             ? "rawBlock"
             : "commentBlock";
-        var fields = AstNodeMetadata.Create(type);
+        var fields = NodeMetadata.Create(type);
         fields[TagNameField] = tagName;
         fields[StartTagField] = startTag.FullText;
         fields[EndTagField] = endTag.FullText;
 
-        return new AstNode($"${tagName}{ordinal++:D6}", fields, body);
+        return new TreeNode($"${tagName}{ordinal++:D6}", fields, body);
     }
 
-    private static string RenderInlineLiquidToken(AstNode node)
+    private static string RenderInlineLiquidToken(TreeNode node)
     {
         var open = node.Fields.TryGetValue(OpenField, out var openValue) ? openValue : "{%";
         var close = node.Fields.TryGetValue(CloseField, out var closeValue) ? closeValue : "%}";
         return open + (node.Value ?? string.Empty) + close;
     }
 
-    private static string RenderBlockLiquidToken(AstNode node)
+    private static string RenderBlockLiquidToken(TreeNode node)
     {
         var startTag = node.Fields.TryGetValue(StartTagField, out var startValue) ? startValue : string.Empty;
         var endTag = node.Fields.TryGetValue(EndTagField, out var endValue) ? endValue : string.Empty;

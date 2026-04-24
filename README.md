@@ -298,13 +298,13 @@ using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 using Meridian.Formats.Data;
 
-var schema = AstSchemaYamlLoader
+var schema = MergeSchemaYamlLoader
     .LoadFile("meridian.schema.yaml")
     .CompileForFile("catalog.xml", "Catalog");
 
 var xml = new XmlAdapter();
 
-var result = new AstMerger().Merge(
+var result = new Merger().Merge(
     xml.Parse(File.ReadAllText("base.xml"), "catalog.xml", schema),
     xml.Parse(File.ReadAllText("ours.xml"), "catalog.xml", schema),
     xml.Parse(File.ReadAllText("theirs.xml"), "catalog.xml", schema),

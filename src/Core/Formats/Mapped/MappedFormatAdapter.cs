@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
@@ -22,7 +22,7 @@ public sealed class MappedFormatAdapter : IFormatAdapter
 
     public string Format => _mappedSource.SourceName + ":" + _host.HostFormat;
 
-    public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
+    public DocumentTree Parse(string sourceText, string? sourcePath, MergeSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
@@ -38,11 +38,11 @@ public sealed class MappedFormatAdapter : IFormatAdapter
         try
         {
             var hostDocument = _host.ParseHostWithMappedTokens(stitched.Source, sourcePath, schema);
-            return new AstDocument(
+            return new DocumentTree(
                 Format,
                 CreateRoot("safe",
                 [
-                    new AstNode("$host", AstNodeMetadata.Create("host"), children: [hostDocument.Root]),
+                    new TreeNode("$host", NodeMetadata.Create("host"), children: [hostDocument.Root]),
                     CreateMappedCollection(stitched.Tokens)
                 ]),
                 sourcePath,
@@ -58,9 +58,9 @@ public sealed class MappedFormatAdapter : IFormatAdapter
         }
     }
 
-    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
+    public string RenderDocument(DocumentTree document) => RenderNode(document.Root);
 
-    public string RenderNode(AstNode node)
+    public string RenderNode(TreeNode node)
     {
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
@@ -72,7 +72,7 @@ public sealed class MappedFormatAdapter : IFormatAdapter
         if (string.Equals(mode, "unsafe", StringComparison.Ordinal))
         {
             var mapped = node.Children.Single(child => string.Equals(child.Kind, "$mapped", StringComparison.Ordinal));
-            return _mappedSource.RenderNode(new AstNode(
+            return _mappedSource.RenderNode(new TreeNode(
                 mapped.Kind,
                 mapped.Fields,
                 mapped.Value,
@@ -88,10 +88,10 @@ public sealed class MappedFormatAdapter : IFormatAdapter
                 child => child.Value ?? string.Empty,
                 StringComparer.Ordinal);
 
-        return _host.RenderHostWithMappedTokens(new AstDocument(_host.HostFormat, hostRoot), mappedSources);
+        return _host.RenderHostWithMappedTokens(new DocumentTree(_host.HostFormat, hostRoot), mappedSources);
     }
 
-    private StitchedHost Stitch(IReadOnlyList<AstNode> mappedNodes, string markerNonce)
+    private StitchedHost Stitch(IReadOnlyList<TreeNode> mappedNodes, string markerNonce)
     {
         var tracker = _host.CreateTokenContextTracker();
         var stitched = new StringBuilder();
@@ -114,7 +114,7 @@ public sealed class MappedFormatAdapter : IFormatAdapter
                     stitched.ToString(),
                     tokens,
                     IsSafe: false,
-                    UnsafeReason: $"mapped token '{id}' has no valid {_host.HostFormat} AST token context. {contextReason}");
+                    UnsafeReason: $"mapped token '{id}' has no valid {_host.HostFormat} tree token context. {contextReason}");
 
             var context = default(MappedTokenContext);
             string? unsupportedReason = null;
@@ -186,15 +186,15 @@ public sealed class MappedFormatAdapter : IFormatAdapter
 
     private static string CreatePhysicalMarker(string markerNonce, string tokenId) => MappedTokenFields.MarkerPrefix + markerNonce + "__" + tokenId + MappedTokenFields.MarkerSuffix;
 
-    private AstDocument CreateUnsafeDocument(
+    private DocumentTree CreateUnsafeDocument(
         string sourceText,
         string? sourcePath,
-        AstDocument mappedDocument,
+        DocumentTree mappedDocument,
         string unsafeReason) => new(
             Format,
             CreateRoot("unsafe", unsafeReason,
             [
-                new AstNode(
+                new TreeNode(
                     "$mapped",
                     mappedDocument.Root.Fields,
                     sourceText,
@@ -203,34 +203,34 @@ public sealed class MappedFormatAdapter : IFormatAdapter
             sourcePath,
             sourceText);
 
-    private AstNode CreateRoot(string mode, IReadOnlyList<AstNode> children) => CreateRoot(mode, null, children);
+    private TreeNode CreateRoot(string mode, IReadOnlyList<TreeNode> children) => CreateRoot(mode, null, children);
 
-    private AstNode CreateRoot(string mode, string? unsafeReason, IReadOnlyList<AstNode> children)
+    private TreeNode CreateRoot(string mode, string? unsafeReason, IReadOnlyList<TreeNode> children)
     {
-        var fields = AstNodeMetadata.Create("mappedFormat");
+        var fields = NodeMetadata.Create("mappedFormat");
         fields[MappedTokenFields.Source] = _mappedSource.SourceName;
         fields[MappedTokenFields.HostFormat] = _host.HostFormat;
         fields[MappedTokenFields.Mode] = mode;
         if (!string.IsNullOrWhiteSpace(unsafeReason))
             fields[MappedTokenFields.UnsafeReason] = unsafeReason;
 
-        return new AstNode("$mapped", fields, children: children);
+        return new TreeNode("$mapped", fields, children: children);
     }
 
-    private static AstNode CreateMappedCollection(IReadOnlyList<MappedTokenReference> tokens) => new(
+    private static TreeNode CreateMappedCollection(IReadOnlyList<MappedTokenReference> tokens) => new(
             "$mappedTokens",
-            AstNodeMetadata.Create("mappedCollection"),
+            NodeMetadata.Create("mappedCollection"),
             children: tokens.Select(CreateMappedNode).ToArray());
 
-    private static AstNode CreateMappedNode(MappedTokenReference token)
+    private static TreeNode CreateMappedNode(MappedTokenReference token)
     {
-        var fields = AstNodeMetadata.Create("mappedToken");
+        var fields = NodeMetadata.Create("mappedToken");
         fields[MappedTokenFields.TokenId] = token.Token.Id;
         fields[MappedTokenFields.SemanticKey] = token.Token.SemanticKey;
         fields[MappedTokenFields.Source] = token.Token.Source;
         fields[MappedTokenFields.MappedKind] = token.Token.Kind;
         fields[MappedTokenFields.Context] = token.Context.ToString();
-        return new AstNode("$mapped" + token.Token.Id, fields, token.Token.SourceText);
+        return new TreeNode("$mapped" + token.Token.Id, fields, token.Token.SourceText);
     }
 
     private sealed record StitchedHost(

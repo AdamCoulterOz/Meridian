@@ -1,6 +1,6 @@
-namespace Meridian.Core.Ast;
+namespace Meridian.Core.Tree;
 
-public static class AstNodeMetadata
+public static class NodeMetadata
 {
     public const string NameField = "$name";
     public const string TypeField = "$type";
@@ -29,19 +29,19 @@ public static class AstNodeMetadata
         return fields;
     }
 
-    public static string GetMetadataName(this AstNode node)
+    public static string GetMetadataName(this TreeNode node)
     {
         ArgumentNullException.ThrowIfNull(node);
         return node.Fields.TryGetValue(NameField, out var name) ? name : node.Kind;
     }
 
-    public static bool TryGetMetadataType(this AstNode node, out string? type)
+    public static bool TryGetMetadataType(this TreeNode node, out string? type)
     {
         ArgumentNullException.ThrowIfNull(node);
         return node.Fields.TryGetValue(TypeField, out type);
     }
 
-    public static IReadOnlyDictionary<string, string> VisibleFields(this AstNode node)
+    public static IReadOnlyDictionary<string, string> VisibleFields(this TreeNode node)
     {
         ArgumentNullException.ThrowIfNull(node);
         return node.Fields

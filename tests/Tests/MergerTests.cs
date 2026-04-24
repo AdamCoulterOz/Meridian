@@ -1,4 +1,4 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Formats.Mapped;
 using Meridian.Core.Formats.Nested;
@@ -9,9 +9,9 @@ using Meridian.Formats.Data;
 
 namespace Meridian.Tests;
 
-public sealed class AstMergerTests
+public sealed class MergerTests
 {
-    private static readonly AstSchema DefaultSchema = new()
+    private static readonly MergeSchema DefaultSchema = new()
     {
         GlobalDiscriminatorFields = ["id", "Id", "languagecode"]
     };
@@ -23,7 +23,7 @@ public sealed class AstMergerTests
     {
         var document = Parse("""<root><item Id="A" /><item Id="B" /></root>""");
 
-        var result = new AstIdentityAssigner().Assign(document, DefaultSchema);
+        var result = new IdentityAssigner().Assign(document, DefaultSchema);
 
         Assert.False(result.HasErrors);
         Assert.Contains("Id=A", result.Document.Root.Children[0].Identity);
@@ -35,7 +35,7 @@ public sealed class AstMergerTests
     {
         var document = Parse("""<root><item /><item /></root>""");
 
-        var result = new AstIdentityAssigner().Assign(document, DefaultSchema);
+        var result = new IdentityAssigner().Assign(document, DefaultSchema);
 
         Assert.True(result.HasErrors);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Path == "root");
@@ -52,17 +52,17 @@ public sealed class AstMergerTests
         {
             [MappedTokenFields.SemanticKey] = "field:title/mapped:0"
         };
-        var document = new AstDocument(
+        var document = new DocumentTree(
             "test",
-            new AstNode(
+            new TreeNode(
                 "root",
                 children:
                 [
-                    new AstNode("$mappedToken", firstFields),
-                    new AstNode("$mappedToken", secondFields)
+                    new TreeNode("$mappedToken", firstFields),
+                    new TreeNode("$mappedToken", secondFields)
                 ]));
 
-        var result = new AstIdentityAssigner().Assign(document, AstSchema.Empty);
+        var result = new IdentityAssigner().Assign(document, MergeSchema.Empty);
 
         Assert.False(result.HasErrors);
         Assert.Contains(MappedTokenFields.SemanticKey + "=field:class/mapped:0", result.Document.Root.Children[0].Identity);
@@ -72,7 +72,7 @@ public sealed class AstMergerTests
     [Fact]
     public void UnorderedChildrenMergeIndependentAdds()
     {
-        var schema = new AstSchema
+        var schema = new MergeSchema
         {
             GlobalDiscriminatorFields = ["id", "Id", "languagecode"]
         };
@@ -118,7 +118,7 @@ public sealed class AstMergerTests
     [Fact]
     public void OrderedChildrenConflictWhenBothSidesReorderDifferently()
     {
-        var schema = new AstSchema
+        var schema = new MergeSchema
         {
             GlobalDiscriminatorFields = ["id", "Id", "languagecode"],
             OrderedChildren = [PathSelector.Exact("root")]
@@ -214,7 +214,7 @@ public sealed class AstMergerTests
     [Fact]
     public void NestedContentExpanderUsesSchemaContentRules()
     {
-        var schema = new AstSchema
+        var schema = new MergeSchema
         {
             ContentRules = [new ContentRule(PathSelector.Exact("outer/payload"), "xml")]
         };
@@ -232,22 +232,22 @@ public sealed class AstMergerTests
     [Fact]
     public void NestedContentExpanderUsesSchemaRefsRecursively()
     {
-        var schema = new AstSchema
+        var schema = new MergeSchema
         {
             ContentRules =
             [
                 new ContentRule(PathSelector.Exact("outer/payload"), "xml", "innerXml")
             ],
-            NestedSchemas = new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase)
+            NestedSchemas = new Dictionary<string, MergeSchema>(StringComparer.OrdinalIgnoreCase)
             {
-                ["innerXml"] = new AstSchema
+                ["innerXml"] = new MergeSchema
                 {
                     ContentRules =
                     [
                         new ContentRule(PathSelector.Exact("inner/payload"), "xml", "leafXml")
                     ]
                 },
-                ["leafXml"] = AstSchema.Empty
+                ["leafXml"] = MergeSchema.Empty
             }
         };
         var document = _xml.Parse(
@@ -269,7 +269,7 @@ public sealed class AstMergerTests
     [Fact]
     public void NestedContentCollapserReEscapesCleanContentForParentFormat()
     {
-        var schema = new AstSchema
+        var schema = new MergeSchema
         {
             ContentRules = [new ContentRule(PathSelector.Exact("outer/payload"), "xml")]
         };
@@ -297,20 +297,20 @@ public sealed class AstMergerTests
             "Ours",
             "Theirs",
             "Both sides changed scalar content differently.");
-        var document = new AstDocument(
+        var document = new DocumentTree(
             "xml",
-            new AstNode(
+            new TreeNode(
                 "outer",
                 children:
                 [
-                    new AstNode(
+                    new TreeNode(
                         "payload",
                         children:
                         [
-                            new AstNode(
+                            new TreeNode(
                                 "$content",
                                 new Dictionary<string, string> { ["format"] = "xml" },
-                                children: [new AstNode("inner", conflict: conflict)])
+                                children: [new TreeNode("inner", conflict: conflict)])
                         ])
                 ]));
         var registry = new FormatRegistry([_xml]);
@@ -320,9 +320,9 @@ public sealed class AstMergerTests
         Assert.Contains("owning encoded scalar boundary", exception.Message);
     }
 
-    private AstDocument Parse(string text) => _xml.Parse(text, null, DefaultSchema);
+    private DocumentTree Parse(string text) => _xml.Parse(text, null, DefaultSchema);
 
-    private MergeResult Merge(string @base, string ours, string theirs, AstSchema schema) => new AstMerger().Merge(
+    private MergeResult Merge(string @base, string ours, string theirs, MergeSchema schema) => new Merger().Merge(
             _xml.Parse(@base, "base.xml", schema),
             _xml.Parse(ours, "ours.xml", schema),
             _xml.Parse(theirs, "theirs.xml", schema),

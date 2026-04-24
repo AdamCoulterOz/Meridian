@@ -1,14 +1,14 @@
-using Meridian.Core.Ast;
+using Meridian.Core.Tree;
 using Meridian.Core.Identity;
 using Meridian.Core.Schema;
 
 namespace Meridian.Core.Merging;
 
-public sealed class AstMerger
+public sealed class Merger
 {
-    private readonly AstIdentityAssigner _identityAssigner = new();
+    private readonly IdentityAssigner _identityAssigner = new();
 
-    public MergeResult Merge(AstDocument @base, AstDocument ours, AstDocument theirs, AstSchema schema, IAstTextRenderer renderer)
+    public MergeResult Merge(DocumentTree @base, DocumentTree ours, DocumentTree theirs, MergeSchema schema, ITextRenderer renderer)
     {
         ArgumentNullException.ThrowIfNull(@base);
         ArgumentNullException.ThrowIfNull(ours);
@@ -33,9 +33,9 @@ public sealed class AstMerger
                 renderer.RenderNode(baseAssigned.Document.Root),
                 renderer.RenderNode(oursAssigned.Document.Root),
                 renderer.RenderNode(theirsAssigned.Document.Root),
-                "Cannot merge while one or more AST nodes have ambiguous generated identities.");
+                "Cannot merge while one or more tree nodes have ambiguous generated identities.");
 
-            var conflictRoot = AstNode.ConflictNode(
+            var conflictRoot = TreeNode.ConflictNode(
                 baseAssigned.Document.Root.Kind,
                 baseAssigned.Document.Root.Path ?? baseAssigned.Document.Root.Kind,
                 baseAssigned.Document.Root.Identity ?? "/" + baseAssigned.Document.Root.Kind,
@@ -56,21 +56,21 @@ public sealed class AstMerger
         return new MergeResult(ours with { Root = mergedRoot }, diagnostics, conflicts);
     }
 
-    private AstNode MergeExistingNode(
-        AstNode @base,
-        AstNode ours,
-        AstNode theirs,
-        AstSchema schema,
-        IAstTextRenderer renderer,
+    private TreeNode MergeExistingNode(
+        TreeNode @base,
+        TreeNode ours,
+        TreeNode theirs,
+        MergeSchema schema,
+        ITextRenderer renderer,
         List<MergeConflict> conflicts)
     {
-        if (AstStructuralComparer.Equals(ours, theirs))
+        if (StructuralComparer.Equals(ours, theirs))
             return ours;
 
-        if (AstStructuralComparer.Equals(@base, ours))
+        if (StructuralComparer.Equals(@base, ours))
             return theirs;
 
-        if (AstStructuralComparer.Equals(@base, theirs))
+        if (StructuralComparer.Equals(@base, theirs))
             return ours;
 
         var mergedFields = MergeFields(@base, ours, theirs, renderer, conflicts);
@@ -78,7 +78,7 @@ public sealed class AstMerger
         {
             var conflict = CreateNodeConflict(@base, ours, theirs, renderer, "Both sides changed node fields differently.");
             conflicts.Add(conflict);
-            return AstNode.ConflictNode(ours.Kind, ours.Path ?? @base.Path ?? ours.Kind, ours.Identity ?? @base.Identity ?? ours.Kind, conflict);
+            return TreeNode.ConflictNode(ours.Kind, ours.Path ?? @base.Path ?? ours.Kind, ours.Identity ?? @base.Identity ?? ours.Kind, conflict);
         }
 
         var mergedValue = MergeScalar(@base.Value, ours.Value, theirs.Value);
@@ -106,7 +106,7 @@ public sealed class AstMerger
                 renderer.RenderNode(theirs),
                 "Both sides changed ordered children differently.");
             conflicts.Add(conflict);
-            return AstNode.ConflictNode(ours.Kind, ours.Path ?? @base.Path ?? ours.Kind, ours.Identity ?? @base.Identity ?? ours.Kind, conflict);
+            return TreeNode.ConflictNode(ours.Kind, ours.Path ?? @base.Path ?? ours.Kind, ours.Identity ?? @base.Identity ?? ours.Kind, conflict);
         }
 
         return ours
@@ -116,10 +116,10 @@ public sealed class AstMerger
     }
 
     private static IReadOnlyDictionary<string, string>? MergeFields(
-        AstNode @base,
-        AstNode ours,
-        AstNode theirs,
-        IAstTextRenderer renderer,
+        TreeNode @base,
+        TreeNode ours,
+        TreeNode theirs,
+        ITextRenderer renderer,
         List<MergeConflict> conflicts)
     {
         var fields = ours.Fields.Keys
@@ -148,17 +148,17 @@ public sealed class AstMerger
     }
 
     private ChildrenMergeResult MergeChildren(
-        AstNode @base,
-        AstNode ours,
-        AstNode theirs,
-        AstSchema schema,
-        IAstTextRenderer renderer,
+        TreeNode @base,
+        TreeNode ours,
+        TreeNode theirs,
+        MergeSchema schema,
+        ITextRenderer renderer,
         List<MergeConflict> conflicts)
     {
         var baseById = ToIdentityMap(@base.Children);
         var oursById = ToIdentityMap(ours.Children);
         var theirsById = ToIdentityMap(theirs.Children);
-        var mergedById = new Dictionary<string, AstNode>(StringComparer.Ordinal);
+        var mergedById = new Dictionary<string, TreeNode>(StringComparer.Ordinal);
 
         var identities = baseById.Keys
             .Concat(oursById.Keys)
@@ -190,13 +190,13 @@ public sealed class AstMerger
         return new ChildrenMergeResult(mergedOrder.Identities.Select(identity => mergedById[identity]).ToArray(), HasConflict: false);
     }
 
-    private AstNode? MergeChild(
+    private TreeNode? MergeChild(
         string identity,
-        AstNode? @base,
-        AstNode? ours,
-        AstNode? theirs,
-        AstSchema schema,
-        IAstTextRenderer renderer,
+        TreeNode? @base,
+        TreeNode? ours,
+        TreeNode? theirs,
+        MergeSchema schema,
+        ITextRenderer renderer,
         List<MergeConflict> conflicts)
     {
         if (@base is null)
@@ -204,12 +204,12 @@ public sealed class AstMerger
             if (ours is null)
                 return theirs;
 
-            if (theirs is null || AstStructuralComparer.Equals(ours, theirs))
+            if (theirs is null || StructuralComparer.Equals(ours, theirs))
                 return ours;
 
             var conflict = CreateNodeConflict(null, ours, theirs, renderer, "Both sides added the same identity differently.");
             conflicts.Add(conflict);
-            return AstNode.ConflictNode(ours.Kind, ours.Path ?? identity, identity, conflict);
+            return TreeNode.ConflictNode(ours.Kind, ours.Path ?? identity, identity, conflict);
         }
 
         if (ours is null && theirs is null)
@@ -217,30 +217,30 @@ public sealed class AstMerger
 
         if (ours is null)
         {
-            if (AstStructuralComparer.Equals(@base, theirs))
+            if (StructuralComparer.Equals(@base, theirs))
                 return null;
 
             var conflict = CreateNodeConflict(@base, null, theirs, renderer, "One side deleted a node while the other side changed it.");
             conflicts.Add(conflict);
-            return AstNode.ConflictNode(@base.Kind, @base.Path ?? identity, identity, conflict);
+            return TreeNode.ConflictNode(@base.Kind, @base.Path ?? identity, identity, conflict);
         }
 
         if (theirs is null)
         {
-            if (AstStructuralComparer.Equals(@base, ours))
+            if (StructuralComparer.Equals(@base, ours))
                 return null;
 
             var conflict = CreateNodeConflict(@base, ours, null, renderer, "One side changed a node while the other side deleted it.");
             conflicts.Add(conflict);
-            return AstNode.ConflictNode(@base.Kind, @base.Path ?? identity, identity, conflict);
+            return TreeNode.ConflictNode(@base.Kind, @base.Path ?? identity, identity, conflict);
         }
 
         return MergeExistingNode(@base, ours, theirs, schema, renderer, conflicts);
     }
 
-    private static Dictionary<string, AstNode> ToIdentityMap(IEnumerable<AstNode> nodes) => nodes.ToDictionary(node => node.Identity ?? throw new InvalidOperationException("AST node has no generated identity."), StringComparer.Ordinal);
+    private static Dictionary<string, TreeNode> ToIdentityMap(IEnumerable<TreeNode> nodes) => nodes.ToDictionary(node => node.Identity ?? throw new InvalidOperationException("Tree node has no generated identity."), StringComparer.Ordinal);
 
-    private static bool IsOrdered(AstNode parent, AstSchema schema)
+    private static bool IsOrdered(TreeNode parent, MergeSchema schema)
     {
         var path = parent.Path ?? parent.Kind;
         return schema.OrderedChildren.Any(selector => selector.IsMatch(path));
@@ -281,7 +281,7 @@ public sealed class AstMerger
         IReadOnlyList<string> ours,
         IReadOnlyList<string> theirs,
         IReadOnlyList<string> allIdentities,
-        IReadOnlyDictionary<string, AstNode> mergedById)
+        IReadOnlyDictionary<string, TreeNode> mergedById)
     {
         var emitted = new HashSet<string>(StringComparer.Ordinal);
         var merged = new List<string>();
@@ -294,10 +294,10 @@ public sealed class AstMerger
     }
 
     private static MergeConflict CreateNodeConflict(
-        AstNode? @base,
-        AstNode? ours,
-        AstNode? theirs,
-        IAstTextRenderer renderer,
+        TreeNode? @base,
+        TreeNode? ours,
+        TreeNode? theirs,
+        ITextRenderer renderer,
         string message) => new(
             ConflictKind.Node,
             ours?.Path ?? theirs?.Path ?? @base?.Path ?? "<unknown>",
@@ -308,13 +308,13 @@ public sealed class AstMerger
 
     private sealed record ScalarMergeResult(string? Value, bool HasConflict);
 
-    private sealed record ChildrenMergeResult(IReadOnlyList<AstNode> Children, bool HasConflict);
+    private sealed record ChildrenMergeResult(IReadOnlyList<TreeNode> Children, bool HasConflict);
 
     private sealed record SequenceMergeResult(IReadOnlyList<string> Identities, bool HasConflict);
 }
 
 public sealed record MergeResult(
-    AstDocument Document,
+    DocumentTree Document,
     IReadOnlyList<IdentityDiagnostic> IdentityDiagnostics,
     IReadOnlyList<MergeConflict> Conflicts)
 {
