@@ -8,35 +8,15 @@ Instead of asking Git to guess from lines, Meridian parses each side of a three-
 
 ## Why Use It
 
-Use Meridian when a plain text merge turns independent structured edits into a conflict.
-
-Base:
-
-```xml
-<label description="Near Miss" languagecode="1033" />
-<label description="Near Miss" languagecode="3081" />
-```
-
-One side changes the Australian English label:
-
-```xml
-<label description="Near Miss" languagecode="1033" />
-<label description="Incident" languagecode="3081" />
-```
-
-The other side changes the US English label:
-
-```xml
-<label description="Safety Event" languagecode="1033" />
-<label description="Near Miss" languagecode="3081" />
-```
-
-Git may only see adjacent lines changing and produce:
+Use Meridian when a plain text merge turns independent structured edits into a conflict:
 
 ```xml
 <<<<<<< ours
 <label description="Near Miss" languagecode="1033" />
 <label description="Incident" languagecode="3081" />
+||||||| base
+<label description="Near Miss" languagecode="1033" />
+<label description="Near Miss" languagecode="3081" />
 =======
 <label description="Safety Event" languagecode="1033" />
 <label description="Near Miss" languagecode="3081" />
