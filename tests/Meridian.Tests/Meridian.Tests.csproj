@@ -24,4 +24,8 @@
     <ProjectReference Include="..\..\src\Meridian.Formats.Structured\Meridian.Formats.Structured.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

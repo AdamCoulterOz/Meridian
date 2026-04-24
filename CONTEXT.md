@@ -13,6 +13,7 @@ Current state:
 - XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid/template text, CSS, common image placeholder, `xap`, and raw adapters exist.
 - The Git merge-driver command can merge supported files with an optional schema.
 - Template-host composition exists for formats such as `liquid:xml`.
+- A generic catalog fixture exists to exercise schema-driven XML identity and clean three-way merge behavior without domain-specific assumptions.
 
 ## Architecture And Structure
 
@@ -20,7 +21,7 @@ Current state:
 - `src/Meridian.Formats.Xml` contains the XML adapter and XML host placeholder strategy for template-host composition.
 - `src/Meridian.Formats.Structured` contains structured and opaque adapters for JSON, JSON5, YAML, HTML fragments, JavaScript, Liquid/template text, CSS, image placeholders, `xap`, and raw payloads.
 - `src/Meridian.Tools.GitMerge` contains a thin Git merge-driver style command.
-- `tests/Meridian.Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, template-host composition, and Git conflict marker rendering.
+- `tests/Meridian.Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, template-host composition, Git conflict marker rendering, and file-based generic fixtures.
 
 ## Key Decisions And Invariants
 

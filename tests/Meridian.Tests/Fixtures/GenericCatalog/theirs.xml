@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Catalog>
+  <Products>
+    <Product sku="A">
+      <Name>Widget</Name>
+      <Labels>
+        <Label languagecode="en">Widget</Label>
+        <Label languagecode="fr">Widget FR</Label>
+      </Labels>
+      <Metadata>{"color":"blue","dimensions":{"width":10}}</Metadata>
+    </Product>
+    <Product sku="B">
+      <Name>Gadget</Name>
+      <Labels>
+        <Label languagecode="en">Gadget</Label>
+      </Labels>
+      <Metadata>{"color":"green","dimensions":{"width":5}}</Metadata>
+    </Product>
+    <Product sku="C">
+      <Name>Thing</Name>
+      <Labels>
+        <Label languagecode="en">Thing</Label>
+      </Labels>
+      <Metadata>{"color":"yellow","dimensions":{"width":2}}</Metadata>
+    </Product>
+  </Products>
+  <DisplayOrder>
+    <ProductRef sku="A" />
+    <ProductRef sku="B" />
+  </DisplayOrder>
+</Catalog>

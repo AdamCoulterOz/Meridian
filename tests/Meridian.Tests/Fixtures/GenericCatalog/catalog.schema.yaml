@@ -1,0 +1,36 @@
+schemaVersion: 0.1
+name: generic-catalog-fixture
+
+defaults:
+  xml:
+    discriminators:
+      - attribute: id
+      - attribute: Id
+      - attribute: languagecode
+
+nestedSchemas:
+  productMetadata:
+    format: json
+    root:
+      properties:
+        color:
+          format: plain
+        dimensions:
+          format: json
+
+files:
+  - match: catalog.xml
+    root: Catalog
+    discriminators:
+      - path: Catalog/Products/Product
+        key:
+          attribute: sku
+      - path: Catalog/DisplayOrder/ProductRef
+        key:
+          attribute: sku
+    orderedChildren:
+      - Catalog/DisplayOrder
+    content:
+      - path: Catalog/Products/Product/Metadata
+        format: json
+        schemaRef: productMetadata
