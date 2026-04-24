@@ -1,6 +1,6 @@
 using Meridian.Core.Ast;
 
-namespace Meridian.Formats.Structured;
+namespace Meridian.Formats.Json;
 
 internal static class FormatAstUtilities
 {
@@ -24,21 +24,5 @@ internal static class FormatAstUtilities
         {
             [TypeField] = type
         };
-    }
-
-    public static Dictionary<string, string> HiddenFields(string type, string name)
-    {
-        return new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [TypeField] = type,
-            [NameField] = name
-        };
-    }
-
-    public static IReadOnlyDictionary<string, string> VisibleFields(AstNode node)
-    {
-        return node.Fields
-            .Where(field => !field.Key.StartsWith('$'))
-            .ToDictionary(field => field.Key, field => field.Value, StringComparer.Ordinal);
     }
 }

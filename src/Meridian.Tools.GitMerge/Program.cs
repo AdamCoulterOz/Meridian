@@ -1,8 +1,12 @@
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Formats.Structured;
+using Meridian.Formats.Html;
+using Meridian.Formats.JavaScript;
+using Meridian.Formats.Json;
+using Meridian.Formats.Json5;
 using Meridian.Formats.Xml;
+using Meridian.Formats.Yaml;
 
 var command = args.FirstOrDefault();
 if (!string.Equals(command, "merge-file", StringComparison.Ordinal))

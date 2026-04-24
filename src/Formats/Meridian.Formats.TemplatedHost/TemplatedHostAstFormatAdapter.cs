@@ -6,7 +6,7 @@ using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 using Meridian.Core.Templates;
 
-namespace Meridian.Formats.Structured;
+namespace Meridian.Formats.TemplatedHost;
 
 public sealed class TemplatedHostAstFormatAdapter : IAstFormatAdapter
 {

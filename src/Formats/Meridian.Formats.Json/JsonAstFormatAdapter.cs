@@ -6,7 +6,7 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.Structured;
+namespace Meridian.Formats.Json;
 
 public class JsonAstFormatAdapter : IAstFormatAdapter
 {

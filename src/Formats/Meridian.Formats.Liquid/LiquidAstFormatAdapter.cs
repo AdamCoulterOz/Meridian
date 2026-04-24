@@ -4,7 +4,7 @@ using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 using Meridian.Core.Templates;
 
-namespace Meridian.Formats.Structured;
+namespace Meridian.Formats.Liquid;
 
 public class LiquidAstFormatAdapter : ITemplateEngineAstFormatAdapter
 {

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
+using Meridian.Formats.Json;
 
-namespace Meridian.Formats.Structured;
+namespace Meridian.Formats.Json5;
 
 public sealed class Json5AstFormatAdapter : JsonAstFormatAdapter
 {
@@ -8,6 +9,6 @@ public sealed class Json5AstFormatAdapter : JsonAstFormatAdapter
 
     protected override JsonNode? ParseJsonNode(string sourceText)
     {
-        return Json5.Json5.Parse(sourceText);
+        return global::Json5.Json5.Parse(sourceText);
     }
 }

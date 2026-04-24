@@ -2,8 +2,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Meridian.Core\Meridian.Core.csproj" />
-    <ProjectReference Include="..\Meridian.Formats.Xml\Meridian.Formats.Xml.csproj" />
-    <ProjectReference Include="..\Meridian.Formats.Structured\Meridian.Formats.Structured.csproj" />
+    <ProjectReference Include="..\Formats\Meridian.Formats.Html\Meridian.Formats.Html.csproj" />
+    <ProjectReference Include="..\Formats\Meridian.Formats.JavaScript\Meridian.Formats.JavaScript.csproj" />
+    <ProjectReference Include="..\Formats\Meridian.Formats.Json\Meridian.Formats.Json.csproj" />
+    <ProjectReference Include="..\Formats\Meridian.Formats.Json5\Meridian.Formats.Json5.csproj" />
+    <ProjectReference Include="..\Formats\Meridian.Formats.Xml\Meridian.Formats.Xml.csproj" />
+    <ProjectReference Include="..\Formats\Meridian.Formats.Yaml\Meridian.Formats.Yaml.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
