@@ -30,7 +30,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         if (document.Root is null)
             throw new InvalidOperationException("XML document has no root element.");
 
-
         var root = ParseElement(document.Root);
         if (document.Declaration is not null)
         {
@@ -49,7 +48,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         var builder = new StringBuilder();
         if (document.Root.Fields.TryGetValue("$xmlDeclaration", out var declaration))
             builder.AppendLine(declaration);
-
 
         builder.Append(RenderNode(document.Root));
         builder.AppendLine();
@@ -112,7 +110,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         if (document.Root is null)
             throw new InvalidOperationException("XML document has no root element.");
 
-
         var root = ParseMappedElement(document.Root);
         if (document.Declaration is not null)
         {
@@ -137,7 +134,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         if (document.Root.Fields.TryGetValue("$xmlDeclaration", out var declaration))
             builder.AppendLine(declaration);
 
-
         builder.Append(RenderMappedNode(document.Root, mappedSourceByTokenId));
         return builder.ToString();
     }
@@ -150,7 +146,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
                 node.Conflict.BaseText,
                 node.Conflict.TheirsText,
                 new string(' ', depth * 2));
-
 
         var builder = new StringBuilder();
         var indent = new string(' ', depth * 2);
@@ -189,7 +184,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         }
         else if (node.Value is not null)
             builder.Append(SecurityElement.Escape(node.Value));
-
 
         foreach (var child in node.Children)
         {
@@ -237,7 +231,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
                     [MappedTokenFields.Context] = MappedTokenContext.ChildNode.ToString()
                 }));
 
-
         var fields = new Dictionary<string, string>(StringComparer.Ordinal);
         var fieldValueChildren = new List<AstNode>();
         var fieldOrder = new List<string>();
@@ -258,7 +251,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         if (fieldOrder.Count > 0)
             fields[FieldOrderField] = string.Join("\n", fieldOrder);
 
-
         return new AstNode(
                             element.Name.LocalName,
                             fields,
@@ -273,11 +265,9 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
             element.Attribute("marker") is not { } markerAttribute)
             return false;
 
-
         var match = AttributeTokenMarker.Match(markerAttribute.Value);
         if (!match.Success || !string.Equals(match.Value, markerAttribute.Value, StringComparison.Ordinal))
             return false;
-
 
         var semanticKey = element.Attribute("semanticKey")?.Value;
         token = new ParsedToken(
@@ -304,7 +294,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
                     AstNodeMetadata.Create("fieldText"),
                     value[position..match.Index]));
 
-
             var token = ParseAttributeToken(match, fieldName, children.Count(IsMappedToken));
             children.Add(new AstNode(
                 "$mappedToken" + token.Id,
@@ -322,7 +311,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
                 $"$fieldText{ordinal++:D6}",
                 AstNodeMetadata.Create("fieldText"),
                 value[position..]));
-
 
         return new AstNode("$fieldValue:" + fieldName, fields, children: children);
     }
@@ -347,7 +335,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
 
-
         var type = node.TryGetMetadataType(out var nodeType)
                             ? nodeType
                             : "element";
@@ -355,7 +342,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         if (string.Equals(type, "mappedToken", StringComparison.Ordinal) &&
             node.Fields.TryGetValue(MappedTokenFields.TokenId, out var tokenId))
             return mappedSourceByTokenId[tokenId];
-
 
         return type switch
         {
@@ -422,7 +408,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         foreach (var child in xmlChildren)
             builder.Append(RenderMappedNode(child, mappedSourceByTokenId));
 
-
         builder.Append("</");
         builder.Append(node.Kind);
         builder.Append('>');
@@ -479,7 +464,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
     {
         if (!attribute.IsNamespaceDeclaration)
             return attribute.Name.LocalName;
-
 
         return string.Equals(attribute.Name.LocalName, "xmlns", StringComparison.Ordinal)
                             ? "xmlns"
@@ -540,7 +524,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
             if (context == MappedTokenContext.ChildNode)
                 return CreateChildSemanticKey(_childMappedOrdinal++);
 
-
             if (context == MappedTokenContext.FieldValue)
             {
                 var fieldName = _currentFieldName ?? "<unknown>";
@@ -598,7 +581,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
                     }
                     else if (!_expectingAttributeValue)
                         _attributeName.Append(character);
-
 
                     continue;
                 }

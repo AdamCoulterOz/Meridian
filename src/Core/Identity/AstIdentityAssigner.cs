@@ -49,7 +49,6 @@ public sealed class AstIdentityAssigner
                 duplicate.Key,
                 $"Generated identity is ambiguous for {duplicate.Value} sibling nodes."));
 
-
         return node.WithPathAndIdentity(path, identity).WithChildren(assignedChildren);
     }
 
@@ -59,16 +58,13 @@ public sealed class AstIdentityAssigner
         if (explicitRule is not null)
             return ResolveExplicitKey(node, explicitRule.Key, ordinal);
 
-
         foreach (var field in schema.GlobalDiscriminatorFields)
             if (node.Fields.TryGetValue(field, out var value) && !string.IsNullOrEmpty(value))
                 return new ResolvedKey(field + "=" + value);
 
-
         if (node.Fields.TryGetValue(MappedTokenFields.SemanticKey, out var semanticKey) &&
                             !string.IsNullOrEmpty(semanticKey))
             return new ResolvedKey(MappedTokenFields.SemanticKey + "=" + semanticKey);
-
 
         return new ResolvedKey("path");
     }

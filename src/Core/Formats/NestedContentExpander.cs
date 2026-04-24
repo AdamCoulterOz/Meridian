@@ -45,7 +45,6 @@ public sealed class NestedContentExpander
             if (!string.IsNullOrWhiteSpace(contentRule.SchemaRef))
                 contentFields["schemaRef"] = contentRule.SchemaRef;
 
-
             children.Add(new AstNode(
                                         "$content",
                                         contentFields,
@@ -65,14 +64,11 @@ public sealed class NestedContentExpander
         if (string.IsNullOrWhiteSpace(contentRule.SchemaRef))
             return schema;
 
-
         if (schema.NestedSchemas.TryGetValue(contentRule.SchemaRef, out var nestedSchema))
             return nestedSchema;
 
-
         if (schemaCatalog.TryGetValue(contentRule.SchemaRef, out nestedSchema))
             return nestedSchema;
-
 
         throw new InvalidOperationException(
                             $"Content rule for path '{contentRule.Path.Pattern}' references unknown nested schema '{contentRule.SchemaRef}'.");

@@ -36,7 +36,6 @@ public class LiquidAdapter : IMappedSourceAdapter
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
 
-
         var type = node.TryGetMetadataType(out var nodeType)
                             ? nodeType
                             : "document";
@@ -88,7 +87,6 @@ public class LiquidAdapter : IMappedSourceAdapter
             if (next > position)
                 AddText(tokens, source[position..next], ref ordinal);
 
-
             if (next == nextOutput)
             {
                 var token = ReadDelimitedToken(source, next, "{{", "}}");
@@ -120,7 +118,6 @@ public class LiquidAdapter : IMappedSourceAdapter
         if (text.Length == 0)
             return;
 
-
         tokens.Add(new AstNode(
                             $"$text{ordinal++:D6}",
                             AstNodeMetadata.Create("text"),
@@ -134,7 +131,6 @@ public class LiquidAdapter : IMappedSourceAdapter
         fields[CloseField] = token.Close;
         if (!string.IsNullOrWhiteSpace(tagName))
             fields[TagNameField] = tagName;
-
 
         return new AstNode($"{kindPrefix}{ordinal++:D6}", fields, token.Inner);
     }
@@ -175,11 +171,9 @@ public class LiquidAdapter : IMappedSourceAdapter
             if (next < 0)
                 break;
 
-
             var candidate = ReadDelimitedToken(source, next, "{%", "%}");
             if (string.Equals(ReadTagName(candidate.Inner), endTagName, StringComparison.OrdinalIgnoreCase))
                 return candidate;
-
 
             current = candidate.After;
         }
@@ -193,16 +187,13 @@ public class LiquidAdapter : IMappedSourceAdapter
         if (openEnd < source.Length && source[openEnd] == '-')
             openEnd++;
 
-
         var closeStart = source.IndexOf(closeMarker, openEnd, StringComparison.Ordinal);
         if (closeStart < 0)
             throw new InvalidOperationException($"Liquid token starting at offset {start} is missing '{closeMarker}'.");
 
-
         var contentEnd = closeStart;
         if (contentEnd > openEnd && source[contentEnd - 1] == '-')
             contentEnd--;
-
 
         var after = closeStart + closeMarker.Length;
         var open = source[start..openEnd];

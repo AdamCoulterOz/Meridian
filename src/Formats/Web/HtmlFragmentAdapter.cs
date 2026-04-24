@@ -36,7 +36,6 @@ public sealed class HtmlFragmentAdapter : IAstFormatAdapter
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
 
-
         return RenderHtmlNode(node);
     }
 
@@ -62,7 +61,6 @@ public sealed class HtmlFragmentAdapter : IAstFormatAdapter
         var fields = AstNodeMetadata.Create("element", element.LocalName);
         foreach (var attribute in element.Attributes)
             fields[attribute.Name] = attribute.Value;
-
 
         var children = element.ChildNodes
                             .Select((child, childIndex) => ParseNode(child, childIndex))
@@ -98,7 +96,6 @@ public sealed class HtmlFragmentAdapter : IAstFormatAdapter
 
         if (VoidElements.Contains(tag))
             return start;
-
 
         return start + string.Concat(node.Children.Select(RenderHtmlNode)) + $"</{tag}>";
     }

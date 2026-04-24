@@ -35,7 +35,6 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
                 mappedDocument,
                 stitched.UnsafeReason ?? "mapped token cannot be represented safely in the host format.");
 
-
         try
         {
             var hostDocument = _host.ParseHostWithMappedTokens(stitched.Source, sourcePath, schema);
@@ -65,7 +64,6 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
     {
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
-
 
         var mode = node.Fields.TryGetValue(MappedTokenFields.Mode, out var modeValue)
                             ? modeValue
@@ -118,7 +116,6 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
                     IsSafe: false,
                     UnsafeReason: $"mapped token '{id}' has no valid {_host.HostFormat} AST token context. {contextReason}");
 
-
             var context = default(MappedTokenContext);
             string? unsupportedReason = null;
             var canRepresent = false;
@@ -139,14 +136,12 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
                     break;
                 }
 
-
             if (!canRepresent)
                 return new StitchedHost(
                     stitched.ToString(),
                     tokens,
                     IsSafe: false,
                     UnsafeReason: $"mapped token '{id}' cannot be safely represented in {_host.HostFormat} contexts '{string.Join(", ", contexts)}'. {unsupportedReason}");
-
 
             var token = new MappedToken(
                                         id,
@@ -162,7 +157,6 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
                     tokens,
                     IsSafe: false,
                     UnsafeReason: $"mapped token '{id}' cannot be safely inserted in {_host.HostFormat} context '{context}'.");
-
 
             stitched.Append(shape.SourceText);
             tokens.Add(new MappedTokenReference(token, shape.Context));
@@ -220,7 +214,6 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
         fields[MappedTokenFields.Mode] = mode;
         if (!string.IsNullOrWhiteSpace(unsafeReason))
             fields[MappedTokenFields.UnsafeReason] = unsafeReason;
-
 
         return new AstNode("$mapped", fields, children: children);
     }

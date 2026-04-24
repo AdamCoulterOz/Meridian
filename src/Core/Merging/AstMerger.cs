@@ -67,14 +67,11 @@ public sealed class AstMerger
         if (AstStructuralComparer.Equals(ours, theirs))
             return ours;
 
-
         if (AstStructuralComparer.Equals(@base, ours))
             return theirs;
 
-
         if (AstStructuralComparer.Equals(@base, theirs))
             return ours;
-
 
         var mergedFields = MergeFields(@base, ours, theirs, renderer, conflicts);
         if (mergedFields is null)
@@ -143,7 +140,6 @@ public sealed class AstMerger
             if (scalar.HasConflict)
                 return null;
 
-
             if (scalar.Value is not null)
                 merged[field] = scalar.Value;
 
@@ -193,7 +189,6 @@ public sealed class AstMerger
         if (mergedOrder.HasConflict)
             return new ChildrenMergeResult([], HasConflict: true);
 
-
         return new ChildrenMergeResult(mergedOrder.Identities.Select(identity => mergedById[identity]).ToArray(), HasConflict: false);
     }
 
@@ -211,10 +206,8 @@ public sealed class AstMerger
             if (ours is null)
                 return theirs;
 
-
             if (theirs is null || AstStructuralComparer.Equals(ours, theirs))
                 return ours;
-
 
             var conflict = CreateNodeConflict(null, ours, theirs, renderer, "Both sides added the same identity differently.");
             conflicts.Add(conflict);
@@ -224,12 +217,10 @@ public sealed class AstMerger
         if (ours is null && theirs is null)
             return null;
 
-
         if (ours is null)
         {
             if (AstStructuralComparer.Equals(@base, theirs))
                 return null;
-
 
             var conflict = CreateNodeConflict(@base, null, theirs, renderer, "One side deleted a node while the other side changed it.");
             conflicts.Add(conflict);
@@ -240,7 +231,6 @@ public sealed class AstMerger
         {
             if (AstStructuralComparer.Equals(@base, ours))
                 return null;
-
 
             var conflict = CreateNodeConflict(@base, ours, null, renderer, "One side changed a node while the other side deleted it.");
             conflicts.Add(conflict);
@@ -263,14 +253,11 @@ public sealed class AstMerger
         if (string.Equals(ours, theirs, StringComparison.Ordinal))
             return new ScalarMergeResult(ours, HasConflict: false);
 
-
         if (string.Equals(@base, ours, StringComparison.Ordinal))
             return new ScalarMergeResult(theirs, HasConflict: false);
 
-
         if (string.Equals(@base, theirs, StringComparison.Ordinal))
             return new ScalarMergeResult(ours, HasConflict: false);
-
 
         return new ScalarMergeResult(null, HasConflict: true);
     }
@@ -283,14 +270,11 @@ public sealed class AstMerger
         if (ours.SequenceEqual(theirs, StringComparer.Ordinal))
             return new SequenceMergeResult(ours, HasConflict: false);
 
-
         if (@base.SequenceEqual(ours, StringComparer.Ordinal))
             return new SequenceMergeResult(theirs, HasConflict: false);
 
-
         if (@base.SequenceEqual(theirs, StringComparer.Ordinal))
             return new SequenceMergeResult(ours, HasConflict: false);
-
 
         return new SequenceMergeResult([], HasConflict: true);
     }
@@ -307,7 +291,6 @@ public sealed class AstMerger
         foreach (var identity in ours.Concat(theirs).Concat(allIdentities))
             if (mergedById.ContainsKey(identity) && emitted.Add(identity))
                 merged.Add(identity);
-
 
         return new SequenceMergeResult(merged, HasConflict: false);
     }

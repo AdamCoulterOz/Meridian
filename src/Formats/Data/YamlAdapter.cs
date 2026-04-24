@@ -22,7 +22,6 @@ public sealed class YamlAdapter : IAstFormatAdapter
         if (stream.Documents.Count == 0)
             throw new InvalidOperationException("YAML document is empty.");
 
-
         return new AstDocument(Format, ParseNode(stream.Documents[0].RootNode, "$root"), sourcePath, sourceText);
     }
 
@@ -32,7 +31,6 @@ public sealed class YamlAdapter : IAstFormatAdapter
     {
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
-
 
         var stream = new YamlStream(new YamlDocument(RenderYamlNode(node)));
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -54,7 +52,6 @@ public sealed class YamlAdapter : IAstFormatAdapter
         {
             if (pair.Key is not YamlScalarNode key)
                 throw new NotSupportedException("Only scalar YAML mapping keys are supported.");
-
 
             var name = key.Value ?? string.Empty;
             var child = ParseNode(pair.Value, AstNodeMetadata.EncodeKind(name));
@@ -107,7 +104,6 @@ public sealed class YamlAdapter : IAstFormatAdapter
         foreach (var child in node.Children)
             mapping.Add(child.GetMetadataName(), RenderYamlNode(child));
 
-
         return mapping;
     }
 
@@ -116,7 +112,6 @@ public sealed class YamlAdapter : IAstFormatAdapter
         var sequence = new YamlSequenceNode();
         foreach (var child in node.Children)
             sequence.Add(RenderYamlNode(child));
-
 
         return sequence;
     }

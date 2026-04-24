@@ -6,23 +6,16 @@ namespace Meridian.Core.Schema;
 public sealed record AstSchema
 {
     public IReadOnlyList<string> GlobalDiscriminatorFields { get; init; } = [];
-
     public IReadOnlyList<NodeIdentityRule> IdentityRules { get; init; } = [];
-
     public IReadOnlyList<PathSelector> OrderedChildren { get; init; } = [];
-
     public IReadOnlyList<ContentRule> ContentRules { get; init; } = [];
-
     public IReadOnlyList<CompanionRule> CompanionRules { get; init; } = [];
-
     public IReadOnlyDictionary<string, AstSchema> NestedSchemas { get; init; } =
         new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase);
-
     public static AstSchema Empty { get; } = new();
 }
 
 public sealed record NodeIdentityRule(PathSelector Path, DiscriminatorKey Key, string? Note = null);
-
 public sealed record ContentRule(PathSelector Path, string Format, string? SchemaRef = null, string? Note = null);
 
 public sealed record CompanionRule(
@@ -51,10 +44,8 @@ public sealed record CompanionRule(
         if (!string.IsNullOrWhiteSpace(Format))
             return Format;
 
-
         if (!string.IsNullOrWhiteSpace(DefaultFormat))
             return DefaultFormat;
-
 
         throw new InvalidOperationException("Companion rule does not define a format, formatFrom mapping, or defaultFormat.");
     }
@@ -66,7 +57,6 @@ public sealed record CompanionRule(
         if (!string.IsNullOrWhiteSpace(Path))
             return ResolveStaticPath(Path, matchedPath);
 
-
         if (PathFromMatchedPath is not null && !string.IsNullOrWhiteSpace(matchedPath))
         {
             var resolvedFromMatchedPath = PathFromMatchedPath.Resolve(matchedPath);
@@ -76,7 +66,6 @@ public sealed record CompanionRule(
                 if (!string.Equals(resolvedFromMatchedPath, resolvedFromMetadata, StringComparison.Ordinal))
                     throw new InvalidOperationException(
                         $"Companion path mismatch: matched path rule resolved '{resolvedFromMatchedPath}' but metadata template resolved '{resolvedFromMetadata}'.");
-
             }
 
             return resolvedFromMatchedPath;
@@ -84,7 +73,6 @@ public sealed record CompanionRule(
 
         if (!string.IsNullOrWhiteSpace(PathTemplate))
             return ExpandTemplate(metadataRoot, PathTemplate);
-
 
         return string.IsNullOrWhiteSpace(PathFrom)
                             ? null
@@ -98,7 +86,6 @@ public sealed record CompanionRule(
             path.Contains('/', StringComparison.Ordinal) ||
             path.Contains('\\', StringComparison.Ordinal))
             return path.Replace('\\', '/');
-
 
         var directory = System.IO.Path.GetDirectoryName(matchedPath.Replace('\\', '/'));
         return string.IsNullOrWhiteSpace(directory)
@@ -198,7 +185,6 @@ public sealed record PathSelector(string Pattern, bool IsRegex = false)
         if (!IsRegex)
             return string.Equals(Pattern, path, StringComparison.Ordinal);
 
-
         _regex ??= new Regex(Pattern, RegexOptions.CultureInvariant);
         return _regex.IsMatch(path);
     }
@@ -216,18 +202,12 @@ public sealed record PathSelector(string Pattern, bool IsRegex = false)
 [JsonDerivedType(typeof(DiscriminatorKey.Structural), "structural")]
 public abstract record DiscriminatorKey
 {
-    private DiscriminatorKey()
-    {
-    }
+    private DiscriminatorKey() { }
 
     public sealed record Field(string Name) : DiscriminatorKey;
-
     public sealed record PathValue(string Path) : DiscriminatorKey;
-
     public sealed record Composite(IReadOnlyList<CompositePart> Parts) : DiscriminatorKey;
-
     public sealed record Text : DiscriminatorKey;
-
     public sealed record Structural(StructuralDiscriminator Strategy) : DiscriminatorKey;
 }
 
@@ -260,11 +240,9 @@ public static class AstPath
                     ? fieldValue
                     : null;
 
-
             var child = current.Children.FirstOrDefault(candidate => string.Equals(candidate.Kind, part, StringComparison.Ordinal));
             if (child is null)
                 return null;
-
 
             current = child;
         }

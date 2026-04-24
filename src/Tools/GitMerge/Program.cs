@@ -40,10 +40,8 @@ await File.WriteAllTextAsync(oursPath, adapter.RenderDocument(result.Document));
 foreach (var diagnostic in result.IdentityDiagnostics)
     Console.Error.WriteLine($"{diagnostic.Severity}: {diagnostic.Path}: {diagnostic.Message}");
 
-
 foreach (var conflict in result.Conflicts)
     Console.Error.WriteLine($"Conflict: {conflict.Path}: {conflict.Message}");
-
 
 return result.HasConflicts ? 1 : 0;
 
@@ -57,11 +55,9 @@ static Dictionary<string, string> ParseOptions(IReadOnlyList<string> values)
         if (!item.StartsWith("--", StringComparison.Ordinal))
             continue;
 
-
         var key = item[2..];
         if (i + 1 >= values.Count)
             throw new ArgumentException("Missing value for option " + item);
-
 
         result[key] = values[++i];
     }
@@ -90,7 +86,6 @@ static AstSchema LoadSchema(IReadOnlyDictionary<string, string> options, string 
 {
     if (options.TryGetValue("schema", out var schemaPath))
         return AstSchemaYamlLoader.LoadFile(schemaPath).CompileForFile(repoPath);
-
 
     return new AstSchema
     {

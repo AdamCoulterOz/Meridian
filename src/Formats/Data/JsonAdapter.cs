@@ -34,7 +34,6 @@ public class JsonAdapter : IAstFormatAdapter
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
 
-
         return RenderJsonNode(node)?.ToJsonString(JsonOptions) ?? "null";
     }
 
@@ -130,7 +129,6 @@ public class JsonAdapter : IAstFormatAdapter
         foreach (var child in node.Children)
             obj[child.GetMetadataName()] = RenderJsonNode(child);
 
-
         return obj;
     }
 
@@ -140,7 +138,6 @@ public class JsonAdapter : IAstFormatAdapter
         foreach (var child in node.Children)
             array.Add(RenderJsonNode(child));
 
-
         return array;
     }
 
@@ -148,7 +145,6 @@ public class JsonAdapter : IAstFormatAdapter
     {
         if (!node.Fields.TryGetValue(ValueKindField, out var valueKind))
             return node.Value is null ? null : JsonValue.Create(node.Value);
-
 
         return valueKind switch
         {
