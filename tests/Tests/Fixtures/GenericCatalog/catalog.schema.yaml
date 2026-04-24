@@ -2,21 +2,18 @@ schemaVersion: 0.1
 name: generic-catalog-fixture
 
 defaults:
-  xml:
-    discriminators:
-      - attribute: id
-      - attribute: Id
-      - attribute: languagecode
+  globalDiscriminatorFields:
+    - id
+    - Id
+    - languagecode
 
 nestedSchemas:
   productMetadata:
-    format: json
-    root:
-      properties:
-        color:
-          format: plain
-        dimensions:
-          format: json
+    contentRules:
+      - path: $root/color
+        format: plain
+      - path: $root/dimensions
+        format: json
 
 files:
   - match: catalog.xml
