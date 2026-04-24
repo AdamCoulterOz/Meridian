@@ -8,7 +8,7 @@ using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 using Meridian.Core.Templates;
 
-namespace Meridian.Formats.Xml;
+namespace Meridian.Formats.Data;
 
 public sealed class XmlAstFormatAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
 {

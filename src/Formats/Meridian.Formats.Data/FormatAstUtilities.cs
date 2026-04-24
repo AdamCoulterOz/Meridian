@@ -1,6 +1,6 @@
 using Meridian.Core.Ast;
 
-namespace Meridian.Formats.Json;
+namespace Meridian.Formats.Data;
 
 internal static class FormatAstUtilities
 {

@@ -5,7 +5,7 @@ using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 using YamlDotNet.RepresentationModel;
 
-namespace Meridian.Formats.Yaml;
+namespace Meridian.Formats.Data;
 
 public sealed class YamlAstFormatAdapter : IAstFormatAdapter
 {

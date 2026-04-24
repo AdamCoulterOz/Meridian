@@ -3,16 +3,16 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.Raw;
+namespace Meridian.Formats.Images;
 
-public sealed class RawAstFormatAdapter : IAstFormatAdapter
+public sealed class PngAstFormatAdapter : IAstFormatAdapter
 {
-    public string Format => "raw";
+    public string Format => "image:png";
 
     public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return new AstDocument(Format, new AstNode("$raw", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
+        return new AstDocument(Format, new AstNode("$png", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
     }
 
     public string RenderDocument(AstDocument document)

@@ -1,4 +1,4 @@
-namespace Meridian.Formats.JavaScript;
+namespace Meridian.Core.Templates;
 
 internal static class FormatAstUtilities
 {

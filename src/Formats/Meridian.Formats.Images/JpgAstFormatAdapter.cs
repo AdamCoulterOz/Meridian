@@ -3,7 +3,7 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.ImageJpg;
+namespace Meridian.Formats.Images;
 
 public sealed class JpgAstFormatAdapter : IAstFormatAdapter
 {

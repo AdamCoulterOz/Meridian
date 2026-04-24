@@ -5,7 +5,7 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.Html;
+namespace Meridian.Formats.Web;
 
 public sealed class HtmlFragmentAstFormatAdapter : IAstFormatAdapter
 {

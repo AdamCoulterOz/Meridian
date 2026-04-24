@@ -5,7 +5,7 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.JavaScript;
+namespace Meridian.Formats.Web;
 
 public sealed class JavaScriptAstFormatAdapter : IAstFormatAdapter
 {

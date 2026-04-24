@@ -20,22 +20,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Meridian.Core\Meridian.Core.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Css\Meridian.Formats.Css.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Html\Meridian.Formats.Html.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.ImageGif\Meridian.Formats.ImageGif.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.ImageIco\Meridian.Formats.ImageIco.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.ImageJpg\Meridian.Formats.ImageJpg.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.ImagePng\Meridian.Formats.ImagePng.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.JavaScript\Meridian.Formats.JavaScript.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Json\Meridian.Formats.Json.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Json5\Meridian.Formats.Json5.csproj" />
+    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Data\Meridian.Formats.Data.csproj" />
+    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Images\Meridian.Formats.Images.csproj" />
     <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Liquid\Meridian.Formats.Liquid.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Raw\Meridian.Formats.Raw.csproj" />
     <ProjectReference Include="..\..\src\Formats\Meridian.Formats.TemplateText\Meridian.Formats.TemplateText.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.TemplatedHost\Meridian.Formats.TemplatedHost.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Xml\Meridian.Formats.Xml.csproj" />
+    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Web\Meridian.Formats.Web.csproj" />
     <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Xap\Meridian.Formats.Xap.csproj" />
-    <ProjectReference Include="..\..\src\Formats\Meridian.Formats.Yaml\Meridian.Formats.Yaml.csproj" />
   </ItemGroup>
 
   <ItemGroup>

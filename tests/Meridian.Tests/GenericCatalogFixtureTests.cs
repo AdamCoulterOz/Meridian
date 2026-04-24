@@ -1,7 +1,7 @@
 using Meridian.Core.Identity;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Formats.Xml;
+using Meridian.Formats.Data;
 
 namespace Meridian.Tests;
 

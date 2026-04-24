@@ -1,18 +1,17 @@
 using Meridian.Core.Ast;
-using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.Css;
+namespace Meridian.Core.Formats;
 
-public sealed class CssAstFormatAdapter : IAstFormatAdapter
+public sealed class RawAstFormatAdapter : IAstFormatAdapter
 {
-    public string Format => "css";
+    public string Format => "raw";
 
     public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return new AstDocument(Format, new AstNode("$css", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
+        return new AstDocument(Format, new AstNode("$raw", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
     }
 
     public string RenderDocument(AstDocument document)

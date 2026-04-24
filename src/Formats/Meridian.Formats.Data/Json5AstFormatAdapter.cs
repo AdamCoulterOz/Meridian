@@ -1,7 +1,6 @@
 using System.Text.Json.Nodes;
-using Meridian.Formats.Json;
 
-namespace Meridian.Formats.Json5;
+namespace Meridian.Formats.Data;
 
 public sealed class Json5AstFormatAdapter : JsonAstFormatAdapter
 {

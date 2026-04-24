@@ -4,9 +4,8 @@ using Meridian.Core.Ast;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Core.Templates;
 
-namespace Meridian.Formats.TemplatedHost;
+namespace Meridian.Core.Templates;
 
 public sealed class TemplatedHostAstFormatAdapter : IAstFormatAdapter
 {

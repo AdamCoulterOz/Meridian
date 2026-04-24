@@ -3,16 +3,16 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.ImageGif;
+namespace Meridian.Formats.Images;
 
-public sealed class GifAstFormatAdapter : IAstFormatAdapter
+public sealed class IcoAstFormatAdapter : IAstFormatAdapter
 {
-    public string Format => "image:gif";
+    public string Format => "image:ico";
 
     public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return new AstDocument(Format, new AstNode("$gif", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
+        return new AstDocument(Format, new AstNode("$ico", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
     }
 
     public string RenderDocument(AstDocument document)

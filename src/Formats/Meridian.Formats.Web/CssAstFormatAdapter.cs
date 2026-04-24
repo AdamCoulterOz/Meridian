@@ -3,16 +3,16 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.ImageIco;
+namespace Meridian.Formats.Web;
 
-public sealed class IcoAstFormatAdapter : IAstFormatAdapter
+public sealed class CssAstFormatAdapter : IAstFormatAdapter
 {
-    public string Format => "image:ico";
+    public string Format => "css";
 
     public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return new AstDocument(Format, new AstNode("$ico", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
+        return new AstDocument(Format, new AstNode("$css", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
     }
 
     public string RenderDocument(AstDocument document)
