@@ -50,6 +50,10 @@ Those edits are not really competing. With a schema that says `languagecode` ide
 <label description="Incident" languagecode="3081" />
 ```
 
+Deterministically sorting the labels would also avoid this particular conflict. That trick is useful when order is provably irrelevant, but it is not a general solution: many structured files mix unordered lookup-style collections with ordered UI layout, execution steps, display sequence, or fallback precedence. Sorting everything is clunky at best and corrupting at worst.
+
+Meridian handles that distinction in the schema. Children are matched by identity, and order is treated as meaningful only for parent paths listed in `orderedChildren`. If both sides change an ordered collection differently, Meridian reports an ordered-child conflict instead of pretending a sort can make the decision safely.
+
 That is the core idea:
 
 - `languagecode="1033"` and `languagecode="3081"` identify different sibling labels.
