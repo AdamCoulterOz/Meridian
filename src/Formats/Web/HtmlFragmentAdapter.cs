@@ -26,7 +26,7 @@ public sealed class HtmlFragmentAdapter : IAstFormatAdapter
             .Select((node, index) => ParseNode(node, index))
             .ToArray() ?? Array.Empty<AstNode>();
 
-        return new AstDocument(Format, new AstNode("$fragment", FormatAstUtilities.HiddenFields("fragment"), children: children), sourcePath, sourceText);
+        return new AstDocument(Format, new AstNode("$fragment", AstNodeMetadata.Create("fragment"), children: children), sourcePath, sourceText);
     }
 
     public string RenderDocument(AstDocument document)
@@ -51,22 +51,22 @@ public sealed class HtmlFragmentAdapter : IAstFormatAdapter
             AngleSharp.Dom.IElement element => ParseElement(element, index),
             AngleSharp.Dom.IText text => new AstNode(
                 $"$text{index:D6}",
-                FormatAstUtilities.HiddenFields("text"),
+                AstNodeMetadata.Create("text"),
                 text.Data),
             AngleSharp.Dom.IComment comment => new AstNode(
                 $"$comment{index:D6}",
-                FormatAstUtilities.HiddenFields("comment"),
+                AstNodeMetadata.Create("comment"),
                 comment.Data),
             _ => new AstNode(
                 $"$node{index:D6}",
-                FormatAstUtilities.HiddenFields("raw"),
+                AstNodeMetadata.Create("raw"),
                 node.TextContent)
         };
     }
 
     private static AstNode ParseElement(AngleSharp.Dom.IElement element, int index)
     {
-        var fields = FormatAstUtilities.HiddenFields("element", element.LocalName);
+        var fields = AstNodeMetadata.Create("element", element.LocalName);
         foreach (var attribute in element.Attributes)
         {
             fields[attribute.Name] = attribute.Value;
@@ -76,12 +76,12 @@ public sealed class HtmlFragmentAdapter : IAstFormatAdapter
             .Select((child, childIndex) => ParseNode(child, childIndex))
             .ToArray();
 
-        return new AstNode($"{FormatAstUtilities.EncodeKind(element.LocalName)}{index:D6}", fields, children: children);
+        return new AstNode($"{AstNodeMetadata.EncodeKind(element.LocalName)}{index:D6}", fields, children: children);
     }
 
     private static string RenderHtmlNode(AstNode node)
     {
-        var type = node.Fields.TryGetValue(FormatAstUtilities.TypeField, out var nodeType)
+        var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
             : "fragment";
 
@@ -98,8 +98,8 @@ public sealed class HtmlFragmentAdapter : IAstFormatAdapter
 
     private static string RenderElement(AstNode node)
     {
-        var tag = FormatAstUtilities.GetName(node);
-        var attributes = FormatAstUtilities.VisibleFields(node)
+        var tag = node.GetMetadataName();
+        var attributes = node.VisibleFields()
             .OrderBy(field => field.Key, StringComparer.Ordinal)
             .Select(field => $" {field.Key}=\"{WebUtility.HtmlEncode(field.Value)}\"");
         var start = $"<{tag}{string.Concat(attributes)}>";

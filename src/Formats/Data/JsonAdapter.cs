@@ -68,12 +68,12 @@ public class JsonAdapter : IAstFormatAdapter
         var children = obj
             .Select(property =>
             {
-                var child = ParseNode(property.Value, FormatAstUtilities.EncodeKind(property.Key));
+                var child = ParseNode(property.Value, AstNodeMetadata.EncodeKind(property.Key));
                 return child with { Fields = AddName(child.Fields, property.Key) };
             })
             .ToArray();
 
-        return new AstNode(kind, FormatAstUtilities.HiddenFields("object"), children: children);
+        return new AstNode(kind, AstNodeMetadata.Create("object"), children: children);
     }
 
     private static AstNode ParseArray(JsonArray array, string kind)
@@ -82,12 +82,12 @@ public class JsonAdapter : IAstFormatAdapter
             .Select((item, index) => ParseNode(item, $"$item{index:D6}"))
             .ToArray();
 
-        return new AstNode(kind, FormatAstUtilities.HiddenFields("array"), children: children);
+        return new AstNode(kind, AstNodeMetadata.Create("array"), children: children);
     }
 
     private static AstNode ParseNull(string kind)
     {
-        var fields = FormatAstUtilities.HiddenFields("null");
+        var fields = AstNodeMetadata.Create("null");
         fields[ValueKindField] = nameof(JsonValueKind.Null);
         return new AstNode(kind, fields);
     }
@@ -96,7 +96,7 @@ public class JsonAdapter : IAstFormatAdapter
     {
         using var document = JsonDocument.Parse(value.ToJsonString());
         var element = document.RootElement;
-        var fields = FormatAstUtilities.HiddenFields("value");
+        var fields = AstNodeMetadata.Create("value");
         fields[ValueKindField] = element.ValueKind.ToString();
 
         var scalar = element.ValueKind switch
@@ -115,13 +115,13 @@ public class JsonAdapter : IAstFormatAdapter
     private static IReadOnlyDictionary<string, string> AddName(IReadOnlyDictionary<string, string> fields, string name)
     {
         var copy = fields.ToDictionary(field => field.Key, field => field.Value, StringComparer.Ordinal);
-        copy[FormatAstUtilities.NameField] = name;
+        copy[AstNodeMetadata.NameField] = name;
         return copy;
     }
 
     private static JsonNode? RenderJsonNode(AstNode node)
     {
-        var type = node.Fields.TryGetValue(FormatAstUtilities.TypeField, out var nodeType)
+        var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
             : InferType(node);
 
@@ -139,7 +139,7 @@ public class JsonAdapter : IAstFormatAdapter
         var obj = new JsonObject();
         foreach (var child in node.Children)
         {
-            obj[FormatAstUtilities.GetName(child)] = RenderJsonNode(child);
+            obj[child.GetMetadataName()] = RenderJsonNode(child);
         }
 
         return obj;

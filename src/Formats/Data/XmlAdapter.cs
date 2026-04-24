@@ -13,8 +13,6 @@ namespace Meridian.Formats.Data;
 public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
 {
     private const string PlaceholderElementName = "__ps_template";
-    private const string TypeField = "$type";
-    private const string NameField = "$name";
     private const string FieldOrderField = "$fieldOrder";
     private static readonly Regex AttributePlaceholderMarker = new(
         Regex.Escape(TemplatePlaceholderFields.MarkerPrefix) + "[0-9a-f]{16}__(?<id>tpl[0-9]{6})" + Regex.Escape(TemplatePlaceholderFields.MarkerSuffix),
@@ -245,7 +243,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         {
             return new AstNode(
                 "$templatePlaceholder" + placeholder.Id,
-                HiddenFields("templatePlaceholder", new Dictionary<string, string>(StringComparer.Ordinal)
+                AstNodeMetadata.Create("templatePlaceholder", new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     [TemplatePlaceholderFields.PlaceholderId] = placeholder.Id,
                     [TemplatePlaceholderFields.SemanticKey] = placeholder.SemanticKey,
@@ -306,9 +304,9 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
 
     private static AstNode ParseTemplateFieldValue(string fieldName, string value)
     {
-        var fields = HiddenFields("fieldValue", new Dictionary<string, string>(StringComparer.Ordinal)
+        var fields = AstNodeMetadata.Create("fieldValue", new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [NameField] = fieldName
+            [AstNodeMetadata.NameField] = fieldName
         });
         var children = new List<AstNode>();
         var position = 0;
@@ -320,14 +318,14 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
             {
                 children.Add(new AstNode(
                     $"$fieldText{ordinal++:D6}",
-                    HiddenFields("fieldText"),
+                    AstNodeMetadata.Create("fieldText"),
                     value[position..match.Index]));
             }
 
             var placeholder = ParseAttributePlaceholder(match, fieldName, children.Count(IsTemplatePlaceholder));
             children.Add(new AstNode(
                 "$templatePlaceholder" + placeholder.Id,
-                HiddenFields("templatePlaceholder", new Dictionary<string, string>(StringComparer.Ordinal)
+                AstNodeMetadata.Create("templatePlaceholder", new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     [TemplatePlaceholderFields.PlaceholderId] = placeholder.Id,
                     [TemplatePlaceholderFields.SemanticKey] = placeholder.SemanticKey,
@@ -340,7 +338,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         {
             children.Add(new AstNode(
                 $"$fieldText{ordinal++:D6}",
-                HiddenFields("fieldText"),
+                AstNodeMetadata.Create("fieldText"),
                 value[position..]));
         }
 
@@ -359,10 +357,10 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         return node switch
         {
             XElement element => ParseTemplateElement(element),
-            XCData cdata => new AstNode($"$cdata{index:D6}", HiddenFields("cdata"), cdata.Value),
-            XText text => new AstNode($"$text{index:D6}", HiddenFields("text"), text.Value),
-            XComment comment => new AstNode($"$comment{index:D6}", HiddenFields("comment"), comment.Value),
-            _ => new AstNode($"$xmlNode{index:D6}", HiddenFields("raw"), node.ToString(SaveOptions.DisableFormatting))
+            XCData cdata => new AstNode($"$cdata{index:D6}", AstNodeMetadata.Create("cdata"), cdata.Value),
+            XText text => new AstNode($"$text{index:D6}", AstNodeMetadata.Create("text"), text.Value),
+            XComment comment => new AstNode($"$comment{index:D6}", AstNodeMetadata.Create("comment"), comment.Value),
+            _ => new AstNode($"$xmlNode{index:D6}", AstNodeMetadata.Create("raw"), node.ToString(SaveOptions.DisableFormatting))
         };
     }
 
@@ -375,7 +373,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
         }
 
-        var type = node.Fields.TryGetValue(TypeField, out var nodeType)
+        var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
             : "element";
 
@@ -406,7 +404,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         var emittedFields = new HashSet<string>(StringComparer.Ordinal);
         var fieldValuesByName = node.Children
             .Where(IsTemplateFieldValue)
-            .ToDictionary(child => child.Fields[NameField], StringComparer.Ordinal);
+            .ToDictionary(child => child.Fields[AstNodeMetadata.NameField], StringComparer.Ordinal);
 
         foreach (var fieldName in ReadFieldOrder(node))
         {
@@ -432,7 +430,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
 
         foreach (var fieldValue in node.Children.Where(IsTemplateFieldValue))
         {
-            var fieldName = fieldValue.Fields[NameField];
+            var fieldName = fieldValue.Fields[AstNodeMetadata.NameField];
             if (emittedFields.Add(fieldName))
             {
                 AppendAttribute(builder, fieldName, RenderTemplateFieldValue(fieldValue, templateSourceByPlaceholderId));
@@ -482,7 +480,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         var builder = new StringBuilder();
         foreach (var child in node.Children)
         {
-            if (child.Fields.TryGetValue(TypeField, out var type) &&
+            if (child.TryGetMetadataType(out var type) &&
                 string.Equals(type, "templatePlaceholder", StringComparison.Ordinal) &&
                 child.Fields.TryGetValue(TemplatePlaceholderFields.PlaceholderId, out var placeholderId))
             {
@@ -498,13 +496,13 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
 
     private static bool IsTemplateFieldValue(AstNode node)
     {
-        return node.Fields.TryGetValue(TypeField, out var type) &&
+        return node.TryGetMetadataType(out var type) &&
             string.Equals(type, "fieldValue", StringComparison.Ordinal);
     }
 
     private static bool IsTemplatePlaceholder(AstNode node)
     {
-        return node.Fields.TryGetValue(TypeField, out var type) &&
+        return node.TryGetMetadataType(out var type) &&
             string.Equals(type, "templatePlaceholder", StringComparison.Ordinal);
     }
 
@@ -521,20 +519,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
     private static string EscapeAttribute(string value)
     {
         return SecurityElement.Escape(value) ?? string.Empty;
-    }
-
-    private static Dictionary<string, string> HiddenFields(string type)
-    {
-        return new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [TypeField] = type
-        };
-    }
-
-    private static Dictionary<string, string> HiddenFields(string type, Dictionary<string, string> fields)
-    {
-        fields[TypeField] = type;
-        return fields;
     }
 
     private static string AttributeKey(XAttribute attribute)

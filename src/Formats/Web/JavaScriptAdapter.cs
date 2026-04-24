@@ -17,7 +17,7 @@ public sealed class JavaScriptAdapter : IAstFormatAdapter
 
         var parser = new JavaScriptParser(new ParserOptions { Tolerant = false });
         var program = parser.ParseScript(sourceText, sourcePath);
-        var fields = FormatAstUtilities.HiddenFields("script");
+        var fields = AstNodeMetadata.Create("script");
         fields["parser"] = "esprima";
         fields["sourceType"] = program.SourceType.ToString();
         fields["bodyCount"] = program.Body.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);

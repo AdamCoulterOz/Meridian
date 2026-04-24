@@ -24,7 +24,7 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
 
         return new AstDocument(
             Format,
-            new AstNode("$liquid", FormatAstUtilities.HiddenFields("template"), children: ParseTokens(sourceText)),
+            new AstNode("$liquid", AstNodeMetadata.Create("template"), children: ParseTokens(sourceText)),
             sourcePath,
             sourceText);
     }
@@ -41,7 +41,7 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
         }
 
-        var type = node.Fields.TryGetValue(FormatAstUtilities.TypeField, out var nodeType)
+        var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
             : "template";
 
@@ -57,13 +57,13 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
 
     public bool IsLiteralNode(AstNode node)
     {
-        return node.Fields.TryGetValue(FormatAstUtilities.TypeField, out var nodeType) &&
+        return node.TryGetMetadataType(out var nodeType) &&
             string.Equals(nodeType, "text", StringComparison.Ordinal);
     }
 
     public string GetTemplateKind(AstNode node)
     {
-        return node.Fields.TryGetValue(FormatAstUtilities.TypeField, out var nodeType)
+        return node.TryGetMetadataType(out var nodeType)
             ? nodeType switch
             {
                 "output" => "output",
@@ -138,13 +138,13 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
 
         tokens.Add(new AstNode(
             $"$text{ordinal++:D6}",
-            FormatAstUtilities.HiddenFields("text"),
+            AstNodeMetadata.Create("text"),
             text));
     }
 
     private static AstNode CreateToken(string kindPrefix, string type, DelimitedToken token, ref int ordinal, string? tagName = null)
     {
-        var fields = FormatAstUtilities.HiddenFields(type);
+        var fields = AstNodeMetadata.Create(type);
         fields[OpenField] = token.Open;
         fields[CloseField] = token.Close;
         if (!string.IsNullOrWhiteSpace(tagName))
@@ -160,7 +160,7 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
         var type = string.Equals(tagName, "raw", StringComparison.OrdinalIgnoreCase)
             ? "rawBlock"
             : "commentBlock";
-        var fields = FormatAstUtilities.HiddenFields(type);
+        var fields = AstNodeMetadata.Create(type);
         fields[TagNameField] = tagName;
         fields[StartTagField] = startTag.FullText;
         fields[EndTagField] = endTag.FullText;

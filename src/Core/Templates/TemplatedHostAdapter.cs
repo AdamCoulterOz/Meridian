@@ -44,7 +44,7 @@ public sealed class TemplatedHostAdapter : IAstFormatAdapter
                 Format,
                 CreateRoot("safe", new[]
                 {
-                    new AstNode("$host", FormatAstUtilities.HiddenFields("host"), children: new[] { hostDocument.Root }),
+                    new AstNode("$host", AstNodeMetadata.Create("host"), children: new[] { hostDocument.Root }),
                     CreateTemplateCollection(stitched.Placeholders)
                 }),
                 sourcePath,
@@ -233,7 +233,7 @@ public sealed class TemplatedHostAdapter : IAstFormatAdapter
 
     private AstNode CreateRoot(string mode, string? unsafeReason, IReadOnlyList<AstNode> children)
     {
-        var fields = FormatAstUtilities.HiddenFields("templatedHost");
+        var fields = AstNodeMetadata.Create("templatedHost");
         fields[TemplatePlaceholderFields.Engine] = _templateEngine.EngineName;
         fields[TemplatePlaceholderFields.HostFormat] = _host.HostFormat;
         fields[TemplatePlaceholderFields.Mode] = mode;
@@ -249,13 +249,13 @@ public sealed class TemplatedHostAdapter : IAstFormatAdapter
     {
         return new AstNode(
             "$templates",
-            FormatAstUtilities.HiddenFields("templateCollection"),
+            AstNodeMetadata.Create("templateCollection"),
             children: placeholders.Select(CreateTemplateNode).ToArray());
     }
 
     private static AstNode CreateTemplateNode(TemplatePlaceholder placeholder)
     {
-        var fields = FormatAstUtilities.HiddenFields("templatePlaceholder");
+        var fields = AstNodeMetadata.Create("templatePlaceholder");
         fields[TemplatePlaceholderFields.PlaceholderId] = placeholder.Token.Id;
         fields[TemplatePlaceholderFields.SemanticKey] = placeholder.Token.SemanticKey;
         fields[TemplatePlaceholderFields.Engine] = placeholder.Token.Engine;

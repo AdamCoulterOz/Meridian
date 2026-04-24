@@ -66,11 +66,11 @@ public sealed class YamlAdapter : IAstFormatAdapter
             }
 
             var name = key.Value ?? string.Empty;
-            var child = ParseNode(pair.Value, FormatAstUtilities.EncodeKind(name));
+            var child = ParseNode(pair.Value, AstNodeMetadata.EncodeKind(name));
             return child with { Fields = AddName(child.Fields, name) };
         }).ToArray();
 
-        return new AstNode(kind, FormatAstUtilities.HiddenFields("mapping"), children: children);
+        return new AstNode(kind, AstNodeMetadata.Create("mapping"), children: children);
     }
 
     private static AstNode ParseSequence(YamlSequenceNode sequence, string kind)
@@ -79,12 +79,12 @@ public sealed class YamlAdapter : IAstFormatAdapter
             .Select((item, index) => ParseNode(item, $"$item{index:D6}"))
             .ToArray();
 
-        return new AstNode(kind, FormatAstUtilities.HiddenFields("sequence"), children: children);
+        return new AstNode(kind, AstNodeMetadata.Create("sequence"), children: children);
     }
 
     private static AstNode ParseScalar(YamlScalarNode scalar, string kind)
     {
-        var fields = FormatAstUtilities.HiddenFields("scalar");
+        var fields = AstNodeMetadata.Create("scalar");
         fields[ScalarStyleField] = scalar.Style.ToString();
         return new AstNode(kind, fields, scalar.Value);
     }
@@ -92,13 +92,13 @@ public sealed class YamlAdapter : IAstFormatAdapter
     private static IReadOnlyDictionary<string, string> AddName(IReadOnlyDictionary<string, string> fields, string name)
     {
         var copy = fields.ToDictionary(field => field.Key, field => field.Value, StringComparer.Ordinal);
-        copy[FormatAstUtilities.NameField] = name;
+        copy[AstNodeMetadata.NameField] = name;
         return copy;
     }
 
     private static YamlNode RenderYamlNode(AstNode node)
     {
-        var type = node.Fields.TryGetValue(FormatAstUtilities.TypeField, out var nodeType)
+        var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
             : node.Children.Count > 0 ? "mapping" : "scalar";
 
@@ -115,7 +115,7 @@ public sealed class YamlAdapter : IAstFormatAdapter
         var mapping = new YamlMappingNode();
         foreach (var child in node.Children)
         {
-            mapping.Add(FormatAstUtilities.GetName(child), RenderYamlNode(child));
+            mapping.Add(child.GetMetadataName(), RenderYamlNode(child));
         }
 
         return mapping;
