@@ -1,27 +1,21 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Meridian.Core/Meridian.Core.csproj" />
-    <Project Path="src/Meridian.Tools.GitMerge/Meridian.Tools.GitMerge.csproj" />
-    <Folder Name="/Formats/">
-      <Project Path="src/Formats/Meridian.Formats.Css/Meridian.Formats.Css.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.Html/Meridian.Formats.Html.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.ImageGif/Meridian.Formats.ImageGif.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.ImageIco/Meridian.Formats.ImageIco.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.ImageJpg/Meridian.Formats.ImageJpg.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.ImagePng/Meridian.Formats.ImagePng.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.JavaScript/Meridian.Formats.JavaScript.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.Json/Meridian.Formats.Json.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.Json5/Meridian.Formats.Json5.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.Liquid/Meridian.Formats.Liquid.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.Raw/Meridian.Formats.Raw.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.TemplateText/Meridian.Formats.TemplateText.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.TemplatedHost/Meridian.Formats.TemplatedHost.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.Xml/Meridian.Formats.Xml.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.Xap/Meridian.Formats.Xap.csproj" />
-      <Project Path="src/Formats/Meridian.Formats.Yaml/Meridian.Formats.Yaml.csproj" />
-    </Folder>
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/Meridian.Tests/Meridian.Tests.csproj" />
-  </Folder>
+  <Project Path="src/Meridian.Core/Meridian.Core.csproj" />
+  <Project Path="src/Meridian.Tools.GitMerge/Meridian.Tools.GitMerge.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.Css/Meridian.Formats.Css.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.Html/Meridian.Formats.Html.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.ImageGif/Meridian.Formats.ImageGif.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.ImageIco/Meridian.Formats.ImageIco.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.ImageJpg/Meridian.Formats.ImageJpg.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.ImagePng/Meridian.Formats.ImagePng.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.JavaScript/Meridian.Formats.JavaScript.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.Json/Meridian.Formats.Json.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.Json5/Meridian.Formats.Json5.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.Liquid/Meridian.Formats.Liquid.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.Raw/Meridian.Formats.Raw.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.TemplateText/Meridian.Formats.TemplateText.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.TemplatedHost/Meridian.Formats.TemplatedHost.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.Xml/Meridian.Formats.Xml.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.Xap/Meridian.Formats.Xap.csproj" />
+  <Project Path="src/Formats/Meridian.Formats.Yaml/Meridian.Formats.Yaml.csproj" />
+  <Project Path="tests/Meridian.Tests/Meridian.Tests.csproj" />
 </Solution>
