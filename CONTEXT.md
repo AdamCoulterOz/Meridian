@@ -37,11 +37,19 @@ Current state:
 - Format adapter projects are grouped by cohesive format family. Shared format helper assemblies should be avoided unless the shared contract is genuinely format-agnostic and belongs outside a concrete adapter.
 - Git integration remains outside `Meridian.Core`.
 - Schema rules define merge-relevant semantics such as discriminators, ordered children, companion files, content formats, nested schema references, and format aliases.
+- Schema content rules should describe decoded logical content, not normal container escaping. The active adapter owns container-specific decoding and re-encoding.
+- Logical format aliases should preserve domain meaning instead of erasing it. For example, a schema may name `svg`, `xsl`, or `resx` while the registry currently aliases them to `xml` until dedicated adapters exist.
 - Ambiguous node identity must fail loudly; no silent positional fallback for semantic merge.
 - Child order participates in merge only for schema-declared ordered collections.
 - Clean nested content is rendered by the child adapter and re-encoded by the parent adapter.
 - Unresolved nested content conflicts must not be silently embedded inside escaped child content.
 - Conflict marker projection defaults to normal two-sided Git conflict markers.
+- Conflict marker syntax is control syntax, not data. If unresolved nested conflicts cannot be represented safely inside an encoded scalar, Meridian should project the conflict at the nearest owning encoded scalar/property boundary or fail loudly.
+- Scalar formats such as GUIDs, booleans, integers, and decimals should parse as typed values where possible while preserving source representation on emit unless an explicit normalization policy says otherwise.
+- Composite/package formats such as future `docx` and `xlsx` should be first-class package adapters, not aliases to XML, because the package relationships are part of the merge surface.
+- Source-preserving output matters. Clean merges should avoid rewriting formatting, declarations, namespace declarations, attribute order, and sibling order unless an explicit canonicalization policy is active.
+- Git merge-driver placeholders should be consumed exactly as Git supplies them; callers should not shell-quote `%O`, `%A`, `%B`, or `%P` inside Git driver config.
+- The Git merge command must continue to support explicit schema loading so domain repositories can provide file-specific discriminator and ordering rules.
 
 ## Mapped Format Model
 
@@ -62,6 +70,7 @@ Current state:
 - Add explicit unresolved nested-conflict projection instead of failing during collapse.
 - Strengthen mapped token semantic keys so they remain stable under unrelated token insertion.
 - Add more host adapters and safe token strategies for JSON, YAML, HTML, JavaScript, and other formats.
+- Add lossless or source-preserving formatting preservation for JSON, YAML, JSON5, HTML, and JavaScript where practical.
 - Replace opaque adapters for binary formats with byte-safe handling.
 - Add first-class package adapters for composite formats such as `docx` and `xlsx`.
 - Add small integration fixtures for real Git merge-driver runs.
