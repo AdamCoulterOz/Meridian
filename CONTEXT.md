@@ -12,21 +12,21 @@ Current state:
 - The core document tree merge model and schema loader are implemented.
 - Consumer usage is documented in `README.md`; deeper extension notes live in `docs/architecture.md`.
 - The Meridian schema authoring contract is documented as JSON Schema in `schemas/meridian.schema.json`, including descriptions for editor and LLM-assisted generation.
-- XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid, mapped-text fallback, CSS, image placeholder, `xap`, and raw adapters exist. Closely related external adapters are grouped into format-family projects under `src/Formats`.
+- XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid, mapped-text fallback, CSS, image placeholder, `xap`, and raw adapters exist. Closely related external adapters are grouped into format-family projects under `source/Formats`.
 - The Git merge-driver command can merge supported files with an optional schema.
 - Mapped format composition exists for formats such as `liquid:xml`.
 - A generic catalog fixture exists to exercise schema-driven XML identity and clean three-way merge behavior without domain-specific assumptions.
 
 ## Architecture And Structure
 
-- `src/Core` contains document tree contracts, schema model/loading, identity assignment, three-way merge mechanics, conflict marker helpers, and generic format infrastructure.
-- `src/Core/Formats/Nested` contains nested content expansion/collapse.
-- `src/Core/Formats/Mapped` contains mapped-text fallback, mapped format composition, and mapped token contracts.
-- `src/Formats/Data` contains XML, JSON, JSON5, and YAML adapters.
-- `src/Formats/Web` contains HTML fragment, CSS, and JavaScript adapters.
-- `src/Formats/Images` contains image placeholder adapters for PNG, JPEG, GIF, and ICO payloads.
-- `src/Formats` also contains dedicated projects for Liquid and `xap`.
-- `src/Tools/GitMerge` contains a thin Git merge-driver style command.
+- `source/Core` contains document tree contracts, schema model/loading, identity assignment, three-way merge mechanics, conflict marker helpers, and generic format infrastructure.
+- `source/Core/Formats/Nested` contains nested content expansion/collapse.
+- `source/Core/Formats/Mapped` contains mapped-text fallback, mapped format composition, and mapped token contracts.
+- `source/Formats/Data` contains XML, JSON, JSON5, and YAML adapters.
+- `source/Formats/Web` contains HTML fragment, CSS, and JavaScript adapters.
+- `source/Formats/Images` contains image placeholder adapters for PNG, JPEG, GIF, and ICO payloads.
+- `source/Formats` also contains dedicated projects for Liquid and `xap`.
+- `source/Tools/GitMerge` contains a thin Git merge-driver style command.
 - `tests/Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, mapped format composition, Git conflict marker rendering, and file-based generic fixtures.
 
 ## Key Decisions And Invariants

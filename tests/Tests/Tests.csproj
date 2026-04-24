@@ -21,12 +21,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/Core/Core.csproj" />
-    <ProjectReference Include="../../src/Formats/Data/Data.csproj" />
-    <ProjectReference Include="../../src/Formats/Images/Images.csproj" />
-    <ProjectReference Include="../../src/Formats/Liquid/Liquid.csproj" />
-    <ProjectReference Include="../../src/Formats/Web/Web.csproj" />
-    <ProjectReference Include="../../src/Formats/Xap/Xap.csproj" />
+    <ProjectReference Include="../../source/Core/Core.csproj" />
+    <ProjectReference Include="../../source/Formats/Data/Data.csproj" />
+    <ProjectReference Include="../../source/Formats/Images/Images.csproj" />
+    <ProjectReference Include="../../source/Formats/Liquid/Liquid.csproj" />
+    <ProjectReference Include="../../source/Formats/Web/Web.csproj" />
+    <ProjectReference Include="../../source/Formats/Xap/Xap.csproj" />
   </ItemGroup>
 
   <ItemGroup>

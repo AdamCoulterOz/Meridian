@@ -71,7 +71,7 @@ dotnet test Meridian.slnx
 Run the merge command from source:
 
 ```bash
-dotnet run --project src/Tools/GitMerge/GitMerge.csproj -- \
+dotnet run --project source/Tools/GitMerge/GitMerge.csproj -- \
   merge-file \
   --base path/to/base.xml \
   --ours path/to/ours.xml \
@@ -95,7 +95,7 @@ In the repository that contains the files you want to merge, add a Git merge dri
 ```ini
 [merge "meridian"]
     name = Meridian structural merge
-    driver = dotnet run --project ../Meridian/src/Tools/GitMerge/GitMerge.csproj -- merge-file --base %O --ours %A --theirs %B --path %P --schema meridian.schema.yaml
+    driver = dotnet run --project ../Meridian/source/Tools/GitMerge/GitMerge.csproj -- merge-file --base %O --ours %A --theirs %B --path %P --schema meridian.schema.yaml
 ```
 
 Adjust the `../Meridian/...` path to wherever Meridian lives relative to the consuming repo.

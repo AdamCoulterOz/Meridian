@@ -43,7 +43,7 @@ A format adapter owns everything physical about a format:
 - rendering tree nodes back into source text;
 - deciding which mapped-token contexts are safe for that host language.
 
-Adapters exist under `src/Formats` by cohesive format family:
+Adapters exist under `source/Formats` by cohesive format family:
 
 - `Data`: XML, JSON, JSON5, YAML;
 - `Web`: HTML fragment, CSS, JavaScript;
@@ -116,7 +116,7 @@ The core model is generic. Power Platform WebResource metadata is one consumer u
 
 ## Git Integration Boundary
 
-`src/Tools/GitMerge` is intentionally thin:
+`source/Tools/GitMerge` is intentionally thin:
 
 - parse Git merge-driver arguments;
 - select an adapter;
