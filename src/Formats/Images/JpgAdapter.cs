@@ -1,17 +1,18 @@
 using Meridian.Core.Ast;
+using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Core.Formats;
+namespace Meridian.Formats.Images;
 
-public sealed class RawAstFormatAdapter : IAstFormatAdapter
+public sealed class JpgAdapter : IAstFormatAdapter
 {
-    public string Format => "raw";
+    public string Format => "image:jpg";
 
     public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return new AstDocument(Format, new AstNode("$raw", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
+        return new AstDocument(Format, new AstNode("$jpg", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
     }
 
     public string RenderDocument(AstDocument document)

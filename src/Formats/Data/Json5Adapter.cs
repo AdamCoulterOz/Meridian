@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace Meridian.Formats.Data;
 
-public sealed class Json5AstFormatAdapter : JsonAstFormatAdapter
+public sealed class Json5Adapter : JsonAdapter
 {
     public override string Format => "json5";
 

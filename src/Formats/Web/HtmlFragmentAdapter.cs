@@ -7,7 +7,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Web;
 
-public sealed class HtmlFragmentAstFormatAdapter : IAstFormatAdapter
+public sealed class HtmlFragmentAdapter : IAstFormatAdapter
 {
     private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase)
     {

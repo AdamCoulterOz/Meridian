@@ -15,7 +15,7 @@ public sealed class AstMergerTests
         GlobalDiscriminatorFields = new[] { "id", "Id", "languagecode" }
     };
 
-    private readonly XmlAstFormatAdapter _xml = new();
+    private readonly XmlAdapter _xml = new();
 
     [Fact]
     public void GlobalDiscriminatorsIncludeUppercaseId()

@@ -7,12 +7,12 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Core.Templates;
 
-public sealed class TemplatedHostAstFormatAdapter : IAstFormatAdapter
+public sealed class TemplatedHostAdapter : IAstFormatAdapter
 {
     private readonly ITemplateEngineAstFormatAdapter _templateEngine;
     private readonly ITemplatePlaceholderHost _host;
 
-    public TemplatedHostAstFormatAdapter(
+    public TemplatedHostAdapter(
         ITemplateEngineAstFormatAdapter templateEngine,
         ITemplatePlaceholderHost host)
     {

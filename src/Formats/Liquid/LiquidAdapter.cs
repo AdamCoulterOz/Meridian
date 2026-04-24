@@ -6,7 +6,7 @@ using Meridian.Core.Templates;
 
 namespace Meridian.Formats.Liquid;
 
-public class LiquidAstFormatAdapter : ITemplateEngineAstFormatAdapter
+public class LiquidAdapter : ITemplateEngineAstFormatAdapter
 {
     private const string OpenField = "open";
     private const string CloseField = "close";

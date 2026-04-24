@@ -7,7 +7,7 @@ using YamlDotNet.RepresentationModel;
 
 namespace Meridian.Formats.Data;
 
-public sealed class YamlAstFormatAdapter : IAstFormatAdapter
+public sealed class YamlAdapter : IAstFormatAdapter
 {
     private const string ScalarStyleField = "$scalarStyle";
 

@@ -5,7 +5,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Xap;
 
-public sealed class XapAstFormatAdapter : IAstFormatAdapter
+public sealed class XapAdapter : IAstFormatAdapter
 {
     public string Format => "xap";
 

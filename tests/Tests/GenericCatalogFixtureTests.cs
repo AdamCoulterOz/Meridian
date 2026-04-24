@@ -14,7 +14,7 @@ public sealed class GenericCatalogFixtureTests
         var schema = AstSchemaYamlLoader
             .LoadFile(Path.Combine(fixturePath, "catalog.schema.yaml"))
             .CompileForFile("catalog.xml", "Catalog");
-        var xml = new XmlAstFormatAdapter();
+        var xml = new XmlAdapter();
 
         var result = new AstMerger().Merge(
             xml.Parse(ReadFixture(fixturePath, "base.xml"), "catalog.xml", schema),

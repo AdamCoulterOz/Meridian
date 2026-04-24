@@ -10,7 +10,7 @@ using Meridian.Core.Templates;
 
 namespace Meridian.Formats.Data;
 
-public sealed class XmlAstFormatAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
+public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
 {
     private const string PlaceholderElementName = "__ps_template";
     private const string TypeField = "$type";

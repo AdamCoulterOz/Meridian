@@ -6,7 +6,7 @@ namespace Meridian.Tests;
 
 public sealed class SchemaLoaderTests
 {
-    private readonly XmlAstFormatAdapter _xml = new();
+    private readonly XmlAdapter _xml = new();
 
     [Fact]
     public void SchemaLoaderCompilesCompanionPathFromMatchedPathRules()

@@ -78,14 +78,14 @@ static IAstFormatAdapter? CreateAdapter(string repoPath)
     var extension = Path.GetExtension(repoPath).ToLowerInvariant();
     return extension switch
     {
-        ".xml" => new XmlAstFormatAdapter(),
-        ".json" => new JsonAstFormatAdapter(),
-        ".json5" => new Json5AstFormatAdapter(),
-        ".js" => new JavaScriptAstFormatAdapter(),
-        ".yaml" => new YamlAstFormatAdapter(),
-        ".yml" => new YamlAstFormatAdapter(),
-        ".html" => new HtmlFragmentAstFormatAdapter(),
-        ".htm" => new HtmlFragmentAstFormatAdapter(),
+        ".xml" => new XmlAdapter(),
+        ".json" => new JsonAdapter(),
+        ".json5" => new Json5Adapter(),
+        ".js" => new JavaScriptAdapter(),
+        ".yaml" => new YamlAdapter(),
+        ".yml" => new YamlAdapter(),
+        ".html" => new HtmlFragmentAdapter(),
+        ".htm" => new HtmlFragmentAdapter(),
         _ => null
     };
 }

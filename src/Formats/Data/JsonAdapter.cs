@@ -8,7 +8,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Data;
 
-public class JsonAstFormatAdapter : IAstFormatAdapter
+public class JsonAdapter : IAstFormatAdapter
 {
     private const string ValueKindField = "$valueKind";
     private static readonly JsonSerializerOptions JsonOptions = new()

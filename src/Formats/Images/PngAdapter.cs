@@ -5,14 +5,14 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Images;
 
-public sealed class IcoAstFormatAdapter : IAstFormatAdapter
+public sealed class PngAdapter : IAstFormatAdapter
 {
-    public string Format => "image:ico";
+    public string Format => "image:png";
 
     public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return new AstDocument(Format, new AstNode("$ico", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
+        return new AstDocument(Format, new AstNode("$png", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
     }
 
     public string RenderDocument(AstDocument document)

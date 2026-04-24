@@ -1,18 +1,17 @@
 using Meridian.Core.Ast;
-using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Core.Templates;
+namespace Meridian.Core.Formats;
 
-public sealed class TemplateTextAstFormatAdapter : IAstFormatAdapter
+public sealed class RawAdapter : IAstFormatAdapter
 {
-    public string Format => "template-text";
+    public string Format => "raw";
 
     public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return new AstDocument(Format, new AstNode("$template", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
+        return new AstDocument(Format, new AstNode("$raw", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
     }
 
     public string RenderDocument(AstDocument document)

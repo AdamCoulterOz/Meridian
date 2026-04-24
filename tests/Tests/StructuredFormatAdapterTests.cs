@@ -15,7 +15,7 @@ public sealed class StructuredFormatAdapterTests
     [Fact]
     public void JsonAdapterParsesAndRendersObjectTrees()
     {
-        var adapter = new JsonAstFormatAdapter();
+        var adapter = new JsonAdapter();
 
         var document = adapter.Parse("""{"name":"Safety","items":[1,true,null]}""", "test.json", AstSchema.Empty);
 
@@ -29,7 +29,7 @@ public sealed class StructuredFormatAdapterTests
     [Fact]
     public void Json5AdapterParsesJson5AndRendersJson()
     {
-        var adapter = new Json5AstFormatAdapter();
+        var adapter = new Json5Adapter();
 
         var document = adapter.Parse("""{ name: 'MAX', value: 10, trailing: [1, 2,], }""", "test.json5", AstSchema.Empty);
 
@@ -42,7 +42,7 @@ public sealed class StructuredFormatAdapterTests
     [Fact]
     public void YamlAdapterParsesAndRendersMappingsAndSequences()
     {
-        var adapter = new YamlAstFormatAdapter();
+        var adapter = new YamlAdapter();
 
         var document = adapter.Parse("""
 kind: AdaptiveDialog
@@ -60,7 +60,7 @@ actions:
     [Fact]
     public void HtmlFragmentAdapterParsesAndRendersFragments()
     {
-        var adapter = new HtmlFragmentAstFormatAdapter();
+        var adapter = new HtmlFragmentAdapter();
 
         var document = adapter.Parse("""<div class="hero">Hello <strong>team</strong></div>""", "fragment.html", AstSchema.Empty);
 
@@ -74,14 +74,14 @@ actions:
     {
         IAstFormatAdapter[] adapters =
         {
-            new TemplateTextAstFormatAdapter(),
-            new RawAstFormatAdapter(),
-            new CssAstFormatAdapter(),
-            new PngAstFormatAdapter(),
-            new JpgAstFormatAdapter(),
-            new GifAstFormatAdapter(),
-            new IcoAstFormatAdapter(),
-            new XapAstFormatAdapter()
+            new TemplateTextAdapter(),
+            new RawAdapter(),
+            new CssAdapter(),
+            new PngAdapter(),
+            new JpgAdapter(),
+            new GifAdapter(),
+            new IcoAdapter(),
+            new XapAdapter()
         };
 
         foreach (var adapter in adapters)
@@ -95,7 +95,7 @@ actions:
     [Fact]
     public void LiquidAdapterParsesTemplateTokensAndRoundTripsSource()
     {
-        var adapter = new LiquidAstFormatAdapter();
+        var adapter = new LiquidAdapter();
         var source = """
 <h1>{{ page.title }}</h1>
 {% assign x = 1 %}
@@ -116,7 +116,7 @@ actions:
     [Fact]
     public void LiquidAdapterPreservesWhitespaceTrimDelimiters()
     {
-        var adapter = new LiquidAstFormatAdapter();
+        var adapter = new LiquidAdapter();
         var source = """Hello {{- user.name -}}{% if user.active -%}yes{%- endif %}""";
 
         var document = adapter.Parse(source, "template.liquid", AstSchema.Empty);
@@ -131,7 +131,7 @@ actions:
     [Fact]
     public void LiquidXmlAdapterParsesHostXmlWithTemplatePlaceholders()
     {
-        var adapter = new TemplatedHostAstFormatAdapter(new LiquidAstFormatAdapter(), new XmlAstFormatAdapter());
+        var adapter = new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """
 <ul>
 {% for item in items %}
@@ -162,7 +162,7 @@ actions:
     [Fact]
     public void LiquidXmlAdapterFallsBackWhenTemplateAppearsInXmlTagSyntax()
     {
-        var adapter = new TemplatedHostAstFormatAdapter(new LiquidAstFormatAdapter(), new XmlAstFormatAdapter());
+        var adapter = new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """<div {{ dynamicAttrs }}>Hello</div>""";
 
         var document = adapter.Parse(source, "template.xml", AstSchema.Empty);
@@ -175,7 +175,7 @@ actions:
     [Fact]
     public void LiquidXmlAdapterPreservesAttributeOrderAcrossPlainAndTemplatedFields()
     {
-        var adapter = new TemplatedHostAstFormatAdapter(new LiquidAstFormatAdapter(), new XmlAstFormatAdapter());
+        var adapter = new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """<div class="x {{ dynamic }}" id="hero" title="{{ title }}">Hello</div>""";
 
         var document = adapter.Parse(source, "template.xml", AstSchema.Empty);
@@ -186,7 +186,7 @@ actions:
     [Fact]
     public void LiquidXmlAdapterUsesCollisionResistantPhysicalMarkersWithoutLeakingThemIntoAstIdentity()
     {
-        var adapter = new TemplatedHostAstFormatAdapter(new LiquidAstFormatAdapter(), new XmlAstFormatAdapter());
+        var adapter = new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """<div data-marker="__POWERSOURCE_TEMPLATE__not-a-real-marker__" class="x {{ dynamic }}"><__ps_template id="tpl000000" /></div>""";
 
         var document = adapter.Parse(source, "template.xml", AstSchema.Empty);
@@ -205,7 +205,7 @@ actions:
     [Fact]
     public void JavaScriptAdapterValidatesWithEsprimaAndRoundTripsSource()
     {
-        var adapter = new JavaScriptAstFormatAdapter();
+        var adapter = new JavaScriptAdapter();
         var source = "const answer = 42;\nfunction greet(name) { return `Hi ${name}`; }\n";
 
         var document = adapter.Parse(source, "script.js", AstSchema.Empty);
@@ -236,12 +236,12 @@ actions:
                 ["messageHtml"] = AstSchema.Empty
             }
         };
-        var xml = new XmlAstFormatAdapter();
+        var xml = new XmlAdapter();
         var registry = new AstFormatRegistry(new IAstFormatAdapter[]
         {
             xml,
-            new JsonAstFormatAdapter(),
-            new HtmlFragmentAstFormatAdapter()
+            new JsonAdapter(),
+            new HtmlFragmentAdapter()
         });
         var document = xml.Parse(
             """<outer><payload>{"message":"&lt;strong&gt;Hi&lt;/strong&gt;"}</payload></outer>""",
@@ -261,22 +261,22 @@ actions:
     {
         var registry = new AstFormatRegistry(new IAstFormatAdapter[]
         {
-            new XmlAstFormatAdapter(),
-            new JsonAstFormatAdapter(),
-            new Json5AstFormatAdapter(),
-            new YamlAstFormatAdapter(),
-            new HtmlFragmentAstFormatAdapter(),
-            new JavaScriptAstFormatAdapter(),
-            new LiquidAstFormatAdapter(),
-            new TemplatedHostAstFormatAdapter(new LiquidAstFormatAdapter(), new XmlAstFormatAdapter()),
-            new TemplateTextAstFormatAdapter(),
-            new RawAstFormatAdapter(),
-            new CssAstFormatAdapter(),
-            new PngAstFormatAdapter(),
-            new JpgAstFormatAdapter(),
-            new GifAstFormatAdapter(),
-            new IcoAstFormatAdapter(),
-            new XapAstFormatAdapter()
+            new XmlAdapter(),
+            new JsonAdapter(),
+            new Json5Adapter(),
+            new YamlAdapter(),
+            new HtmlFragmentAdapter(),
+            new JavaScriptAdapter(),
+            new LiquidAdapter(),
+            new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter()),
+            new TemplateTextAdapter(),
+            new RawAdapter(),
+            new CssAdapter(),
+            new PngAdapter(),
+            new JpgAdapter(),
+            new GifAdapter(),
+            new IcoAdapter(),
+            new XapAdapter()
         }, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["svg"] = "xml",
