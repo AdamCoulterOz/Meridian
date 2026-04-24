@@ -3,7 +3,7 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.TemplateText;
+namespace Meridian.Core.Templates;
 
 public sealed class TemplateTextAstFormatAdapter : IAstFormatAdapter
 {

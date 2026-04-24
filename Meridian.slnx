@@ -4,7 +4,6 @@
   <Project Path="src/Formats/Data/Data.csproj" />
   <Project Path="src/Formats/Images/Images.csproj" />
   <Project Path="src/Formats/Liquid/Liquid.csproj" />
-  <Project Path="src/Formats/TemplateText/TemplateText.csproj" />
   <Project Path="src/Formats/Web/Web.csproj" />
   <Project Path="src/Formats/Xap/Xap.csproj" />
   <Project Path="tests/Tests/Tests.csproj" />

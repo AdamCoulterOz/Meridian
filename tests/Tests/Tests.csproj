@@ -25,7 +25,6 @@
     <ProjectReference Include="../../src/Formats/Data/Data.csproj" />
     <ProjectReference Include="../../src/Formats/Images/Images.csproj" />
     <ProjectReference Include="../../src/Formats/Liquid/Liquid.csproj" />
-    <ProjectReference Include="../../src/Formats/TemplateText/TemplateText.csproj" />
     <ProjectReference Include="../../src/Formats/Web/Web.csproj" />
     <ProjectReference Include="../../src/Formats/Xap/Xap.csproj" />
   </ItemGroup>
