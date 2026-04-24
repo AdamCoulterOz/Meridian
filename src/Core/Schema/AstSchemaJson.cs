@@ -46,42 +46,28 @@ internal sealed class NodeIdentityRuleJsonConverter : JsonConverter<NodeIdentity
     private static DiscriminatorKey ReadDiscriminatorKey(JsonNode? node, JsonSerializerOptions options)
     {
         if (node is not JsonObject key)
-        {
             throw new JsonException("Node identity rule requires key.");
-        }
 
         if (key.ReadString("$type") is { Length: > 0 })
-        {
             return key.Deserialize<DiscriminatorKey>(options) ??
                 throw new JsonException("Discriminator key could not be read.");
-        }
 
         if (key.ReadString("attribute") is { Length: > 0 } attribute)
-        {
             return new DiscriminatorKey.Field(attribute);
-        }
 
         if (key.ReadString("element") is { Length: > 0 } element)
-        {
             return new DiscriminatorKey.PathValue(element);
-        }
 
         if (key.ReadBoolean("text") == true)
-        {
             return new DiscriminatorKey.Text();
-        }
 
         if (key.ReadString("structural") is { Length: > 0 } structural)
-        {
             return structural == "orderedSlot"
                 ? new DiscriminatorKey.Structural(StructuralDiscriminator.OrderedSlot)
                 : throw new JsonException($"Unsupported structural discriminator '{structural}'.");
-        }
 
         if (key["composite"] is JsonArray composite)
-        {
             return new DiscriminatorKey.Composite(composite.Select(part => ReadCompositePart(part, options)).ToArray());
-        }
 
         throw new JsonException("Unsupported discriminator key shape.");
     }
@@ -89,33 +75,21 @@ internal sealed class NodeIdentityRuleJsonConverter : JsonConverter<NodeIdentity
     private static CompositePart ReadCompositePart(JsonNode? node, JsonSerializerOptions options)
     {
         if (node is not JsonObject part)
-        {
             throw new JsonException("Composite discriminator part must be an object.");
-        }
 
         if (part["key"] is not null)
-        {
             return part.Deserialize<CompositePart>(options) ??
                 throw new JsonException("Composite discriminator part could not be read.");
-        }
 
         DiscriminatorKey key;
         if (part.ReadString("attribute") is { Length: > 0 } attribute)
-        {
             key = new DiscriminatorKey.Field(attribute);
-        }
         else if (part.ReadString("path") is { Length: > 0 } path)
-        {
             key = new DiscriminatorKey.PathValue(path);
-        }
         else if (part.ReadString("element") is { Length: > 0 } element)
-        {
             key = new DiscriminatorKey.PathValue(element);
-        }
         else
-        {
             throw new JsonException("Composite discriminator part must define attribute, element, or path.");
-        }
 
         return new CompositePart(key, part.ReadBoolean("optional") ?? false);
     }
@@ -129,16 +103,12 @@ internal sealed class PathSelectorJsonConverter : JsonConverter<PathSelector>
         var root = document.RootElement;
 
         if (root.ValueKind == JsonValueKind.String)
-        {
             return Parse(root.GetString() ?? string.Empty);
-        }
 
         if (root.ValueKind == JsonValueKind.Object)
         {
             if (root.TryGetProperty("regex", out var regex))
-            {
                 return PathSelector.Regex(regex.GetString() ?? string.Empty);
-            }
 
             var pattern = root.TryGetProperty("pattern", out var patternProperty)
                 ? patternProperty.GetString() ?? string.Empty
@@ -150,10 +120,8 @@ internal sealed class PathSelectorJsonConverter : JsonConverter<PathSelector>
         throw new JsonException("Path selector must be a string or object.");
     }
 
-    public override void Write(Utf8JsonWriter writer, PathSelector value, JsonSerializerOptions options)
-    {
+    public override void Write(Utf8JsonWriter writer, PathSelector value, JsonSerializerOptions options) =>
         JsonSerializer.Serialize(writer, new { value.Pattern, value.IsRegex }, options);
-    }
 
     private static PathSelector Parse(string value)
     {
@@ -178,13 +146,11 @@ internal sealed class FormatFromRuleJsonConverter : JsonConverter<FormatFromRule
         var path = node.ReadString("path") ?? throw new JsonException("formatFrom requires path.");
 
         if (node["enum"] is JsonObject enumMap)
-        {
             return new FormatFromRule(
                 path,
                 enumMap.Select(pair => new FormatMapEntry(
                     ScalarFromString(pair.Key),
                     pair.Value?.GetValue<string>() ?? string.Empty)).ToArray());
-        }
 
         return new FormatFromRule(
             path,
@@ -210,17 +176,13 @@ internal sealed class FormatFromRuleJsonConverter : JsonConverter<FormatFromRule
 
 internal static class JsonObjectExtensions
 {
-    public static string? ReadString(this JsonObject node, string key)
-    {
-        return node[key] is JsonValue value && value.TryGetValue<string>(out var text)
+    public static string? ReadString(this JsonObject node, string key) =>
+        node[key] is JsonValue value && value.TryGetValue<string>(out var text)
             ? text
             : null;
-    }
 
-    public static bool? ReadBoolean(this JsonObject node, string key)
-    {
-        return node[key] is JsonValue value && value.TryGetValue<bool>(out var boolean)
+    public static bool? ReadBoolean(this JsonObject node, string key) =>
+        node[key] is JsonValue value && value.TryGetValue<bool>(out var boolean)
             ? boolean
             : null;
-    }
 }
