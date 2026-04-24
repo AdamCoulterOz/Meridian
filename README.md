@@ -120,6 +120,7 @@ Meridian schemas describe only merge-relevant facts:
 Example:
 
 ```yaml
+$schema: https://raw.githubusercontent.com/AdamCoulterOz/Meridian/main/schemas/meridian.schema.json
 schemaVersion: 0.1
 name: catalog
 
@@ -162,6 +163,8 @@ What this tells Meridian:
 - `ProductRef` nodes under `Catalog/DisplayOrder` are matched by `sku`;
 - the order of `Catalog/DisplayOrder` matters;
 - `Metadata` text contains JSON and should be merged as JSON using the `productMetadata` nested schema.
+
+The schema for Meridian schema files lives at [schemas/meridian.schema.json](schemas/meridian.schema.json). It includes descriptions intended for editor tooling and LLMs that generate schema files.
 
 ## Identity Rules
 

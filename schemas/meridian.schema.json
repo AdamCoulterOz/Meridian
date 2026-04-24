@@ -1,0 +1,559 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/AdamCoulterOz/Meridian/main/schemas/meridian.schema.json",
+  "title": "Meridian Merge Schema",
+  "description": "Schema for Meridian YAML/JSON merge rule files. Meridian schemas tell the merge engine how to identify sibling nodes, when child order matters, which scalar values contain nested formats, and how companion payloads can be resolved. The schema is intentionally documented for humans, editors, and LLMs that generate Meridian rules.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema URI for editor validation. For this schema use: https://raw.githubusercontent.com/AdamCoulterOz/Meridian/main/schemas/meridian.schema.json"
+    },
+    "schemaVersion": {
+      "type": ["string", "number"],
+      "description": "Version of the Meridian schema document format. Current examples use 0.1."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for this rule set. Prefer a stable, repository or domain-oriented name."
+    },
+    "formatAliases": {
+      "$ref": "#/$defs/formatAliasMap"
+    },
+    "defaults": {
+      "$ref": "#/$defs/astSchema",
+      "description": "Rules applied to every matched file before file-specific rules are added. Use this for global discriminator fields such as id, Id, or languagecode."
+    },
+    "nestedSchemas": {
+      "type": "object",
+      "description": "Named schemas used by content rules when a scalar value contains another parseable format. The key is referenced by content.schemaRef.",
+      "additionalProperties": {
+        "$ref": "#/$defs/astSchema"
+      }
+    },
+    "files": {
+      "type": "array",
+      "description": "File-specific rule sets. Meridian compiles a schema for a file by combining defaults with every matching file rule.",
+      "items": {
+        "$ref": "#/$defs/fileSchemaRule"
+      },
+      "default": []
+    }
+  },
+  "$defs": {
+    "astSchema": {
+      "type": "object",
+      "description": "Reusable collection of merge rules. In top-level defaults and nestedSchemas this uses runtime property names such as identityRules, contentRules, and companionRules. File entries use friendlier authoring names such as discriminators, content, and companions.",
+      "additionalProperties": false,
+      "properties": {
+        "globalDiscriminatorFields": {
+          "type": "array",
+          "description": "Field or attribute names that identify siblings wherever they appear. These are local sibling discriminators, not global identities. Example: languagecode means sibling label nodes with different language codes are different labels.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "identityRules": {
+          "type": "array",
+          "description": "Path-specific identity rules used outside file entries. Prefer file.discriminators for normal file rules.",
+          "items": {
+            "$ref": "#/$defs/nodeIdentityRule"
+          },
+          "default": []
+        },
+        "orderedChildren": {
+          "$ref": "#/$defs/pathSelectorArray",
+          "description": "Parent paths whose child order is semantically important. Omit paths unless order matters."
+        },
+        "contentRules": {
+          "type": "array",
+          "description": "Nested content rules used outside file entries. Prefer file.content for normal file rules.",
+          "items": {
+            "$ref": "#/$defs/contentRule"
+          },
+          "default": []
+        },
+        "companionRules": {
+          "type": "array",
+          "description": "Companion file rules used outside file entries. Prefer file.companions for normal file rules.",
+          "items": {
+            "$ref": "#/$defs/companionRule"
+          },
+          "default": []
+        },
+        "nestedSchemas": {
+          "type": "object",
+          "description": "Nested schemas scoped inside this schema. Most consumers should use the top-level nestedSchemas map instead.",
+          "additionalProperties": {
+            "$ref": "#/$defs/astSchema"
+          }
+        }
+      }
+    },
+    "fileSchemaRule": {
+      "type": "object",
+      "description": "Rules that apply to files matched by the match glob. File rules are combined with defaults when Meridian compiles the effective schema for a file.",
+      "additionalProperties": false,
+      "required": ["match"],
+      "properties": {
+        "match": {
+          "type": "string",
+          "description": "Repository-relative glob for matching files. Supports * for one path segment fragment and ** for multiple path segments. Example: WebResources/*.data.xml"
+        },
+        "root": {
+          "type": "string",
+          "description": "Optional expected root node kind. If supplied, the rule applies only when the parsed root matches this value."
+        },
+        "discriminators": {
+          "type": "array",
+          "description": "Path-specific sibling identity rules. These override global discriminator fields for matching paths.",
+          "items": {
+            "$ref": "#/$defs/nodeIdentityRule"
+          },
+          "default": []
+        },
+        "orderedChildren": {
+          "$ref": "#/$defs/pathSelectorArray",
+          "description": "Parent paths whose child order is semantically meaningful for this file type."
+        },
+        "content": {
+          "type": "array",
+          "description": "Rules for scalar nodes whose content should be parsed as another format before merging.",
+          "items": {
+            "$ref": "#/$defs/contentRule"
+          },
+          "default": []
+        },
+        "companions": {
+          "type": "array",
+          "description": "Rules for resolving related payload files from this metadata file. Useful when a system stores metadata and content separately.",
+          "items": {
+            "$ref": "#/$defs/companionRule"
+          },
+          "default": []
+        }
+      }
+    },
+    "nodeIdentityRule": {
+      "type": "object",
+      "description": "Defines how matching sibling nodes under a parent get a stable local identity.",
+      "additionalProperties": false,
+      "required": ["path", "key"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/pathSelector",
+          "description": "Path to the node type this discriminator applies to. String values may include * or ** wildcards."
+        },
+        "key": {
+          "$ref": "#/$defs/discriminatorKey",
+          "description": "Discriminator used to identify sibling nodes at this path."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional human note explaining why this identity rule exists."
+        }
+      }
+    },
+    "discriminatorKey": {
+      "description": "A local sibling discriminator. Use exactly one authoring form: attribute, element, path, text, structural, or composite.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attribute"],
+          "properties": {
+            "attribute": {
+              "type": "string",
+              "description": "Use a field or XML attribute on the node as the sibling discriminator. Example: sku or languagecode."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["element"],
+          "properties": {
+            "element": {
+              "type": "string",
+              "description": "Use the value of a direct child element/path as the sibling discriminator. Example: Name."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Use a descendant path or field path as the discriminator. Attribute path segments use @, for example Required/@schemaName."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["text"],
+          "properties": {
+            "text": {
+              "const": true,
+              "description": "Use the node text value as the sibling discriminator. Use sparingly; text often changes."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["structural"],
+          "properties": {
+            "structural": {
+              "const": "orderedSlot",
+              "description": "Use the sibling's ordered slot as identity. This compares slot 0 to slot 0, slot 1 to slot 1, etc. Use only when position is genuinely the identity."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["composite"],
+          "properties": {
+            "composite": {
+              "type": "array",
+              "description": "Combine multiple discriminator parts into one identity. Use when no single field is unique enough.",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/compositePart"
+              }
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/runtimeDiscriminatorKey"
+        }
+      ]
+    },
+    "compositePart": {
+      "description": "One part of a composite discriminator. Authoring shorthand accepts attribute, element, or path plus optional.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attribute"],
+          "properties": {
+            "attribute": {
+              "type": "string",
+              "description": "Field or XML attribute used for this composite part."
+            },
+            "optional": {
+              "type": "boolean",
+              "description": "If true, this part may be missing without invalidating the composite discriminator.",
+              "default": false
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["element"],
+          "properties": {
+            "element": {
+              "type": "string",
+              "description": "Direct child element/path used for this composite part."
+            },
+            "optional": {
+              "type": "boolean",
+              "description": "If true, this part may be missing without invalidating the composite discriminator.",
+              "default": false
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Descendant path or field path used for this composite part. Attribute path segments use @."
+            },
+            "optional": {
+              "type": "boolean",
+              "description": "If true, this part may be missing without invalidating the composite discriminator.",
+              "default": false
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key"],
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/runtimeDiscriminatorKey",
+              "description": "Runtime/STJ discriminator key form. Prefer shorthand authoring forms for generated schemas."
+            },
+            "optional": {
+              "type": "boolean",
+              "description": "If true, this part may be missing without invalidating the composite discriminator.",
+              "default": false
+            }
+          }
+        }
+      ]
+    },
+    "runtimeDiscriminatorKey": {
+      "type": "object",
+      "description": "Runtime System.Text.Json polymorphic discriminator key form. Accepted by Meridian but not recommended for hand-authored schemas.",
+      "required": ["$type"],
+      "additionalProperties": true,
+      "properties": {
+        "$type": {
+          "type": "string",
+          "enum": ["field", "path", "composite", "text", "structural"],
+          "description": "Runtime discriminator type emitted by System.Text.Json."
+        }
+      }
+    },
+    "pathSelector": {
+      "description": "Selects AST paths. A string is an exact path unless it contains * or **, in which case Meridian converts it to a regex. Object form supports explicit regex or runtime pattern/isRegex.",
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Path selector. Examples: Catalog/Products/Product, WebResources/*.data.xml, forms/**/labels"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["regex"],
+          "properties": {
+            "regex": {
+              "type": "string",
+              "description": "Explicit regular expression used to match AST paths."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pattern"],
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "Runtime path selector pattern."
+            },
+            "isRegex": {
+              "type": "boolean",
+              "description": "True when pattern is already a regular expression.",
+              "default": false
+            }
+          }
+        }
+      ]
+    },
+    "pathSelectorArray": {
+      "type": "array",
+      "description": "List of path selectors.",
+      "items": {
+        "$ref": "#/$defs/pathSelector"
+      },
+      "default": []
+    },
+    "contentRule": {
+      "type": "object",
+      "description": "Declares that a scalar node contains another format and can be parsed recursively before merge.",
+      "additionalProperties": false,
+      "required": ["path", "format"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/pathSelector",
+          "description": "Path to the scalar node containing nested content."
+        },
+        "format": {
+          "$ref": "#/$defs/formatName",
+          "description": "Format of the nested content. Examples: json, json5, xml, yaml, html:fragment, liquid:xml, plain."
+        },
+        "schemaRef": {
+          "type": "string",
+          "description": "Optional key into nestedSchemas for merge rules that apply inside the nested content."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional human note explaining this nested content rule."
+        }
+      }
+    },
+    "companionRule": {
+      "type": "object",
+      "description": "Defines how to find and format a companion payload file from a metadata file.",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Static companion path. Relative paths are resolved relative to the matched metadata file when possible."
+        },
+        "pathTemplate": {
+          "type": "string",
+          "description": "Companion path template expanded from metadata AST values. Placeholders are AST paths in braces, for example WebResources/{WebResource/Name}."
+        },
+        "pathFrom": {
+          "type": "string",
+          "description": "AST path whose value is the companion path."
+        },
+        "pathFromMatchedPath": {
+          "$ref": "#/$defs/pathFromMatchedPathRule"
+        },
+        "format": {
+          "$ref": "#/$defs/formatName",
+          "description": "Static format for the companion payload."
+        },
+        "formatFrom": {
+          "$ref": "#/$defs/formatFromRule"
+        },
+        "defaultFormat": {
+          "$ref": "#/$defs/formatName",
+          "description": "Fallback format when formatFrom cannot resolve a value and format is not set."
+        },
+        "schemaRef": {
+          "type": "string",
+          "description": "Optional key into nestedSchemas for rules that apply to the companion payload."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional human note explaining this companion rule."
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            { "required": ["path"] },
+            { "required": ["pathTemplate"] },
+            { "required": ["pathFrom"] },
+            { "required": ["pathFromMatchedPath"] }
+          ]
+        },
+        {
+          "anyOf": [
+            { "required": ["format"] },
+            { "required": ["formatFrom"] },
+            { "required": ["defaultFormat"] }
+          ]
+        }
+      ]
+    },
+    "pathFromMatchedPathRule": {
+      "type": "object",
+      "description": "Derives a companion path from the metadata file path that matched the file rule.",
+      "additionalProperties": false,
+      "properties": {
+        "removeSuffix": {
+          "type": "string",
+          "description": "Suffix to remove from the matched metadata path. Example: .data.xml turns WebResources/demo.data.xml into WebResources/demo."
+        },
+        "regex": {
+          "type": "string",
+          "description": "Regular expression matched against the normalized metadata path."
+        },
+        "replace": {
+          "type": "string",
+          "description": "Replacement string used with regex to produce the companion path."
+        }
+      },
+      "anyOf": [
+        { "required": ["removeSuffix"] },
+        { "required": ["regex", "replace"] }
+      ]
+    },
+    "formatFromRule": {
+      "type": "object",
+      "description": "Maps a metadata value to a logical format name. Prefer enum map form for authoring.",
+      "additionalProperties": false,
+      "required": ["path", "enum"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "AST path to the metadata value that selects the format."
+        },
+        "enum": {
+          "description": "Map from metadata values to logical format names. YAML integer keys are accepted and treated as scalar integer values by Meridian.",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/formatName"
+              }
+            },
+            {
+              "type": "array",
+              "description": "Runtime/STJ format map entry list. Prefer object map form for generated schemas.",
+              "items": {
+                "$ref": "#/$defs/formatMapEntry"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "formatMapEntry": {
+      "type": "object",
+      "description": "Runtime/STJ format map entry. Prefer formatFrom.enum object map form for generated schemas.",
+      "additionalProperties": false,
+      "required": ["value", "format"],
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/schemaScalarValue",
+          "description": "Metadata scalar value to match."
+        },
+        "format": {
+          "$ref": "#/$defs/formatName",
+          "description": "Logical format name to use when the value matches."
+        }
+      }
+    },
+    "schemaScalarValue": {
+      "description": "Runtime/STJ scalar value. Prefer formatFrom.enum object map keys for generated schemas.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["$type", "value"],
+          "properties": {
+            "$type": {
+              "const": "string"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["$type", "value"],
+          "properties": {
+            "$type": {
+              "const": "integer"
+            },
+            "value": {
+              "type": "integer"
+            }
+          }
+        }
+      ]
+    },
+    "formatAliasMap": {
+      "type": "object",
+      "description": "Maps logical format names to adapter format names. Use this to preserve domain-specific names such as svg or resx while resolving them to currently supported adapters such as xml.",
+      "additionalProperties": {
+        "$ref": "#/$defs/formatName"
+      },
+      "default": {}
+    },
+    "formatName": {
+      "type": "string",
+      "description": "Logical or adapter format name. Examples: xml, json, json5, yaml, html:fragment, javascript, liquid:xml, css, raw, svg, resx."
+    }
+  }
+}

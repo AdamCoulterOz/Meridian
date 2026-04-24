@@ -10,6 +10,37 @@ public sealed class SchemaLoaderTests
     private readonly XmlAdapter _xml = new();
 
     [Fact]
+    public void MeridianSchemaJsonSchemaIsValidJson()
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "schemas", "meridian.schema.json"));
+        var json = File.ReadAllText(path);
+        AssertNoDuplicateJsonObjectKeys(json);
+        using var document = JsonDocument.Parse(json);
+
+        Assert.Equal("Meridian Merge Schema", document.RootElement.GetProperty("title").GetString());
+        Assert.True(document.RootElement.GetProperty("$defs").TryGetProperty("nodeIdentityRule", out _));
+    }
+
+    private static void AssertNoDuplicateJsonObjectKeys(string json)
+    {
+        var reader = new Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(json));
+        var objectProperties = new Stack<HashSet<string>>();
+
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.StartObject)
+                objectProperties.Push(new HashSet<string>(StringComparer.Ordinal));
+            else if (reader.TokenType == JsonTokenType.EndObject)
+                objectProperties.Pop();
+            else if (reader.TokenType == JsonTokenType.PropertyName)
+            {
+                var propertyName = reader.GetString() ?? string.Empty;
+                Assert.True(objectProperties.Peek().Add(propertyName), $"Duplicate JSON property '{propertyName}'.");
+            }
+        }
+    }
+
+    [Fact]
     public void SchemaLoaderCompilesCompanionPathFromMatchedPathRules()
     {
         var schemaSet = AstSchemaYamlLoader.Load("""
