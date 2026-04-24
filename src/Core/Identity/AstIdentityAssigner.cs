@@ -43,13 +43,12 @@ public sealed class AstIdentityAssigner
         }
 
         foreach (var duplicate in siblingIdentityCounts.Where(item => item.Value > 1))
-        {
             diagnostics.Add(new IdentityDiagnostic(
                 IdentityDiagnosticSeverity.Error,
                 path,
                 duplicate.Key,
                 $"Generated identity is ambiguous for {duplicate.Value} sibling nodes."));
-        }
+
 
         return node.WithPathAndIdentity(path, identity).WithChildren(assignedChildren);
     }
@@ -58,46 +57,35 @@ public sealed class AstIdentityAssigner
     {
         var explicitRule = schema.IdentityRules.LastOrDefault(rule => rule.Path.IsMatch(path));
         if (explicitRule is not null)
-        {
             return ResolveExplicitKey(node, explicitRule.Key, ordinal);
-        }
+
 
         foreach (var field in schema.GlobalDiscriminatorFields)
-        {
             if (node.Fields.TryGetValue(field, out var value) && !string.IsNullOrEmpty(value))
-            {
                 return new ResolvedKey(field + "=" + value);
-            }
-        }
+
 
         if (node.Fields.TryGetValue(MappedTokenFields.SemanticKey, out var semanticKey) &&
-            !string.IsNullOrEmpty(semanticKey))
-        {
+                            !string.IsNullOrEmpty(semanticKey))
             return new ResolvedKey(MappedTokenFields.SemanticKey + "=" + semanticKey);
-        }
+
 
         return new ResolvedKey("path");
     }
 
-    private static ResolvedKey ResolveExplicitKey(AstNode node, DiscriminatorKey key, int ordinal)
+    private static ResolvedKey ResolveExplicitKey(AstNode node, DiscriminatorKey key, int ordinal) => key switch
     {
-        return key switch
-        {
-            DiscriminatorKey.Field field => ResolveField(node, field.Name),
-            DiscriminatorKey.PathValue pathValue => ResolvePathValue(node, pathValue.Path),
-            DiscriminatorKey.Text => new ResolvedKey("text=" + (node.Value ?? string.Empty)),
-            DiscriminatorKey.Structural { Strategy: StructuralDiscriminator.OrderedSlot } => new ResolvedKey("slot=" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-            DiscriminatorKey.Composite composite => ResolveComposite(node, composite),
-            _ => new ResolvedKey("path")
-        };
-    }
+        DiscriminatorKey.Field field => ResolveField(node, field.Name),
+        DiscriminatorKey.PathValue pathValue => ResolvePathValue(node, pathValue.Path),
+        DiscriminatorKey.Text => new ResolvedKey("text=" + (node.Value ?? string.Empty)),
+        DiscriminatorKey.Structural { Strategy: StructuralDiscriminator.OrderedSlot } => new ResolvedKey("slot=" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+        DiscriminatorKey.Composite composite => ResolveComposite(node, composite),
+        _ => new ResolvedKey("path")
+    };
 
-    private static ResolvedKey ResolveField(AstNode node, string field)
-    {
-        return node.Fields.TryGetValue(field, out var value) && !string.IsNullOrEmpty(value)
+    private static ResolvedKey ResolveField(AstNode node, string field) => node.Fields.TryGetValue(field, out var value) && !string.IsNullOrEmpty(value)
             ? new ResolvedKey(field + "=" + value)
             : new ResolvedKey("missing:" + field);
-    }
 
     private static ResolvedKey ResolvePathValue(AstNode node, string path)
     {
@@ -121,9 +109,8 @@ public sealed class AstIdentityAssigner
             }
 
             if (!part.Optional)
-            {
                 parts.Add(resolved);
-            }
+
         }
 
         return new ResolvedKey(string.Join("+", parts));

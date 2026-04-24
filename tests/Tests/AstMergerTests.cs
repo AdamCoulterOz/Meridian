@@ -321,13 +321,10 @@ public sealed class AstMergerTests
 
     private AstDocument Parse(string text) => _xml.Parse(text, null, DefaultSchema);
 
-    private MergeResult Merge(string @base, string ours, string theirs, AstSchema schema)
-    {
-        return new AstMerger().Merge(
+    private MergeResult Merge(string @base, string ours, string theirs, AstSchema schema) => new AstMerger().Merge(
             _xml.Parse(@base, "base.xml", schema),
             _xml.Parse(ours, "ours.xml", schema),
             _xml.Parse(theirs, "theirs.xml", schema),
             schema,
             _xml);
-    }
 }

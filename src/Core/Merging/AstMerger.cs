@@ -65,19 +65,16 @@ public sealed class AstMerger
         List<MergeConflict> conflicts)
     {
         if (AstStructuralComparer.Equals(ours, theirs))
-        {
             return ours;
-        }
+
 
         if (AstStructuralComparer.Equals(@base, ours))
-        {
             return theirs;
-        }
+
 
         if (AstStructuralComparer.Equals(@base, theirs))
-        {
             return ours;
-        }
+
 
         var mergedFields = MergeFields(@base, ours, theirs, renderer, conflicts);
         if (mergedFields is null)
@@ -98,7 +95,7 @@ public sealed class AstMerger
                 theirs.Value,
                 "Both sides changed scalar content differently.");
             conflicts.Add(conflict);
-            return ours with { Value = null, Children = Array.Empty<AstNode>(), Conflict = conflict };
+            return ours with { Value = null, Children = [], Conflict = conflict };
         }
 
         var mergedChildren = MergeChildren(@base, ours, theirs, schema, renderer, conflicts);
@@ -144,14 +141,12 @@ public sealed class AstMerger
 
             var scalar = MergeScalar(baseValue, oursValue, theirsValue);
             if (scalar.HasConflict)
-            {
                 return null;
-            }
+
 
             if (scalar.Value is not null)
-            {
                 merged[field] = scalar.Value;
-            }
+
         }
 
         return merged;
@@ -184,9 +179,8 @@ public sealed class AstMerger
 
             var merged = MergeChild(identity, baseNode, oursNode, theirsNode, schema, renderer, conflicts);
             if (merged is not null)
-            {
                 mergedById[identity] = merged;
-            }
+
         }
 
         var baseOrder = @base.Children.Select(child => child.Identity!).ToArray();
@@ -197,9 +191,8 @@ public sealed class AstMerger
             : MergeUnorderedIdentities(oursOrder, theirsOrder, identities, mergedById);
 
         if (mergedOrder.HasConflict)
-        {
-            return new ChildrenMergeResult(Array.Empty<AstNode>(), HasConflict: true);
-        }
+            return new ChildrenMergeResult([], HasConflict: true);
+
 
         return new ChildrenMergeResult(mergedOrder.Identities.Select(identity => mergedById[identity]).ToArray(), HasConflict: false);
     }
@@ -216,14 +209,12 @@ public sealed class AstMerger
         if (@base is null)
         {
             if (ours is null)
-            {
                 return theirs;
-            }
+
 
             if (theirs is null || AstStructuralComparer.Equals(ours, theirs))
-            {
                 return ours;
-            }
+
 
             var conflict = CreateNodeConflict(null, ours, theirs, renderer, "Both sides added the same identity differently.");
             conflicts.Add(conflict);
@@ -231,16 +222,14 @@ public sealed class AstMerger
         }
 
         if (ours is null && theirs is null)
-        {
             return null;
-        }
+
 
         if (ours is null)
         {
             if (AstStructuralComparer.Equals(@base, theirs))
-            {
                 return null;
-            }
+
 
             var conflict = CreateNodeConflict(@base, null, theirs, renderer, "One side deleted a node while the other side changed it.");
             conflicts.Add(conflict);
@@ -250,9 +239,8 @@ public sealed class AstMerger
         if (theirs is null)
         {
             if (AstStructuralComparer.Equals(@base, ours))
-            {
                 return null;
-            }
+
 
             var conflict = CreateNodeConflict(@base, ours, null, renderer, "One side changed a node while the other side deleted it.");
             conflicts.Add(conflict);
@@ -262,10 +250,7 @@ public sealed class AstMerger
         return MergeExistingNode(@base, ours, theirs, schema, renderer, conflicts);
     }
 
-    private static Dictionary<string, AstNode> ToIdentityMap(IEnumerable<AstNode> nodes)
-    {
-        return nodes.ToDictionary(node => node.Identity ?? throw new InvalidOperationException("AST node has no generated identity."), StringComparer.Ordinal);
-    }
+    private static Dictionary<string, AstNode> ToIdentityMap(IEnumerable<AstNode> nodes) => nodes.ToDictionary(node => node.Identity ?? throw new InvalidOperationException("AST node has no generated identity."), StringComparer.Ordinal);
 
     private static bool IsOrdered(AstNode parent, AstSchema schema)
     {
@@ -276,19 +261,16 @@ public sealed class AstMerger
     private static ScalarMergeResult MergeScalar(string? @base, string? ours, string? theirs)
     {
         if (string.Equals(ours, theirs, StringComparison.Ordinal))
-        {
             return new ScalarMergeResult(ours, HasConflict: false);
-        }
+
 
         if (string.Equals(@base, ours, StringComparison.Ordinal))
-        {
             return new ScalarMergeResult(theirs, HasConflict: false);
-        }
+
 
         if (string.Equals(@base, theirs, StringComparison.Ordinal))
-        {
             return new ScalarMergeResult(ours, HasConflict: false);
-        }
+
 
         return new ScalarMergeResult(null, HasConflict: true);
     }
@@ -299,21 +281,18 @@ public sealed class AstMerger
         IReadOnlyList<string> theirs)
     {
         if (ours.SequenceEqual(theirs, StringComparer.Ordinal))
-        {
             return new SequenceMergeResult(ours, HasConflict: false);
-        }
+
 
         if (@base.SequenceEqual(ours, StringComparer.Ordinal))
-        {
             return new SequenceMergeResult(theirs, HasConflict: false);
-        }
+
 
         if (@base.SequenceEqual(theirs, StringComparer.Ordinal))
-        {
             return new SequenceMergeResult(ours, HasConflict: false);
-        }
 
-        return new SequenceMergeResult(Array.Empty<string>(), HasConflict: true);
+
+        return new SequenceMergeResult([], HasConflict: true);
     }
 
     private static SequenceMergeResult MergeUnorderedIdentities(
@@ -326,12 +305,9 @@ public sealed class AstMerger
         var merged = new List<string>();
 
         foreach (var identity in ours.Concat(theirs).Concat(allIdentities))
-        {
             if (mergedById.ContainsKey(identity) && emitted.Add(identity))
-            {
                 merged.Add(identity);
-            }
-        }
+
 
         return new SequenceMergeResult(merged, HasConflict: false);
     }
@@ -341,16 +317,13 @@ public sealed class AstMerger
         AstNode? ours,
         AstNode? theirs,
         IAstTextRenderer renderer,
-        string message)
-    {
-        return new MergeConflict(
+        string message) => new MergeConflict(
             ConflictKind.Node,
             ours?.Path ?? theirs?.Path ?? @base?.Path ?? "<unknown>",
             @base is null ? null : renderer.RenderNode(@base),
             ours is null ? null : renderer.RenderNode(ours),
             theirs is null ? null : renderer.RenderNode(theirs),
             message);
-    }
 
     private sealed record ScalarMergeResult(string? Value, bool HasConflict);
 

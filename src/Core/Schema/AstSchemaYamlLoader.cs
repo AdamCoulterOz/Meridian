@@ -25,21 +25,18 @@ public static class AstSchemaYamlLoader
         return Load(File.ReadAllText(path));
     }
 
-    private static object? ToJsonCompatible(object? value)
+    private static object? ToJsonCompatible(object? value) => value switch
     {
-        return value switch
-        {
-            null => null,
-            IDictionary<object, object> map => map.ToDictionary(
-                pair => Convert.ToString(pair.Key, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
-                pair => ToJsonCompatible(pair.Value),
-                StringComparer.Ordinal),
-            IDictionary<string, object> map => map.ToDictionary(
-                pair => pair.Key,
-                pair => ToJsonCompatible(pair.Value),
-                StringComparer.Ordinal),
-            IEnumerable<object> sequence when value is not string => sequence.Select(ToJsonCompatible).ToArray(),
-            _ => value
-        };
-    }
+        null => null,
+        IDictionary<object, object> map => map.ToDictionary(
+            pair => Convert.ToString(pair.Key, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+            pair => ToJsonCompatible(pair.Value),
+            StringComparer.Ordinal),
+        IDictionary<string, object> map => map.ToDictionary(
+            pair => pair.Key,
+            pair => ToJsonCompatible(pair.Value),
+            StringComparer.Ordinal),
+        IEnumerable<object> sequence when value is not string => sequence.Select(ToJsonCompatible).ToArray(),
+        _ => value
+    };
 }

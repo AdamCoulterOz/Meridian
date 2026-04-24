@@ -5,15 +5,15 @@ namespace Meridian.Core.Schema;
 
 public sealed record AstSchema
 {
-    public IReadOnlyList<string> GlobalDiscriminatorFields { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> GlobalDiscriminatorFields { get; init; } = [];
 
-    public IReadOnlyList<NodeIdentityRule> IdentityRules { get; init; } = Array.Empty<NodeIdentityRule>();
+    public IReadOnlyList<NodeIdentityRule> IdentityRules { get; init; } = [];
 
-    public IReadOnlyList<PathSelector> OrderedChildren { get; init; } = Array.Empty<PathSelector>();
+    public IReadOnlyList<PathSelector> OrderedChildren { get; init; } = [];
 
-    public IReadOnlyList<ContentRule> ContentRules { get; init; } = Array.Empty<ContentRule>();
+    public IReadOnlyList<ContentRule> ContentRules { get; init; } = [];
 
-    public IReadOnlyList<CompanionRule> CompanionRules { get; init; } = Array.Empty<CompanionRule>();
+    public IReadOnlyList<CompanionRule> CompanionRules { get; init; } = [];
 
     public IReadOnlyDictionary<string, AstSchema> NestedSchemas { get; init; } =
         new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase);
@@ -44,20 +44,17 @@ public sealed record CompanionRule(
         {
             var rawValue = AstPath.ReadValue(metadataRoot, FormatFrom.Path);
             if (rawValue is not null && FormatFrom.TryResolve(rawValue, out var mappedFormat))
-            {
                 return mappedFormat;
-            }
+
         }
 
         if (!string.IsNullOrWhiteSpace(Format))
-        {
             return Format;
-        }
+
 
         if (!string.IsNullOrWhiteSpace(DefaultFormat))
-        {
             return DefaultFormat;
-        }
+
 
         throw new InvalidOperationException("Companion rule does not define a format, formatFrom mapping, or defaultFormat.");
     }
@@ -67,9 +64,8 @@ public sealed record CompanionRule(
         ArgumentNullException.ThrowIfNull(metadataRoot);
 
         if (!string.IsNullOrWhiteSpace(Path))
-        {
             return ResolveStaticPath(Path, matchedPath);
-        }
+
 
         if (PathFromMatchedPath is not null && !string.IsNullOrWhiteSpace(matchedPath))
         {
@@ -78,23 +74,21 @@ public sealed record CompanionRule(
             {
                 var resolvedFromMetadata = ExpandTemplate(metadataRoot, PathTemplate);
                 if (!string.Equals(resolvedFromMatchedPath, resolvedFromMetadata, StringComparison.Ordinal))
-                {
                     throw new InvalidOperationException(
                         $"Companion path mismatch: matched path rule resolved '{resolvedFromMatchedPath}' but metadata template resolved '{resolvedFromMetadata}'.");
-                }
+
             }
 
             return resolvedFromMatchedPath;
         }
 
         if (!string.IsNullOrWhiteSpace(PathTemplate))
-        {
             return ExpandTemplate(metadataRoot, PathTemplate);
-        }
+
 
         return string.IsNullOrWhiteSpace(PathFrom)
-            ? null
-            : AstPath.ReadValue(metadataRoot, PathFrom);
+                            ? null
+                            : AstPath.ReadValue(metadataRoot, PathFrom);
     }
 
     private static string ResolveStaticPath(string path, string? matchedPath)
@@ -103,9 +97,8 @@ public sealed record CompanionRule(
             System.IO.Path.IsPathRooted(path) ||
             path.Contains('/', StringComparison.Ordinal) ||
             path.Contains('\\', StringComparison.Ordinal))
-        {
             return path.Replace('\\', '/');
-        }
+
 
         var directory = System.IO.Path.GetDirectoryName(matchedPath.Replace('\\', '/'));
         return string.IsNullOrWhiteSpace(directory)
@@ -113,9 +106,7 @@ public sealed record CompanionRule(
             : directory + "/" + path;
     }
 
-    private static string ExpandTemplate(Ast.AstNode metadataRoot, string template)
-    {
-        return System.Text.RegularExpressions.Regex.Replace(
+    private static string ExpandTemplate(Ast.AstNode metadataRoot, string template) => System.Text.RegularExpressions.Regex.Replace(
             template,
             "\\{(?<path>[^}]+)\\}",
             match =>
@@ -124,7 +115,6 @@ public sealed record CompanionRule(
                 return AstPath.ReadValue(metadataRoot, path) ??
                     throw new InvalidOperationException($"Companion path template references missing metadata path '{path}'.");
             });
-    }
 }
 
 public sealed record PathFromMatchedPathRule(
@@ -140,10 +130,8 @@ public sealed record PathFromMatchedPathRule(
         if (!string.IsNullOrWhiteSpace(RemoveSuffix))
         {
             if (!normalized.EndsWith(RemoveSuffix, StringComparison.Ordinal))
-            {
                 throw new InvalidOperationException(
                     $"Matched path '{normalized}' does not end with expected suffix '{RemoveSuffix}'.");
-            }
 
             return normalized[..^RemoveSuffix.Length];
         }
@@ -152,10 +140,8 @@ public sealed record PathFromMatchedPathRule(
         {
             var regex = new Regex(Regex, RegexOptions.CultureInvariant);
             if (!regex.IsMatch(normalized))
-            {
                 throw new InvalidOperationException(
                     $"Matched path '{normalized}' does not match companion path regex '{Regex}'.");
-            }
 
             return regex.Replace(normalized, Replace);
         }
@@ -169,13 +155,11 @@ public sealed record FormatFromRule(string Path, IReadOnlyList<FormatMapEntry> E
     public bool TryResolve(string rawValue, out string format)
     {
         foreach (var entry in Enum)
-        {
             if (entry.Value.Matches(rawValue))
             {
                 format = entry.Format;
                 return true;
             }
-        }
 
         format = string.Empty;
         return false;
@@ -202,11 +186,8 @@ public abstract record SchemaScalarValue
 
     public sealed record Integer(long Value) : SchemaScalarValue
     {
-        public override bool Matches(string rawValue)
-        {
-            return long.TryParse(rawValue, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed) &&
+        public override bool Matches(string rawValue) => long.TryParse(rawValue, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed) &&
                 parsed == Value;
-        }
     }
 }
 
@@ -217,9 +198,8 @@ public sealed record PathSelector(string Pattern, bool IsRegex = false)
     public bool IsMatch(string path)
     {
         if (!IsRegex)
-        {
             return string.Equals(Pattern, path, StringComparison.Ordinal);
-        }
+
 
         _regex ??= new Regex(Pattern, RegexOptions.CultureInvariant);
         return _regex.IsMatch(path);
@@ -278,17 +258,15 @@ public static class AstPath
         {
             var part = parts[index];
             if (part.StartsWith('@', StringComparison.Ordinal))
-            {
                 return index == parts.Length - 1 && current.Fields.TryGetValue(part[1..], out var fieldValue)
                     ? fieldValue
                     : null;
-            }
+
 
             var child = current.Children.FirstOrDefault(candidate => string.Equals(candidate.Kind, part, StringComparison.Ordinal));
             if (child is null)
-            {
                 return null;
-            }
+
 
             current = child;
         }

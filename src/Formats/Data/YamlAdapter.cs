@@ -20,24 +20,19 @@ public sealed class YamlAdapter : IAstFormatAdapter
         var stream = new YamlStream();
         stream.Load(new StringReader(sourceText));
         if (stream.Documents.Count == 0)
-        {
             throw new InvalidOperationException("YAML document is empty.");
-        }
+
 
         return new AstDocument(Format, ParseNode(stream.Documents[0].RootNode, "$root"), sourcePath, sourceText);
     }
 
-    public string RenderDocument(AstDocument document)
-    {
-        return RenderNode(document.Root);
-    }
+    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
 
     public string RenderNode(AstNode node)
     {
         if (node.Conflict is not null)
-        {
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
-        }
+
 
         var stream = new YamlStream(new YamlDocument(RenderYamlNode(node)));
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -45,25 +40,21 @@ public sealed class YamlAdapter : IAstFormatAdapter
         return writer.ToString();
     }
 
-    private static AstNode ParseNode(YamlNode node, string kind)
+    private static AstNode ParseNode(YamlNode node, string kind) => node switch
     {
-        return node switch
-        {
-            YamlMappingNode mapping => ParseMapping(mapping, kind),
-            YamlSequenceNode sequence => ParseSequence(sequence, kind),
-            YamlScalarNode scalar => ParseScalar(scalar, kind),
-            _ => throw new NotSupportedException($"Unsupported YAML node type '{node.GetType().Name}'.")
-        };
-    }
+        YamlMappingNode mapping => ParseMapping(mapping, kind),
+        YamlSequenceNode sequence => ParseSequence(sequence, kind),
+        YamlScalarNode scalar => ParseScalar(scalar, kind),
+        _ => throw new NotSupportedException($"Unsupported YAML node type '{node.GetType().Name}'.")
+    };
 
     private static AstNode ParseMapping(YamlMappingNode mapping, string kind)
     {
         var children = mapping.Children.Select(pair =>
         {
             if (pair.Key is not YamlScalarNode key)
-            {
                 throw new NotSupportedException("Only scalar YAML mapping keys are supported.");
-            }
+
 
             var name = key.Value ?? string.Empty;
             var child = ParseNode(pair.Value, AstNodeMetadata.EncodeKind(name));
@@ -114,9 +105,8 @@ public sealed class YamlAdapter : IAstFormatAdapter
     {
         var mapping = new YamlMappingNode();
         foreach (var child in node.Children)
-        {
             mapping.Add(child.GetMetadataName(), RenderYamlNode(child));
-        }
+
 
         return mapping;
     }
@@ -125,9 +115,8 @@ public sealed class YamlAdapter : IAstFormatAdapter
     {
         var sequence = new YamlSequenceNode();
         foreach (var child in node.Children)
-        {
             sequence.Add(RenderYamlNode(child));
-        }
+
 
         return sequence;
     }

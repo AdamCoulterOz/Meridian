@@ -29,21 +29,17 @@ public class LiquidAdapter : IMappedSourceAdapter
             sourceText);
     }
 
-    public string RenderDocument(AstDocument document)
-    {
-        return RenderNode(document.Root);
-    }
+    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
 
     public string RenderNode(AstNode node)
     {
         if (node.Conflict is not null)
-        {
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
-        }
+
 
         var type = node.TryGetMetadataType(out var nodeType)
-            ? nodeType
-            : "document";
+                            ? nodeType
+                            : "document";
 
         return type switch
         {
@@ -55,15 +51,10 @@ public class LiquidAdapter : IMappedSourceAdapter
         };
     }
 
-    public bool IsLiteralNode(AstNode node)
-    {
-        return node.TryGetMetadataType(out var nodeType) &&
+    public bool IsLiteralNode(AstNode node) => node.TryGetMetadataType(out var nodeType) &&
             string.Equals(nodeType, "text", StringComparison.Ordinal);
-    }
 
-    public string GetMappedKind(AstNode node)
-    {
-        return node.TryGetMetadataType(out var nodeType)
+    public string GetMappedKind(AstNode node) => node.TryGetMetadataType(out var nodeType)
             ? nodeType switch
             {
                 "output" => "output",
@@ -73,12 +64,8 @@ public class LiquidAdapter : IMappedSourceAdapter
                 _ => "unknown"
             }
             : "unknown";
-    }
 
-    public string RenderMappedNode(AstNode node)
-    {
-        return RenderNode(node);
-    }
+    public string RenderMappedNode(AstNode node) => RenderNode(node);
 
     private static IReadOnlyList<AstNode> ParseTokens(string source)
     {
@@ -99,9 +86,8 @@ public class LiquidAdapter : IMappedSourceAdapter
             }
 
             if (next > position)
-            {
                 AddText(tokens, source[position..next], ref ordinal);
-            }
+
 
             if (next == nextOutput)
             {
@@ -132,14 +118,13 @@ public class LiquidAdapter : IMappedSourceAdapter
     private static void AddText(List<AstNode> tokens, string text, ref int ordinal)
     {
         if (text.Length == 0)
-        {
             return;
-        }
+
 
         tokens.Add(new AstNode(
-            $"$text{ordinal++:D6}",
-            AstNodeMetadata.Create("text"),
-            text));
+                            $"$text{ordinal++:D6}",
+                            AstNodeMetadata.Create("text"),
+                            text));
     }
 
     private static AstNode CreateToken(string kindPrefix, string type, DelimitedToken token, ref int ordinal, string? tagName = null)
@@ -148,9 +133,8 @@ public class LiquidAdapter : IMappedSourceAdapter
         fields[OpenField] = token.Open;
         fields[CloseField] = token.Close;
         if (!string.IsNullOrWhiteSpace(tagName))
-        {
             fields[TagNameField] = tagName;
-        }
+
 
         return new AstNode($"{kindPrefix}{ordinal++:D6}", fields, token.Inner);
     }
@@ -189,15 +173,13 @@ public class LiquidAdapter : IMappedSourceAdapter
         {
             var next = source.IndexOf("{%", current, StringComparison.Ordinal);
             if (next < 0)
-            {
                 break;
-            }
+
 
             var candidate = ReadDelimitedToken(source, next, "{%", "%}");
             if (string.Equals(ReadTagName(candidate.Inner), endTagName, StringComparison.OrdinalIgnoreCase))
-            {
                 return candidate;
-            }
+
 
             current = candidate.After;
         }
@@ -209,21 +191,18 @@ public class LiquidAdapter : IMappedSourceAdapter
     {
         var openEnd = start + openMarker.Length;
         if (openEnd < source.Length && source[openEnd] == '-')
-        {
             openEnd++;
-        }
+
 
         var closeStart = source.IndexOf(closeMarker, openEnd, StringComparison.Ordinal);
         if (closeStart < 0)
-        {
             throw new InvalidOperationException($"Liquid token starting at offset {start} is missing '{closeMarker}'.");
-        }
+
 
         var contentEnd = closeStart;
         if (contentEnd > openEnd && source[contentEnd - 1] == '-')
-        {
             contentEnd--;
-        }
+
 
         var after = closeStart + closeMarker.Length;
         var open = source[start..openEnd];
@@ -245,22 +224,16 @@ public class LiquidAdapter : IMappedSourceAdapter
         return end == 0 ? string.Empty : trimmed[..end];
     }
 
-    private static bool IsBlockToken(string tagName)
-    {
-        return string.Equals(tagName, "raw", StringComparison.OrdinalIgnoreCase) ||
+    private static bool IsBlockToken(string tagName) => string.Equals(tagName, "raw", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(tagName, "comment", StringComparison.OrdinalIgnoreCase);
-    }
 
-    private static int FirstNonNegative(int left, int right)
+    private static int FirstNonNegative(int left, int right) => (left, right) switch
     {
-        return (left, right) switch
-        {
-            (< 0, < 0) => -1,
-            (< 0, _) => right,
-            (_, < 0) => left,
-            _ => Math.Min(left, right)
-        };
-    }
+        ( < 0, < 0) => -1,
+        ( < 0, _) => right,
+        (_, < 0) => left,
+        _ => Math.Min(left, right)
+    };
 
     private sealed record DelimitedToken(
         int Start,

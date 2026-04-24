@@ -28,9 +28,8 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
 
         var document = XDocument.Parse(sourceText, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         if (document.Root is null)
-        {
             throw new InvalidOperationException("XML document has no root element.");
-        }
+
 
         var root = ParseElement(document.Root);
         if (document.Declaration is not null)
@@ -49,24 +48,17 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
     {
         var builder = new StringBuilder();
         if (document.Root.Fields.TryGetValue("$xmlDeclaration", out var declaration))
-        {
             builder.AppendLine(declaration);
-        }
+
 
         builder.Append(RenderNode(document.Root));
         builder.AppendLine();
         return builder.ToString();
     }
 
-    public string RenderNode(AstNode node)
-    {
-        return RenderNode(node, depth: 0);
-    }
+    public string RenderNode(AstNode node) => RenderNode(node, depth: 0);
 
-    public IMappedTokenContextTracker CreateTokenContextTracker()
-    {
-        return new XmlTokenContextTracker();
-    }
+    public IMappedTokenContextTracker CreateTokenContextTracker() => new XmlTokenContextTracker();
 
     public bool CanRepresent(
         MappedToken token,
@@ -118,9 +110,8 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
 
         var document = XDocument.Parse(sourceText, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         if (document.Root is null)
-        {
             throw new InvalidOperationException("XML document has no root element.");
-        }
+
 
         var root = ParseMappedElement(document.Root);
         if (document.Declaration is not null)
@@ -144,9 +135,8 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
 
         var builder = new StringBuilder();
         if (document.Root.Fields.TryGetValue("$xmlDeclaration", out var declaration))
-        {
             builder.AppendLine(declaration);
-        }
+
 
         builder.Append(RenderMappedNode(document.Root, mappedSourceByTokenId));
         return builder.ToString();
@@ -155,13 +145,12 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
     private static string RenderNode(AstNode node, int depth)
     {
         if (node.Conflict is { Kind: not ConflictKind.Scalar })
-        {
             return CreateIndentedConflictMarkers(
                 node.Conflict.OursText,
                 node.Conflict.BaseText,
                 node.Conflict.TheirsText,
                 new string(' ', depth * 2));
-        }
+
 
         var builder = new StringBuilder();
         var indent = new string(' ', depth * 2);
@@ -199,9 +188,8 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
             builder.Append(indent);
         }
         else if (node.Value is not null)
-        {
             builder.Append(SecurityElement.Escape(node.Value));
-        }
+
 
         foreach (var child in node.Children)
         {
@@ -240,7 +228,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
     private static AstNode ParseMappedElement(XElement element)
     {
         if (TryReadTokenElement(element, out var token))
-        {
             return new AstNode(
                 "$mappedToken" + token.Id,
                 AstNodeMetadata.Create("mappedToken", new Dictionary<string, string>(StringComparer.Ordinal)
@@ -249,7 +236,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
                     [MappedTokenFields.SemanticKey] = token.SemanticKey,
                     [MappedTokenFields.Context] = MappedTokenContext.ChildNode.ToString()
                 }));
-        }
+
 
         var fields = new Dictionary<string, string>(StringComparer.Ordinal);
         var fieldValueChildren = new List<AstNode>();
@@ -269,15 +256,14 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         }
 
         if (fieldOrder.Count > 0)
-        {
             fields[FieldOrderField] = string.Join("\n", fieldOrder);
-        }
+
 
         return new AstNode(
-            element.Name.LocalName,
-            fields,
-            children: fieldValueChildren.Concat(element.Nodes().Select(ParseMappedNode)).ToArray(),
-            sourceText: element.ToString(SaveOptions.DisableFormatting));
+                            element.Name.LocalName,
+                            fields,
+                            children: fieldValueChildren.Concat(element.Nodes().Select(ParseMappedNode)).ToArray(),
+                            sourceText: element.ToString(SaveOptions.DisableFormatting));
     }
 
     private static bool TryReadTokenElement(XElement element, out ParsedToken token)
@@ -285,15 +271,13 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         token = default;
         if (!string.Equals(element.Name.LocalName, TokenElementName, StringComparison.Ordinal) ||
             element.Attribute("marker") is not { } markerAttribute)
-        {
             return false;
-        }
+
 
         var match = AttributeTokenMarker.Match(markerAttribute.Value);
         if (!match.Success || !string.Equals(match.Value, markerAttribute.Value, StringComparison.Ordinal))
-        {
             return false;
-        }
+
 
         var semanticKey = element.Attribute("semanticKey")?.Value;
         token = new ParsedToken(
@@ -315,12 +299,11 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         foreach (Match match in AttributeTokenMarker.Matches(value))
         {
             if (match.Index > position)
-            {
                 children.Add(new AstNode(
                     $"$fieldText{ordinal++:D6}",
                     AstNodeMetadata.Create("fieldText"),
                     value[position..match.Index]));
-            }
+
 
             var token = ParseAttributeToken(match, fieldName, children.Count(IsMappedToken));
             children.Add(new AstNode(
@@ -335,53 +318,44 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         }
 
         if (position < value.Length)
-        {
             children.Add(new AstNode(
                 $"$fieldText{ordinal++:D6}",
                 AstNodeMetadata.Create("fieldText"),
                 value[position..]));
-        }
+
 
         return new AstNode("$fieldValue:" + fieldName, fields, children: children);
     }
 
-    private static ParsedToken ParseAttributeToken(Match match, string fieldName, int mappedOrdinal)
-    {
-        return new ParsedToken(
+    private static ParsedToken ParseAttributeToken(Match match, string fieldName, int mappedOrdinal) => new ParsedToken(
             match.Groups["id"].Value,
             CreateFieldValueSemanticKey(fieldName, mappedOrdinal));
-    }
 
-    private static AstNode ParseMappedNode(XNode node, int index)
+    private static AstNode ParseMappedNode(XNode node, int index) => node switch
     {
-        return node switch
-        {
-            XElement element => ParseMappedElement(element),
-            XCData cdata => new AstNode($"$cdata{index:D6}", AstNodeMetadata.Create("cdata"), cdata.Value),
-            XText text => new AstNode($"$text{index:D6}", AstNodeMetadata.Create("text"), text.Value),
-            XComment comment => new AstNode($"$comment{index:D6}", AstNodeMetadata.Create("comment"), comment.Value),
-            _ => new AstNode($"$xmlNode{index:D6}", AstNodeMetadata.Create("raw"), node.ToString(SaveOptions.DisableFormatting))
-        };
-    }
+        XElement element => ParseMappedElement(element),
+        XCData cdata => new AstNode($"$cdata{index:D6}", AstNodeMetadata.Create("cdata"), cdata.Value),
+        XText text => new AstNode($"$text{index:D6}", AstNodeMetadata.Create("text"), text.Value),
+        XComment comment => new AstNode($"$comment{index:D6}", AstNodeMetadata.Create("comment"), comment.Value),
+        _ => new AstNode($"$xmlNode{index:D6}", AstNodeMetadata.Create("raw"), node.ToString(SaveOptions.DisableFormatting))
+    };
 
     private static string RenderMappedNode(
         AstNode node,
         IReadOnlyDictionary<string, string> mappedSourceByTokenId)
     {
         if (node.Conflict is not null)
-        {
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
-        }
+
 
         var type = node.TryGetMetadataType(out var nodeType)
-            ? nodeType
-            : "element";
+                            ? nodeType
+                            : "element";
 
         if (string.Equals(type, "mappedToken", StringComparison.Ordinal) &&
             node.Fields.TryGetValue(MappedTokenFields.TokenId, out var tokenId))
-        {
             return mappedSourceByTokenId[tokenId];
-        }
+
 
         return type switch
         {
@@ -432,9 +406,8 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         {
             var fieldName = fieldValue.Fields[AstNodeMetadata.NameField];
             if (emittedFields.Add(fieldName))
-            {
                 AppendAttribute(builder, fieldName, RenderMappedFieldValue(fieldValue, mappedSourceByTokenId));
-            }
+
         }
 
         var xmlChildren = node.Children.Where(child => !IsMappedFieldValue(child)).ToArray();
@@ -447,9 +420,8 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
 
         builder.Append('>');
         foreach (var child in xmlChildren)
-        {
             builder.Append(RenderMappedNode(child, mappedSourceByTokenId));
-        }
+
 
         builder.Append("</");
         builder.Append(node.Kind);
@@ -466,12 +438,9 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         builder.Append('"');
     }
 
-    private static IReadOnlyList<string> ReadFieldOrder(AstNode node)
-    {
-        return node.Fields.TryGetValue(FieldOrderField, out var fieldOrder)
+    private static IReadOnlyList<string> ReadFieldOrder(AstNode node) => node.Fields.TryGetValue(FieldOrderField, out var fieldOrder)
             ? fieldOrder.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            : Array.Empty<string>();
-    }
+            : [];
 
     private static string RenderMappedFieldValue(
         AstNode node,
@@ -494,43 +463,27 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         return builder.ToString();
     }
 
-    private static bool IsMappedFieldValue(AstNode node)
-    {
-        return node.TryGetMetadataType(out var type) &&
+    private static bool IsMappedFieldValue(AstNode node) => node.TryGetMetadataType(out var type) &&
             string.Equals(type, "fieldValue", StringComparison.Ordinal);
-    }
 
-    private static bool IsMappedToken(AstNode node)
-    {
-        return node.TryGetMetadataType(out var type) &&
+    private static bool IsMappedToken(AstNode node) => node.TryGetMetadataType(out var type) &&
             string.Equals(type, "mappedToken", StringComparison.Ordinal);
-    }
 
-    private static string CreateChildSemanticKey(int ordinal)
-    {
-        return "child:" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
-    }
+    private static string CreateChildSemanticKey(int ordinal) => "child:" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    private static string CreateFieldValueSemanticKey(string fieldName, int ordinal)
-    {
-        return "field:" + fieldName + "/mapped:" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
-    }
+    private static string CreateFieldValueSemanticKey(string fieldName, int ordinal) => "field:" + fieldName + "/mapped:" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    private static string EscapeAttribute(string value)
-    {
-        return SecurityElement.Escape(value) ?? string.Empty;
-    }
+    private static string EscapeAttribute(string value) => SecurityElement.Escape(value) ?? string.Empty;
 
     private static string AttributeKey(XAttribute attribute)
     {
         if (!attribute.IsNamespaceDeclaration)
-        {
             return attribute.Name.LocalName;
-        }
+
 
         return string.Equals(attribute.Name.LocalName, "xmlns", StringComparison.Ordinal)
-            ? "xmlns"
-            : "xmlns:" + attribute.Name.LocalName;
+                            ? "xmlns"
+                            : "xmlns:" + attribute.Name.LocalName;
     }
 
     private static string CreateIndentedConflictMarkers(string? ours, string? @base, string? theirs, string bodyIndent)
@@ -545,14 +498,11 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
             ">>>>>>> theirs");
     }
 
-    private static string IndentConflictBody(string? text, string indent)
-    {
-        return string.Join(
+    private static string IndentConflictBody(string? text, string indent) => string.Join(
             Environment.NewLine,
             (text ?? string.Empty)
                 .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
                 .Select(line => line.Length == 0 ? line : indent + line));
-    }
 
     private sealed class XmlTokenContextTracker : IMappedTokenContextTracker
     {
@@ -575,7 +525,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
 
             if (_inTag)
             {
-                contexts = Array.Empty<MappedTokenContext>();
+                contexts = [];
                 unsupportedReason = "The mapped token is inside XML tag syntax rather than an AST child node or field value.";
                 return false;
             }
@@ -588,9 +538,8 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         public string CreateSemanticKey(MappedTokenContext context)
         {
             if (context == MappedTokenContext.ChildNode)
-            {
                 return CreateChildSemanticKey(_childMappedOrdinal++);
-            }
+
 
             if (context == MappedTokenContext.FieldValue)
             {
@@ -644,14 +593,12 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
                     else if (char.IsWhiteSpace(character) || character == '/')
                     {
                         if (!_expectingAttributeValue)
-                        {
                             _attributeName.Clear();
-                        }
+
                     }
                     else if (!_expectingAttributeValue)
-                    {
                         _attributeName.Append(character);
-                    }
+
 
                     continue;
                 }

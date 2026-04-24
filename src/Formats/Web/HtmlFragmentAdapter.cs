@@ -24,57 +24,49 @@ public sealed class HtmlFragmentAdapter : IAstFormatAdapter
         var document = parser.ParseDocument($"<body>{sourceText}</body>");
         var children = document.Body?.ChildNodes
             .Select((node, index) => ParseNode(node, index))
-            .ToArray() ?? Array.Empty<AstNode>();
+            .ToArray() ?? [];
 
         return new AstDocument(Format, new AstNode("$fragment", AstNodeMetadata.Create("fragment"), children: children), sourcePath, sourceText);
     }
 
-    public string RenderDocument(AstDocument document)
-    {
-        return RenderNode(document.Root);
-    }
+    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
 
     public string RenderNode(AstNode node)
     {
         if (node.Conflict is not null)
-        {
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
-        }
+
 
         return RenderHtmlNode(node);
     }
 
-    private static AstNode ParseNode(AngleSharp.Dom.INode node, int index)
+    private static AstNode ParseNode(AngleSharp.Dom.INode node, int index) => node switch
     {
-        return node switch
-        {
-            AngleSharp.Dom.IElement element => ParseElement(element, index),
-            AngleSharp.Dom.IText text => new AstNode(
-                $"$text{index:D6}",
-                AstNodeMetadata.Create("text"),
-                text.Data),
-            AngleSharp.Dom.IComment comment => new AstNode(
-                $"$comment{index:D6}",
-                AstNodeMetadata.Create("comment"),
-                comment.Data),
-            _ => new AstNode(
-                $"$node{index:D6}",
-                AstNodeMetadata.Create("raw"),
-                node.TextContent)
-        };
-    }
+        AngleSharp.Dom.IElement element => ParseElement(element, index),
+        AngleSharp.Dom.IText text => new AstNode(
+            $"$text{index:D6}",
+            AstNodeMetadata.Create("text"),
+            text.Data),
+        AngleSharp.Dom.IComment comment => new AstNode(
+            $"$comment{index:D6}",
+            AstNodeMetadata.Create("comment"),
+            comment.Data),
+        _ => new AstNode(
+            $"$node{index:D6}",
+            AstNodeMetadata.Create("raw"),
+            node.TextContent)
+    };
 
     private static AstNode ParseElement(AngleSharp.Dom.IElement element, int index)
     {
         var fields = AstNodeMetadata.Create("element", element.LocalName);
         foreach (var attribute in element.Attributes)
-        {
             fields[attribute.Name] = attribute.Value;
-        }
+
 
         var children = element.ChildNodes
-            .Select((child, childIndex) => ParseNode(child, childIndex))
-            .ToArray();
+                            .Select((child, childIndex) => ParseNode(child, childIndex))
+                            .ToArray();
 
         return new AstNode($"{AstNodeMetadata.EncodeKind(element.LocalName)}{index:D6}", fields, children: children);
     }
@@ -105,9 +97,8 @@ public sealed class HtmlFragmentAdapter : IAstFormatAdapter
         var start = $"<{tag}{string.Concat(attributes)}>";
 
         if (VoidElements.Contains(tag))
-        {
             return start;
-        }
+
 
         return start + string.Concat(node.Children.Select(RenderHtmlNode)) + $"</{tag}>";
     }

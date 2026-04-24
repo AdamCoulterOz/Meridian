@@ -58,8 +58,5 @@ public sealed record FileSchemaRule(
                 .Replace("\\*", "[^/]*", StringComparison.Ordinal) + "$",
             System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.IgnoreCase));
 
-    public bool IsMatch(string path)
-    {
-        return _matchRegex.Value.IsMatch(path.Replace('\\', '/'));
-    }
+    public bool IsMatch(string path) => _matchRegex.Value.IsMatch(path.Replace('\\', '/'));
 }

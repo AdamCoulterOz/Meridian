@@ -34,9 +34,8 @@ public sealed class AstFormatRegistry : IAstFormatRegistry
             }
 
             if (!seen.Add(current))
-            {
                 throw new InvalidOperationException($"Format alias cycle detected while resolving '{format}'.");
-            }
+
 
             if (!_aliases.TryGetValue(current, out var next))
             {
@@ -45,9 +44,8 @@ public sealed class AstFormatRegistry : IAstFormatRegistry
             }
 
             if (string.IsNullOrWhiteSpace(next))
-            {
                 throw new InvalidOperationException($"Format alias '{current}' resolves to an empty adapter format.");
-            }
+
 
             current = next;
         }

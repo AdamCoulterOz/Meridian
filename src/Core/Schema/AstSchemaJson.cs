@@ -120,8 +120,7 @@ internal sealed class PathSelectorJsonConverter : JsonConverter<PathSelector>
         throw new JsonException("Path selector must be a string or object.");
     }
 
-    public override void Write(Utf8JsonWriter writer, PathSelector value, JsonSerializerOptions options) =>
-        JsonSerializer.Serialize(writer, new { value.Pattern, value.IsRegex }, options);
+    public override void Write(Utf8JsonWriter writer, PathSelector value, JsonSerializerOptions options) => JsonSerializer.Serialize(writer, new { value.Pattern, value.IsRegex }, options);
 
     private static PathSelector Parse(string value)
     {
@@ -166,23 +165,18 @@ internal sealed class FormatFromRuleJsonConverter : JsonConverter<FormatFromRule
         writer.WriteEndObject();
     }
 
-    private static SchemaScalarValue ScalarFromString(string value)
-    {
-        return long.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var integer)
+    private static SchemaScalarValue ScalarFromString(string value) => long.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var integer)
             ? new SchemaScalarValue.Integer(integer)
             : new SchemaScalarValue.String(value);
-    }
 }
 
 internal static class JsonObjectExtensions
 {
-    public static string? ReadString(this JsonObject node, string key) =>
-        node[key] is JsonValue value && value.TryGetValue<string>(out var text)
+    public static string? ReadString(this JsonObject node, string key) => node[key] is JsonValue value && value.TryGetValue<string>(out var text)
             ? text
             : null;
 
-    public static bool? ReadBoolean(this JsonObject node, string key) =>
-        node[key] is JsonValue value && value.TryGetValue<bool>(out var boolean)
+    public static bool? ReadBoolean(this JsonObject node, string key) => node[key] is JsonValue value && value.TryGetValue<bool>(out var boolean)
             ? boolean
             : null;
 }

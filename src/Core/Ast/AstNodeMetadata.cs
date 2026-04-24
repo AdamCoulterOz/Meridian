@@ -11,22 +11,16 @@ public static class AstNodeMetadata
         return name.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
     }
 
-    public static Dictionary<string, string> Create(string type)
+    public static Dictionary<string, string> Create(string type) => new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        return new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [TypeField] = type
-        };
-    }
+        [TypeField] = type
+    };
 
-    public static Dictionary<string, string> Create(string type, string name)
+    public static Dictionary<string, string> Create(string type, string name) => new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        return new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [TypeField] = type,
-            [NameField] = name
-        };
-    }
+        [TypeField] = type,
+        [NameField] = name
+    };
 
     public static Dictionary<string, string> Create(string type, Dictionary<string, string> fields)
     {

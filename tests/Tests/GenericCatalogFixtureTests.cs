@@ -30,13 +30,7 @@ public sealed class GenericCatalogFixtureTests
             Normalize(xml.RenderDocument(result.Document)));
     }
 
-    private static string ReadFixture(string fixturePath, string name)
-    {
-        return File.ReadAllText(Path.Combine(fixturePath, name));
-    }
+    private static string ReadFixture(string fixturePath, string name) => File.ReadAllText(Path.Combine(fixturePath, name));
 
-    private static string Normalize(string value)
-    {
-        return value.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
-    }
+    private static string Normalize(string value) => value.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
 }

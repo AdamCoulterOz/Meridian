@@ -18,13 +18,10 @@ public sealed class NestedContentExpander
         AstDocument document,
         AstSchema schema,
         IAstFormatRegistry registry,
-        IReadOnlyDictionary<string, AstSchema> schemaCatalog)
-    {
-        return document with
+        IReadOnlyDictionary<string, AstSchema> schemaCatalog) => document with
         {
             Root = ExpandNode(document.Root, schema, registry, schemaCatalog, document.Root.Path ?? document.Root.Kind)
         };
-    }
 
     private static AstNode ExpandNode(
         AstNode node,
@@ -46,14 +43,13 @@ public sealed class NestedContentExpander
             var expandedNestedDocument = Expand(nestedDocument, nestedSchema, registry, schemaCatalog);
             var contentFields = new Dictionary<string, string> { ["format"] = contentRule.Format };
             if (!string.IsNullOrWhiteSpace(contentRule.SchemaRef))
-            {
                 contentFields["schemaRef"] = contentRule.SchemaRef;
-            }
+
 
             children.Add(new AstNode(
-                "$content",
-                contentFields,
-                children: new[] { expandedNestedDocument.Root }));
+                                        "$content",
+                                        contentFields,
+                                        children: new[] { expandedNestedDocument.Root }));
 
             return node.WithValue(null).WithChildren(children);
         }
@@ -67,21 +63,18 @@ public sealed class NestedContentExpander
         ContentRule contentRule)
     {
         if (string.IsNullOrWhiteSpace(contentRule.SchemaRef))
-        {
             return schema;
-        }
+
 
         if (schema.NestedSchemas.TryGetValue(contentRule.SchemaRef, out var nestedSchema))
-        {
             return nestedSchema;
-        }
+
 
         if (schemaCatalog.TryGetValue(contentRule.SchemaRef, out nestedSchema))
-        {
             return nestedSchema;
-        }
+
 
         throw new InvalidOperationException(
-            $"Content rule for path '{contentRule.Path.Pattern}' references unknown nested schema '{contentRule.SchemaRef}'.");
+                            $"Content rule for path '{contentRule.Path.Pattern}' references unknown nested schema '{contentRule.SchemaRef}'.");
     }
 }

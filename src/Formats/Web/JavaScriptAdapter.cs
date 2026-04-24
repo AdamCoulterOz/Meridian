@@ -29,15 +29,9 @@ public sealed class JavaScriptAdapter : IAstFormatAdapter
             sourceText);
     }
 
-    public string RenderDocument(AstDocument document)
-    {
-        return RenderNode(document.Root);
-    }
+    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
 
-    public string RenderNode(AstNode node)
-    {
-        return node.Conflict is null
+    public string RenderNode(AstNode node) => node.Conflict is null
             ? node.Value ?? string.Empty
             : ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
-    }
 }

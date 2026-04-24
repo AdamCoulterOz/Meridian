@@ -29,13 +29,12 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
         var mappedDocument = _mappedSource.Parse(sourceText, sourcePath, schema);
         var stitched = Stitch(mappedDocument.Root.Children, CreateCollisionFreeMarkerNonce(sourceText));
         if (!stitched.IsSafe)
-        {
             return CreateUnsafeDocument(
                 sourceText,
                 sourcePath,
                 mappedDocument,
                 stitched.UnsafeReason ?? "mapped token cannot be represented safely in the host format.");
-        }
+
 
         try
         {
@@ -60,21 +59,17 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
         }
     }
 
-    public string RenderDocument(AstDocument document)
-    {
-        return RenderNode(document.Root);
-    }
+    public string RenderDocument(AstDocument document) => RenderNode(document.Root);
 
     public string RenderNode(AstNode node)
     {
         if (node.Conflict is not null)
-        {
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
-        }
+
 
         var mode = node.Fields.TryGetValue(MappedTokenFields.Mode, out var modeValue)
-            ? modeValue
-            : "safe";
+                            ? modeValue
+                            : "safe";
 
         if (string.Equals(mode, "unsafe", StringComparison.Ordinal))
         {
@@ -117,19 +112,17 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
 
             var id = "mtk" + ordinal.ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
             if (!tracker.TryGetPossibleContexts(out var contexts, out var contextReason))
-            {
                 return new StitchedHost(
                     stitched.ToString(),
                     tokens,
                     IsSafe: false,
                     UnsafeReason: $"mapped token '{id}' has no valid {_host.HostFormat} AST token context. {contextReason}");
-            }
+
 
             var context = default(MappedTokenContext);
             string? unsupportedReason = null;
             var canRepresent = false;
             foreach (var candidate in contexts)
-            {
                 if (_host.CanRepresent(
                     new MappedToken(
                         id,
@@ -145,33 +138,31 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
                     canRepresent = true;
                     break;
                 }
-            }
+
 
             if (!canRepresent)
-            {
                 return new StitchedHost(
                     stitched.ToString(),
                     tokens,
                     IsSafe: false,
                     UnsafeReason: $"mapped token '{id}' cannot be safely represented in {_host.HostFormat} contexts '{string.Join(", ", contexts)}'. {unsupportedReason}");
-            }
+
 
             var token = new MappedToken(
-                id,
-                tracker.CreateSemanticKey(context),
-                _mappedSource.SourceName,
-                _mappedSource.GetMappedKind(node),
-                _mappedSource.RenderMappedNode(node),
-                CreatePhysicalMarker(markerNonce, id));
+                                        id,
+                                        tracker.CreateSemanticKey(context),
+                                        _mappedSource.SourceName,
+                                        _mappedSource.GetMappedKind(node),
+                                        _mappedSource.RenderMappedNode(node),
+                                        CreatePhysicalMarker(markerNonce, id));
 
             if (!_host.TryCreateToken(token, context, out var shape))
-            {
                 return new StitchedHost(
                     stitched.ToString(),
                     tokens,
                     IsSafe: false,
                     UnsafeReason: $"mapped token '{id}' cannot be safely inserted in {_host.HostFormat} context '{context}'.");
-            }
+
 
             stitched.Append(shape.SourceText);
             tokens.Add(new MappedTokenReference(token, shape.Context));
@@ -187,9 +178,8 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
         {
             var nonce = CreateMarkerNonce(sourceText, attempt);
             if (!sourceText.Contains(MappedTokenFields.MarkerPrefix + nonce, StringComparison.Ordinal))
-            {
                 return nonce;
-            }
+
         }
 
         throw new InvalidOperationException("Could not create a mapped token marker nonce that is absent from the source text.");
@@ -201,18 +191,13 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
         return Convert.ToHexString(bytes, 0, 8).ToLowerInvariant();
     }
 
-    private static string CreatePhysicalMarker(string markerNonce, string tokenId)
-    {
-        return MappedTokenFields.MarkerPrefix + markerNonce + "__" + tokenId + MappedTokenFields.MarkerSuffix;
-    }
+    private static string CreatePhysicalMarker(string markerNonce, string tokenId) => MappedTokenFields.MarkerPrefix + markerNonce + "__" + tokenId + MappedTokenFields.MarkerSuffix;
 
     private AstDocument CreateUnsafeDocument(
         string sourceText,
         string? sourcePath,
         AstDocument mappedDocument,
-        string unsafeReason)
-    {
-        return new AstDocument(
+        string unsafeReason) => new AstDocument(
             Format,
             CreateRoot("unsafe", unsafeReason, new[]
             {
@@ -224,12 +209,8 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
             }),
             sourcePath,
             sourceText);
-    }
 
-    private AstNode CreateRoot(string mode, IReadOnlyList<AstNode> children)
-    {
-        return CreateRoot(mode, null, children);
-    }
+    private AstNode CreateRoot(string mode, IReadOnlyList<AstNode> children) => CreateRoot(mode, null, children);
 
     private AstNode CreateRoot(string mode, string? unsafeReason, IReadOnlyList<AstNode> children)
     {
@@ -238,20 +219,16 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
         fields[MappedTokenFields.HostFormat] = _host.HostFormat;
         fields[MappedTokenFields.Mode] = mode;
         if (!string.IsNullOrWhiteSpace(unsafeReason))
-        {
             fields[MappedTokenFields.UnsafeReason] = unsafeReason;
-        }
+
 
         return new AstNode("$mapped", fields, children: children);
     }
 
-    private static AstNode CreateMappedCollection(IReadOnlyList<MappedTokenReference> tokens)
-    {
-        return new AstNode(
+    private static AstNode CreateMappedCollection(IReadOnlyList<MappedTokenReference> tokens) => new AstNode(
             "$mappedTokens",
             AstNodeMetadata.Create("mappedCollection"),
             children: tokens.Select(CreateMappedNode).ToArray());
-    }
 
     private static AstNode CreateMappedNode(MappedTokenReference token)
     {

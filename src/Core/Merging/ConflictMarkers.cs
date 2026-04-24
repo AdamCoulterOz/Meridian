@@ -14,9 +14,7 @@ public static class ConflictMarkers
             ">>>>>>> theirs");
     }
 
-    public static string CreateDiff3(string? ours, string? @base, string? theirs)
-    {
-        return string.Join(
+    public static string CreateDiff3(string? ours, string? @base, string? theirs) => string.Join(
             Environment.NewLine,
             "<<<<<<< ours",
             ours ?? string.Empty,
@@ -25,5 +23,4 @@ public static class ConflictMarkers
             "=======",
             theirs ?? string.Empty,
             ">>>>>>> theirs");
-    }
 }

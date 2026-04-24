@@ -27,41 +27,31 @@ public class JsonAdapter : IAstFormatAdapter
         return new AstDocument(Format, ParseNode(node, "$root"), sourcePath, sourceText);
     }
 
-    public string RenderDocument(AstDocument document)
-    {
-        return RenderNode(document.Root) + Environment.NewLine;
-    }
+    public string RenderDocument(AstDocument document) => RenderNode(document.Root) + Environment.NewLine;
 
     public string RenderNode(AstNode node)
     {
         if (node.Conflict is not null)
-        {
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
-        }
+
 
         return RenderJsonNode(node)?.ToJsonString(JsonOptions) ?? "null";
     }
 
-    protected virtual JsonNode? ParseJsonNode(string sourceText)
+    protected virtual JsonNode? ParseJsonNode(string sourceText) => JsonNode.Parse(sourceText, documentOptions: new JsonDocumentOptions
     {
-        return JsonNode.Parse(sourceText, documentOptions: new JsonDocumentOptions
-        {
-            CommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true
-        });
-    }
+        CommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true
+    });
 
-    private static AstNode ParseNode(JsonNode? node, string kind)
+    private static AstNode ParseNode(JsonNode? node, string kind) => node switch
     {
-        return node switch
-        {
-            JsonObject obj => ParseObject(obj, kind),
-            JsonArray array => ParseArray(array, kind),
-            JsonValue value => ParseValue(value, kind),
-            null => ParseNull(kind),
-            _ => throw new NotSupportedException($"Unsupported JSON node type '{node.GetType().Name}'.")
-        };
-    }
+        JsonObject obj => ParseObject(obj, kind),
+        JsonArray array => ParseArray(array, kind),
+        JsonValue value => ParseValue(value, kind),
+        null => ParseNull(kind),
+        _ => throw new NotSupportedException($"Unsupported JSON node type '{node.GetType().Name}'.")
+    };
 
     private static AstNode ParseObject(JsonObject obj, string kind)
     {
@@ -138,9 +128,8 @@ public class JsonAdapter : IAstFormatAdapter
     {
         var obj = new JsonObject();
         foreach (var child in node.Children)
-        {
             obj[child.GetMetadataName()] = RenderJsonNode(child);
-        }
+
 
         return obj;
     }
@@ -149,9 +138,8 @@ public class JsonAdapter : IAstFormatAdapter
     {
         var array = new JsonArray();
         foreach (var child in node.Children)
-        {
             array.Add(RenderJsonNode(child));
-        }
+
 
         return array;
     }
@@ -159,9 +147,8 @@ public class JsonAdapter : IAstFormatAdapter
     private static JsonNode? RenderValue(AstNode node)
     {
         if (!node.Fields.TryGetValue(ValueKindField, out var valueKind))
-        {
             return node.Value is null ? null : JsonValue.Create(node.Value);
-        }
+
 
         return valueKind switch
         {
@@ -174,8 +161,5 @@ public class JsonAdapter : IAstFormatAdapter
         };
     }
 
-    private static string InferType(AstNode node)
-    {
-        return node.Children.Count > 0 ? "object" : "value";
-    }
+    private static string InferType(AstNode node) => node.Children.Count > 0 ? "object" : "value";
 }
