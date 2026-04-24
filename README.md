@@ -8,19 +8,28 @@ Instead of asking Git to guess from lines, Meridian parses each side of a three-
 
 ## Why Use It
 
-Use Meridian when a plain text merge produces conflicts like this:
+Use Meridian when a plain text merge turns independent structured edits into a conflict:
 
 ```xml
 <<<<<<< ours
-<label description="Near Miss - Environment Copy" languagecode="1033" />
+<label description="Near Miss" languagecode="1033" />
+<label description="Incident" languagecode="3081" />
 =======
-<label description="Near Miss - Working Copy" languagecode="1033" />
+<label description="Safety Event" languagecode="1033" />
+<label description="Near Miss" languagecode="3081" />
 >>>>>>> theirs
 ```
 
-But what you actually care about is:
+Those edits are not really competing. One side changed the `3081` label; the other changed the `1033` label. With a schema that says `languagecode` identifies sibling labels, Meridian can merge the structure instead:
 
-- `languagecode="1033"` means these two elements are the same label.
+```xml
+<label description="Safety Event" languagecode="1033" />
+<label description="Incident" languagecode="3081" />
+```
+
+That is the core idea:
+
+- `languagecode="1033"` and `languagecode="3081"` identify different sibling labels.
 - sibling order may or may not matter depending on the parent node.
 - a child XML/JSON/YAML payload should be merged as its own structure, not as escaped text.
 - ambiguous repeated nodes should fail loudly instead of being guessed into corruption.
