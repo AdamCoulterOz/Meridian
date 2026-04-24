@@ -3,16 +3,16 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Core.Templates;
+namespace Meridian.Core.Mapped;
 
-public sealed class TemplateTextAdapter : IAstFormatAdapter
+public sealed class MappedTextAdapter : IAstFormatAdapter
 {
-    public string Format => "template-text";
+    public string Format => "mapped-text";
 
     public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return new AstDocument(Format, new AstNode("$template", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
+        return new AstDocument(Format, new AstNode("$mapped", new Dictionary<string, string> { ["$type"] = "text" }, sourceText), sourcePath, sourceText);
     }
 
     public string RenderDocument(AstDocument document)

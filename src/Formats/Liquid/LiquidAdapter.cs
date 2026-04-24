@@ -2,11 +2,11 @@ using Meridian.Core.Ast;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Core.Templates;
+using Meridian.Core.Mapped;
 
 namespace Meridian.Formats.Liquid;
 
-public class LiquidAdapter : ITemplateEngineAstFormatAdapter
+public class LiquidAdapter : IMappedSourceAdapter
 {
     private const string OpenField = "open";
     private const string CloseField = "close";
@@ -16,7 +16,7 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
 
     public string Format => "liquid:multi";
 
-    public string EngineName => "liquid";
+    public string SourceName => "liquid";
 
     public AstDocument Parse(string sourceText, string? sourcePath, AstSchema schema)
     {
@@ -24,7 +24,7 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
 
         return new AstDocument(
             Format,
-            new AstNode("$liquid", AstNodeMetadata.Create("template"), children: ParseTokens(sourceText)),
+            new AstNode("$liquid", AstNodeMetadata.Create("document"), children: ParseTokens(sourceText)),
             sourcePath,
             sourceText);
     }
@@ -43,11 +43,11 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
 
         var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
-            : "template";
+            : "document";
 
         return type switch
         {
-            "template" => string.Concat(node.Children.Select(RenderNode)),
+            "document" => string.Concat(node.Children.Select(RenderNode)),
             "text" => node.Value ?? string.Empty,
             "output" or "tag" => RenderInlineLiquidToken(node),
             "rawBlock" or "commentBlock" => RenderBlockLiquidToken(node),
@@ -61,7 +61,7 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
             string.Equals(nodeType, "text", StringComparison.Ordinal);
     }
 
-    public string GetTemplateKind(AstNode node)
+    public string GetMappedKind(AstNode node)
     {
         return node.TryGetMetadataType(out var nodeType)
             ? nodeType switch
@@ -75,7 +75,7 @@ public class LiquidAdapter : ITemplateEngineAstFormatAdapter
             : "unknown";
     }
 
-    public string RenderTemplateNode(AstNode node)
+    public string RenderMappedNode(AstNode node)
     {
         return RenderNode(node);
     }

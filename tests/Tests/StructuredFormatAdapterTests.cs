@@ -1,7 +1,7 @@
 using Meridian.Core.Ast;
 using Meridian.Core.Formats;
 using Meridian.Core.Schema;
-using Meridian.Core.Templates;
+using Meridian.Core.Mapped;
 using Meridian.Formats.Data;
 using Meridian.Formats.Images;
 using Meridian.Formats.Liquid;
@@ -74,7 +74,7 @@ actions:
     {
         IAstFormatAdapter[] adapters =
         {
-            new TemplateTextAdapter(),
+            new MappedTextAdapter(),
             new RawAdapter(),
             new CssAdapter(),
             new PngAdapter(),
@@ -93,7 +93,7 @@ actions:
     }
 
     [Fact]
-    public void LiquidAdapterParsesTemplateTokensAndRoundTripsSource()
+    public void LiquidAdapterParsesMappedTokensAndRoundTripsSource()
     {
         var adapter = new LiquidAdapter();
         var source = """
@@ -103,7 +103,7 @@ actions:
 {% comment %}hidden {{ value }}{% endcomment %}
 """;
 
-        var document = adapter.Parse(source, "template.liquid", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.liquid", AstSchema.Empty);
 
         Assert.Equal("$liquid", document.Root.Kind);
         Assert.Contains(document.Root.Children, child => child.Fields["$type"] == "output" && child.Value == " page.title ");
@@ -119,7 +119,7 @@ actions:
         var adapter = new LiquidAdapter();
         var source = """Hello {{- user.name -}}{% if user.active -%}yes{%- endif %}""";
 
-        var document = adapter.Parse(source, "template.liquid", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.liquid", AstSchema.Empty);
 
         Assert.Equal(source, adapter.RenderDocument(document));
         Assert.Contains(document.Root.Children, child =>
@@ -129,9 +129,9 @@ actions:
     }
 
     [Fact]
-    public void LiquidXmlAdapterParsesHostXmlWithTemplatePlaceholders()
+    public void LiquidXmlAdapterParsesHostXmlWithMappedTokenReferences()
     {
-        var adapter = new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter());
+        var adapter = new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """
 <ul>
 {% for item in items %}
@@ -140,32 +140,32 @@ actions:
 </ul>
 """;
 
-        var document = adapter.Parse(source, "template.xml", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.xml", AstSchema.Empty);
 
         Assert.Equal("liquid:xml", document.Format);
         Assert.Equal("safe", document.Root.Fields["$mode"]);
-        Assert.Equal("liquid", document.Root.Fields["$templateEngine"]);
+        Assert.Equal("liquid", document.Root.Fields["$mappedSource"]);
         Assert.Equal("xml", document.Root.Fields["$hostFormat"]);
-        var templates = document.Root.Children.Single(child => child.Kind == "$templates").Children;
-        Assert.Contains(templates, child => child.Fields["templateKind"] == "tag");
-        Assert.Contains(templates, child => child.Fields["context"] == "FieldValue");
-        Assert.Contains(templates, child => child.Fields["templateKind"] == "output");
-        Assert.Contains(templates, child => child.Fields[TemplatePlaceholderFields.SemanticKey] == "child:0");
-        Assert.Contains(templates, child => child.Fields[TemplatePlaceholderFields.SemanticKey] == "field:class/template:0");
+        var mappedTokens = document.Root.Children.Single(child => child.Kind == "$mappedTokens").Children;
+        Assert.Contains(mappedTokens, child => child.Fields["mappedKind"] == "tag");
+        Assert.Contains(mappedTokens, child => child.Fields["context"] == "FieldValue");
+        Assert.Contains(mappedTokens, child => child.Fields["mappedKind"] == "output");
+        Assert.Contains(mappedTokens, child => child.Fields[MappedTokenFields.SemanticKey] == "child:0");
+        Assert.Contains(mappedTokens, child => child.Fields[MappedTokenFields.SemanticKey] == "field:class/mapped:0");
         var host = document.Root.Children.Single(child => child.Kind == "$host").Children.Single();
         var listItem = host.Children.Single(child => child.Kind == "li");
         var classField = listItem.Children.Single(child => child.Kind == "$fieldValue:class");
-        Assert.Contains(classField.Children, child => child.Fields.TryGetValue(TemplatePlaceholderFields.SemanticKey, out var semanticKey) && semanticKey == "field:class/template:0");
+        Assert.Contains(classField.Children, child => child.Fields.TryGetValue(MappedTokenFields.SemanticKey, out var semanticKey) && semanticKey == "field:class/mapped:0");
         Assert.Equal(source, adapter.RenderDocument(document));
     }
 
     [Fact]
-    public void LiquidXmlAdapterFallsBackWhenTemplateAppearsInXmlTagSyntax()
+    public void LiquidXmlAdapterFallsBackWhenMappedAppearsInXmlTagSyntax()
     {
-        var adapter = new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter());
+        var adapter = new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """<div {{ dynamicAttrs }}>Hello</div>""";
 
-        var document = adapter.Parse(source, "template.xml", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.xml", AstSchema.Empty);
 
         Assert.Equal("unsafe", document.Root.Fields["$mode"]);
         Assert.Contains("no valid xml AST token context", document.Root.Fields["$unsafeReason"]);
@@ -173,12 +173,12 @@ actions:
     }
 
     [Fact]
-    public void LiquidXmlAdapterPreservesAttributeOrderAcrossPlainAndTemplatedFields()
+    public void LiquidXmlAdapterPreservesAttributeOrderAcrossPlainAndMappedFields()
     {
-        var adapter = new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter());
+        var adapter = new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter());
         var source = """<div class="x {{ dynamic }}" id="hero" title="{{ title }}">Hello</div>""";
 
-        var document = adapter.Parse(source, "template.xml", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.xml", AstSchema.Empty);
 
         Assert.Equal(source, adapter.RenderDocument(document));
     }
@@ -186,19 +186,19 @@ actions:
     [Fact]
     public void LiquidXmlAdapterUsesCollisionResistantPhysicalMarkersWithoutLeakingThemIntoAstIdentity()
     {
-        var adapter = new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter());
-        var source = """<div data-marker="__POWERSOURCE_TEMPLATE__not-a-real-marker__" class="x {{ dynamic }}"><__ps_template id="tpl000000" /></div>""";
+        var adapter = new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter());
+        var source = """<div data-marker="__MERIDIAN_MAPPED__not-a-real-marker__" class="x {{ dynamic }}"><__meridian_mapped id="mtk000000" /></div>""";
 
-        var document = adapter.Parse(source, "template.xml", AstSchema.Empty);
+        var document = adapter.Parse(source, "mapped.xml", AstSchema.Empty);
 
         var host = document.Root.Children.Single(child => child.Kind == "$host").Children.Single();
         var fieldValue = host.Children.Single(child => child.Kind == "$fieldValue:class");
-        var placeholder = fieldValue.Children.Single(child => child.Kind.StartsWith("$templatePlaceholder", StringComparison.Ordinal));
+        var token = fieldValue.Children.Single(child => child.Kind.StartsWith("$mappedToken", StringComparison.Ordinal));
 
-        Assert.Equal("tpl000000", placeholder.Fields["placeholderId"]);
-        Assert.Equal("field:class/template:0", placeholder.Fields[TemplatePlaceholderFields.SemanticKey]);
-        Assert.Equal("FieldValue", placeholder.Fields["context"]);
-        Assert.Contains(host.Children, child => child.Kind == "__ps_template");
+        Assert.Equal("mtk000000", token.Fields["tokenId"]);
+        Assert.Equal("field:class/mapped:0", token.Fields[MappedTokenFields.SemanticKey]);
+        Assert.Equal("FieldValue", token.Fields["context"]);
+        Assert.Contains(host.Children, child => child.Kind == "__meridian_mapped");
         Assert.Equal(source, adapter.RenderDocument(document));
     }
 
@@ -268,8 +268,8 @@ actions:
             new HtmlFragmentAdapter(),
             new JavaScriptAdapter(),
             new LiquidAdapter(),
-            new TemplatedHostAdapter(new LiquidAdapter(), new XmlAdapter()),
-            new TemplateTextAdapter(),
+            new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter()),
+            new MappedTextAdapter(),
             new RawAdapter(),
             new CssAdapter(),
             new PngAdapter(),
@@ -284,7 +284,7 @@ actions:
             ["resx"] = "xml"
         });
 
-        foreach (var format in new[] { "json", "json5", "yaml", "html:fragment", "javascript", "liquid:multi", "liquid:xml", "template-text", "raw", "css", "image:png", "image:jpg", "image:gif", "image:ico", "svg", "xsl", "resx", "xap" })
+        foreach (var format in new[] { "json", "json5", "yaml", "html:fragment", "javascript", "liquid:multi", "liquid:xml", "mapped-text", "raw", "css", "image:png", "image:jpg", "image:gif", "image:ico", "svg", "xsl", "resx", "xap" })
         {
             var source = format switch
             {

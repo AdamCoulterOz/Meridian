@@ -1,6 +1,6 @@
 using Meridian.Core.Ast;
 using Meridian.Core.Schema;
-using Meridian.Core.Templates;
+using Meridian.Core.Mapped;
 
 namespace Meridian.Core.Identity;
 
@@ -70,10 +70,10 @@ public sealed class AstIdentityAssigner
             }
         }
 
-        if (node.Fields.TryGetValue(TemplatePlaceholderFields.SemanticKey, out var semanticKey) &&
+        if (node.Fields.TryGetValue(MappedTokenFields.SemanticKey, out var semanticKey) &&
             !string.IsNullOrEmpty(semanticKey))
         {
-            return new ResolvedKey(TemplatePlaceholderFields.SemanticKey + "=" + semanticKey);
+            return new ResolvedKey(MappedTokenFields.SemanticKey + "=" + semanticKey);
         }
 
         return new ResolvedKey("path");

@@ -3,7 +3,7 @@ using Meridian.Core.Formats;
 using Meridian.Core.Identity;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Core.Templates;
+using Meridian.Core.Mapped;
 using Meridian.Formats.Data;
 
 namespace Meridian.Tests;
@@ -41,15 +41,15 @@ public sealed class AstMergerTests
     }
 
     [Fact]
-    public void TemplatePlaceholderSemanticKeysDiscriminateSiblingIdentity()
+    public void MappedTokenReferenceSemanticKeysDiscriminateSiblingIdentity()
     {
         var firstFields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [TemplatePlaceholderFields.SemanticKey] = "field:class/template:0"
+            [MappedTokenFields.SemanticKey] = "field:class/mapped:0"
         };
         var secondFields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [TemplatePlaceholderFields.SemanticKey] = "field:title/template:0"
+            [MappedTokenFields.SemanticKey] = "field:title/mapped:0"
         };
         var document = new AstDocument(
             "test",
@@ -57,15 +57,15 @@ public sealed class AstMergerTests
                 "root",
                 children: new[]
                 {
-                    new AstNode("$templatePlaceholder", firstFields),
-                    new AstNode("$templatePlaceholder", secondFields)
+                    new AstNode("$mappedToken", firstFields),
+                    new AstNode("$mappedToken", secondFields)
                 }));
 
         var result = new AstIdentityAssigner().Assign(document, AstSchema.Empty);
 
         Assert.False(result.HasErrors);
-        Assert.Contains(TemplatePlaceholderFields.SemanticKey + "=field:class/template:0", result.Document.Root.Children[0].Identity);
-        Assert.Contains(TemplatePlaceholderFields.SemanticKey + "=field:title/template:0", result.Document.Root.Children[1].Identity);
+        Assert.Contains(MappedTokenFields.SemanticKey + "=field:class/mapped:0", result.Document.Root.Children[0].Identity);
+        Assert.Contains(MappedTokenFields.SemanticKey + "=field:title/mapped:0", result.Document.Root.Children[1].Identity);
     }
 
     [Fact]

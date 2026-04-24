@@ -6,16 +6,16 @@ using Meridian.Core.Ast;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Core.Templates;
+using Meridian.Core.Mapped;
 
 namespace Meridian.Formats.Data;
 
-public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
+public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
 {
-    private const string PlaceholderElementName = "__ps_template";
+    private const string TokenElementName = "__meridian_mapped";
     private const string FieldOrderField = "$fieldOrder";
-    private static readonly Regex AttributePlaceholderMarker = new(
-        Regex.Escape(TemplatePlaceholderFields.MarkerPrefix) + "[0-9a-f]{16}__(?<id>tpl[0-9]{6})" + Regex.Escape(TemplatePlaceholderFields.MarkerSuffix),
+    private static readonly Regex AttributeTokenMarker = new(
+        Regex.Escape(MappedTokenFields.MarkerPrefix) + "[0-9a-f]{16}__(?<id>mtk[0-9]{6})" + Regex.Escape(MappedTokenFields.MarkerSuffix),
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public string Format => "xml";
@@ -63,48 +63,48 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         return RenderNode(node, depth: 0);
     }
 
-    public ITemplatePlaceholderContextTracker CreatePlaceholderContextTracker()
+    public IMappedTokenContextTracker CreateTokenContextTracker()
     {
-        return new XmlPlaceholderContextTracker();
+        return new XmlTokenContextTracker();
     }
 
     public bool CanRepresent(
-        TemplatePlaceholderToken token,
-        TemplateTokenContext context,
+        MappedToken token,
+        MappedTokenContext context,
         out string? unsupportedReason)
     {
         ArgumentNullException.ThrowIfNull(token);
 
-        if (context is TemplateTokenContext.ChildNode or TemplateTokenContext.FieldValue)
+        if (context is MappedTokenContext.ChildNode or MappedTokenContext.FieldValue)
         {
             unsupportedReason = null;
             return true;
         }
 
-        unsupportedReason = $"XML currently supports template placeholders only as child nodes or field values, not '{context}'.";
+        unsupportedReason = $"XML currently supports mapped tokens only as child nodes or field values, not '{context}'.";
         return false;
     }
 
-    public bool TryCreatePlaceholder(
-        TemplatePlaceholderToken token,
-        TemplateTokenContext context,
-        out TemplatePlaceholderShape shape)
+    public bool TryCreateToken(
+        MappedToken token,
+        MappedTokenContext context,
+        out MappedTokenShape shape)
     {
         ArgumentNullException.ThrowIfNull(token);
 
-        if (context == TemplateTokenContext.ChildNode)
+        if (context == MappedTokenContext.ChildNode)
         {
-            shape = new TemplatePlaceholderShape(
-                "<" + PlaceholderElementName + " marker=\"" + token.PhysicalMarker + "\" semanticKey=\"" + SecurityElement.Escape(token.SemanticKey) + "\" />",
-                TemplateTokenContext.ChildNode);
+            shape = new MappedTokenShape(
+                "<" + TokenElementName + " marker=\"" + token.PhysicalMarker + "\" semanticKey=\"" + SecurityElement.Escape(token.SemanticKey) + "\" />",
+                MappedTokenContext.ChildNode);
             return true;
         }
 
-        if (context == TemplateTokenContext.FieldValue)
+        if (context == MappedTokenContext.FieldValue)
         {
-            shape = new TemplatePlaceholderShape(
+            shape = new MappedTokenShape(
                 token.PhysicalMarker,
-                TemplateTokenContext.FieldValue);
+                MappedTokenContext.FieldValue);
             return true;
         }
 
@@ -112,7 +112,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         return false;
     }
 
-    public AstDocument ParseHostWithPlaceholders(string sourceText, string? sourcePath, AstSchema schema)
+    public AstDocument ParseHostWithMappedTokens(string sourceText, string? sourcePath, AstSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
@@ -122,7 +122,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
             throw new InvalidOperationException("XML document has no root element.");
         }
 
-        var root = ParseTemplateElement(document.Root);
+        var root = ParseMappedElement(document.Root);
         if (document.Declaration is not null)
         {
             var fields = new Dictionary<string, string>(root.Fields, StringComparer.Ordinal)
@@ -135,12 +135,12 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         return new AstDocument(Format, root, sourcePath, sourceText);
     }
 
-    public string RenderHostWithPlaceholders(
+    public string RenderHostWithMappedTokens(
         AstDocument document,
-        IReadOnlyDictionary<string, string> templateSourceByPlaceholderId)
+        IReadOnlyDictionary<string, string> mappedSourceByTokenId)
     {
         ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(templateSourceByPlaceholderId);
+        ArgumentNullException.ThrowIfNull(mappedSourceByTokenId);
 
         var builder = new StringBuilder();
         if (document.Root.Fields.TryGetValue("$xmlDeclaration", out var declaration))
@@ -148,7 +148,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
             builder.AppendLine(declaration);
         }
 
-        builder.Append(RenderTemplateNode(document.Root, templateSourceByPlaceholderId));
+        builder.Append(RenderMappedNode(document.Root, mappedSourceByTokenId));
         return builder.ToString();
     }
 
@@ -237,17 +237,17 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
             sourceText: element.ToString(SaveOptions.DisableFormatting));
     }
 
-    private static AstNode ParseTemplateElement(XElement element)
+    private static AstNode ParseMappedElement(XElement element)
     {
-        if (TryReadPlaceholderElement(element, out var placeholder))
+        if (TryReadTokenElement(element, out var token))
         {
             return new AstNode(
-                "$templatePlaceholder" + placeholder.Id,
-                AstNodeMetadata.Create("templatePlaceholder", new Dictionary<string, string>(StringComparer.Ordinal)
+                "$mappedToken" + token.Id,
+                AstNodeMetadata.Create("mappedToken", new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    [TemplatePlaceholderFields.PlaceholderId] = placeholder.Id,
-                    [TemplatePlaceholderFields.SemanticKey] = placeholder.SemanticKey,
-                    [TemplatePlaceholderFields.Context] = TemplateTokenContext.ChildNode.ToString()
+                    [MappedTokenFields.TokenId] = token.Id,
+                    [MappedTokenFields.SemanticKey] = token.SemanticKey,
+                    [MappedTokenFields.Context] = MappedTokenContext.ChildNode.ToString()
                 }));
         }
 
@@ -259,9 +259,9 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         {
             var key = AttributeKey(attribute);
             fieldOrder.Add(key);
-            if (AttributePlaceholderMarker.IsMatch(attribute.Value))
+            if (AttributeTokenMarker.IsMatch(attribute.Value))
             {
-                fieldValueChildren.Add(ParseTemplateFieldValue(key, attribute.Value));
+                fieldValueChildren.Add(ParseMappedFieldValue(key, attribute.Value));
                 continue;
             }
 
@@ -276,33 +276,33 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         return new AstNode(
             element.Name.LocalName,
             fields,
-            children: fieldValueChildren.Concat(element.Nodes().Select(ParseTemplateNode)).ToArray(),
+            children: fieldValueChildren.Concat(element.Nodes().Select(ParseMappedNode)).ToArray(),
             sourceText: element.ToString(SaveOptions.DisableFormatting));
     }
 
-    private static bool TryReadPlaceholderElement(XElement element, out ParsedPlaceholder placeholder)
+    private static bool TryReadTokenElement(XElement element, out ParsedToken token)
     {
-        placeholder = default;
-        if (!string.Equals(element.Name.LocalName, PlaceholderElementName, StringComparison.Ordinal) ||
+        token = default;
+        if (!string.Equals(element.Name.LocalName, TokenElementName, StringComparison.Ordinal) ||
             element.Attribute("marker") is not { } markerAttribute)
         {
             return false;
         }
 
-        var match = AttributePlaceholderMarker.Match(markerAttribute.Value);
+        var match = AttributeTokenMarker.Match(markerAttribute.Value);
         if (!match.Success || !string.Equals(match.Value, markerAttribute.Value, StringComparison.Ordinal))
         {
             return false;
         }
 
         var semanticKey = element.Attribute("semanticKey")?.Value;
-        placeholder = new ParsedPlaceholder(
+        token = new ParsedToken(
             match.Groups["id"].Value,
-            string.IsNullOrEmpty(semanticKey) ? TemplateTokenContext.ChildNode + ":unknown" : semanticKey);
+            string.IsNullOrEmpty(semanticKey) ? MappedTokenContext.ChildNode + ":unknown" : semanticKey);
         return true;
     }
 
-    private static AstNode ParseTemplateFieldValue(string fieldName, string value)
+    private static AstNode ParseMappedFieldValue(string fieldName, string value)
     {
         var fields = AstNodeMetadata.Create("fieldValue", new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -312,7 +312,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         var position = 0;
         var ordinal = 0;
 
-        foreach (Match match in AttributePlaceholderMarker.Matches(value))
+        foreach (Match match in AttributeTokenMarker.Matches(value))
         {
             if (match.Index > position)
             {
@@ -322,14 +322,14 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
                     value[position..match.Index]));
             }
 
-            var placeholder = ParseAttributePlaceholder(match, fieldName, children.Count(IsTemplatePlaceholder));
+            var token = ParseAttributeToken(match, fieldName, children.Count(IsMappedToken));
             children.Add(new AstNode(
-                "$templatePlaceholder" + placeholder.Id,
-                AstNodeMetadata.Create("templatePlaceholder", new Dictionary<string, string>(StringComparer.Ordinal)
+                "$mappedToken" + token.Id,
+                AstNodeMetadata.Create("mappedToken", new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    [TemplatePlaceholderFields.PlaceholderId] = placeholder.Id,
-                    [TemplatePlaceholderFields.SemanticKey] = placeholder.SemanticKey,
-                    [TemplatePlaceholderFields.Context] = TemplateTokenContext.FieldValue.ToString()
+                    [MappedTokenFields.TokenId] = token.Id,
+                    [MappedTokenFields.SemanticKey] = token.SemanticKey,
+                    [MappedTokenFields.Context] = MappedTokenContext.FieldValue.ToString()
                 })));
             position = match.Index + match.Length;
         }
@@ -345,18 +345,18 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         return new AstNode("$fieldValue:" + fieldName, fields, children: children);
     }
 
-    private static ParsedPlaceholder ParseAttributePlaceholder(Match match, string fieldName, int templateOrdinal)
+    private static ParsedToken ParseAttributeToken(Match match, string fieldName, int mappedOrdinal)
     {
-        return new ParsedPlaceholder(
+        return new ParsedToken(
             match.Groups["id"].Value,
-            CreateFieldValueSemanticKey(fieldName, templateOrdinal));
+            CreateFieldValueSemanticKey(fieldName, mappedOrdinal));
     }
 
-    private static AstNode ParseTemplateNode(XNode node, int index)
+    private static AstNode ParseMappedNode(XNode node, int index)
     {
         return node switch
         {
-            XElement element => ParseTemplateElement(element),
+            XElement element => ParseMappedElement(element),
             XCData cdata => new AstNode($"$cdata{index:D6}", AstNodeMetadata.Create("cdata"), cdata.Value),
             XText text => new AstNode($"$text{index:D6}", AstNodeMetadata.Create("text"), text.Value),
             XComment comment => new AstNode($"$comment{index:D6}", AstNodeMetadata.Create("comment"), comment.Value),
@@ -364,9 +364,9 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         };
     }
 
-    private static string RenderTemplateNode(
+    private static string RenderMappedNode(
         AstNode node,
-        IReadOnlyDictionary<string, string> templateSourceByPlaceholderId)
+        IReadOnlyDictionary<string, string> mappedSourceByTokenId)
     {
         if (node.Conflict is not null)
         {
@@ -377,10 +377,10 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
             ? nodeType
             : "element";
 
-        if (string.Equals(type, "templatePlaceholder", StringComparison.Ordinal) &&
-            node.Fields.TryGetValue(TemplatePlaceholderFields.PlaceholderId, out var placeholderId))
+        if (string.Equals(type, "mappedToken", StringComparison.Ordinal) &&
+            node.Fields.TryGetValue(MappedTokenFields.TokenId, out var tokenId))
         {
-            return templateSourceByPlaceholderId[placeholderId];
+            return mappedSourceByTokenId[tokenId];
         }
 
         return type switch
@@ -389,13 +389,13 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
             "cdata" => "<![CDATA[" + (node.Value ?? string.Empty) + "]]>",
             "comment" => "<!--" + (node.Value ?? string.Empty) + "-->",
             "raw" => node.Value ?? string.Empty,
-            _ => RenderTemplateElement(node, templateSourceByPlaceholderId)
+            _ => RenderMappedElement(node, mappedSourceByTokenId)
         };
     }
 
-    private static string RenderTemplateElement(
+    private static string RenderMappedElement(
         AstNode node,
-        IReadOnlyDictionary<string, string> templateSourceByPlaceholderId)
+        IReadOnlyDictionary<string, string> mappedSourceByTokenId)
     {
         var builder = new StringBuilder();
         builder.Append('<');
@@ -403,7 +403,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
 
         var emittedFields = new HashSet<string>(StringComparer.Ordinal);
         var fieldValuesByName = node.Children
-            .Where(IsTemplateFieldValue)
+            .Where(IsMappedFieldValue)
             .ToDictionary(child => child.Fields[AstNodeMetadata.NameField], StringComparer.Ordinal);
 
         foreach (var fieldName in ReadFieldOrder(node))
@@ -415,9 +415,9 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
                 continue;
             }
 
-            if (fieldValuesByName.TryGetValue(fieldName, out var templateFieldValue))
+            if (fieldValuesByName.TryGetValue(fieldName, out var mappedFieldValue))
             {
-                AppendAttribute(builder, fieldName, RenderTemplateFieldValue(templateFieldValue, templateSourceByPlaceholderId));
+                AppendAttribute(builder, fieldName, RenderMappedFieldValue(mappedFieldValue, mappedSourceByTokenId));
                 emittedFields.Add(fieldName);
             }
         }
@@ -428,16 +428,16 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
             emittedFields.Add(field.Key);
         }
 
-        foreach (var fieldValue in node.Children.Where(IsTemplateFieldValue))
+        foreach (var fieldValue in node.Children.Where(IsMappedFieldValue))
         {
             var fieldName = fieldValue.Fields[AstNodeMetadata.NameField];
             if (emittedFields.Add(fieldName))
             {
-                AppendAttribute(builder, fieldName, RenderTemplateFieldValue(fieldValue, templateSourceByPlaceholderId));
+                AppendAttribute(builder, fieldName, RenderMappedFieldValue(fieldValue, mappedSourceByTokenId));
             }
         }
 
-        var xmlChildren = node.Children.Where(child => !IsTemplateFieldValue(child)).ToArray();
+        var xmlChildren = node.Children.Where(child => !IsMappedFieldValue(child)).ToArray();
 
         if (xmlChildren.Length == 0)
         {
@@ -448,7 +448,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         builder.Append('>');
         foreach (var child in xmlChildren)
         {
-            builder.Append(RenderTemplateNode(child, templateSourceByPlaceholderId));
+            builder.Append(RenderMappedNode(child, mappedSourceByTokenId));
         }
 
         builder.Append("</");
@@ -473,18 +473,18 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
             : Array.Empty<string>();
     }
 
-    private static string RenderTemplateFieldValue(
+    private static string RenderMappedFieldValue(
         AstNode node,
-        IReadOnlyDictionary<string, string> templateSourceByPlaceholderId)
+        IReadOnlyDictionary<string, string> mappedSourceByTokenId)
     {
         var builder = new StringBuilder();
         foreach (var child in node.Children)
         {
             if (child.TryGetMetadataType(out var type) &&
-                string.Equals(type, "templatePlaceholder", StringComparison.Ordinal) &&
-                child.Fields.TryGetValue(TemplatePlaceholderFields.PlaceholderId, out var placeholderId))
+                string.Equals(type, "mappedToken", StringComparison.Ordinal) &&
+                child.Fields.TryGetValue(MappedTokenFields.TokenId, out var tokenId))
             {
-                builder.Append(templateSourceByPlaceholderId[placeholderId]);
+                builder.Append(mappedSourceByTokenId[tokenId]);
                 continue;
             }
 
@@ -494,16 +494,16 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         return builder.ToString();
     }
 
-    private static bool IsTemplateFieldValue(AstNode node)
+    private static bool IsMappedFieldValue(AstNode node)
     {
         return node.TryGetMetadataType(out var type) &&
             string.Equals(type, "fieldValue", StringComparison.Ordinal);
     }
 
-    private static bool IsTemplatePlaceholder(AstNode node)
+    private static bool IsMappedToken(AstNode node)
     {
         return node.TryGetMetadataType(out var type) &&
-            string.Equals(type, "templatePlaceholder", StringComparison.Ordinal);
+            string.Equals(type, "mappedToken", StringComparison.Ordinal);
     }
 
     private static string CreateChildSemanticKey(int ordinal)
@@ -513,7 +513,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
 
     private static string CreateFieldValueSemanticKey(string fieldName, int ordinal)
     {
-        return "field:" + fieldName + "/template:" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return "field:" + fieldName + "/mapped:" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string EscapeAttribute(string value)
@@ -554,53 +554,53 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
                 .Select(line => line.Length == 0 ? line : indent + line));
     }
 
-    private sealed class XmlPlaceholderContextTracker : ITemplatePlaceholderContextTracker
+    private sealed class XmlTokenContextTracker : IMappedTokenContextTracker
     {
         private bool _inTag;
         private char? _quote;
         private bool _expectingAttributeValue;
-        private int _childTemplateOrdinal;
+        private int _childMappedOrdinal;
         private string? _currentFieldName;
-        private readonly Dictionary<string, int> _fieldTemplateOrdinals = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _fieldMappedOrdinals = new(StringComparer.Ordinal);
         private readonly StringBuilder _attributeName = new();
 
-        public bool TryGetPossibleContexts(out IReadOnlyList<TemplateTokenContext> contexts, out string? unsupportedReason)
+        public bool TryGetPossibleContexts(out IReadOnlyList<MappedTokenContext> contexts, out string? unsupportedReason)
         {
             if (_quote is not null)
             {
-                contexts = new[] { TemplateTokenContext.FieldValue };
+                contexts = new[] { MappedTokenContext.FieldValue };
                 unsupportedReason = null;
                 return true;
             }
 
             if (_inTag)
             {
-                contexts = Array.Empty<TemplateTokenContext>();
-                unsupportedReason = "The template token is inside XML tag syntax rather than an AST child node or field value.";
+                contexts = Array.Empty<MappedTokenContext>();
+                unsupportedReason = "The mapped token is inside XML tag syntax rather than an AST child node or field value.";
                 return false;
             }
 
-            contexts = new[] { TemplateTokenContext.ChildNode };
+            contexts = new[] { MappedTokenContext.ChildNode };
             unsupportedReason = null;
             return true;
         }
 
-        public string CreateSemanticKey(TemplateTokenContext context)
+        public string CreateSemanticKey(MappedTokenContext context)
         {
-            if (context == TemplateTokenContext.ChildNode)
+            if (context == MappedTokenContext.ChildNode)
             {
-                return CreateChildSemanticKey(_childTemplateOrdinal++);
+                return CreateChildSemanticKey(_childMappedOrdinal++);
             }
 
-            if (context == TemplateTokenContext.FieldValue)
+            if (context == MappedTokenContext.FieldValue)
             {
                 var fieldName = _currentFieldName ?? "<unknown>";
-                _fieldTemplateOrdinals.TryGetValue(fieldName, out var ordinal);
-                _fieldTemplateOrdinals[fieldName] = ordinal + 1;
+                _fieldMappedOrdinals.TryGetValue(fieldName, out var ordinal);
+                _fieldMappedOrdinals[fieldName] = ordinal + 1;
                 return CreateFieldValueSemanticKey(fieldName, ordinal);
             }
 
-            throw new InvalidOperationException($"XML cannot create a semantic key for template context '{context}'.");
+            throw new InvalidOperationException($"XML cannot create a semantic key for mapped context '{context}'.");
         }
 
         public void Feed(string literalText)
@@ -667,5 +667,5 @@ public sealed class XmlAdapter : IAstFormatAdapter, ITemplatePlaceholderHost
         }
     }
 
-    private readonly record struct ParsedPlaceholder(string Id, string SemanticKey);
+    private readonly record struct ParsedToken(string Id, string SemanticKey);
 }
