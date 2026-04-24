@@ -12,7 +12,7 @@ public sealed class AstMergerTests
 {
     private static readonly AstSchema DefaultSchema = new()
     {
-        GlobalDiscriminatorFields = new[] { "id", "Id", "languagecode" }
+        GlobalDiscriminatorFields = ["id", "Id", "languagecode"]
     };
 
     private readonly XmlAdapter _xml = new();
@@ -55,11 +55,11 @@ public sealed class AstMergerTests
             "test",
             new AstNode(
                 "root",
-                children: new[]
-                {
+                children:
+                [
                     new AstNode("$mappedToken", firstFields),
                     new AstNode("$mappedToken", secondFields)
-                }));
+                ]));
 
         var result = new AstIdentityAssigner().Assign(document, AstSchema.Empty);
 
@@ -73,7 +73,7 @@ public sealed class AstMergerTests
     {
         var schema = new AstSchema
         {
-            GlobalDiscriminatorFields = new[] { "id", "Id", "languagecode" }
+            GlobalDiscriminatorFields = ["id", "Id", "languagecode"]
         };
 
         var result = Merge(
@@ -98,7 +98,7 @@ public sealed class AstMergerTests
             DefaultSchema);
 
         Assert.False(result.HasConflicts);
-        Assert.Equal(new[] { "3", "1", "2", "4" }, result.Document.Root.Children.Select(child => child.Fields["id"]));
+        Assert.Equal(["3", "1", "2", "4"], result.Document.Root.Children.Select(child => child.Fields["id"]));
     }
 
     [Fact]
@@ -119,8 +119,8 @@ public sealed class AstMergerTests
     {
         var schema = new AstSchema
         {
-            GlobalDiscriminatorFields = new[] { "id", "Id", "languagecode" },
-            OrderedChildren = new[] { PathSelector.Exact("root") }
+            GlobalDiscriminatorFields = ["id", "Id", "languagecode"],
+            OrderedChildren = [PathSelector.Exact("root")]
         };
 
         var result = Merge(
@@ -215,12 +215,12 @@ public sealed class AstMergerTests
     {
         var schema = new AstSchema
         {
-            ContentRules = new[] { new ContentRule(PathSelector.Exact("outer/payload"), "xml") }
+            ContentRules = [new ContentRule(PathSelector.Exact("outer/payload"), "xml")]
         };
         var document = _xml.Parse("""<outer><payload>&lt;inner id="1" /&gt;</payload></outer>""", null, schema);
-        var registry = new AstFormatRegistry(new[] { _xml });
+        var registry = new AstFormatRegistry([_xml]);
 
-        var expanded = new NestedContentExpander().Expand(document, schema, registry);
+        var expanded = NestedContentExpander.Expand(document, schema, registry);
 
         var content = expanded.Root.Children.Single().Children.Single();
         Assert.Equal("$content", content.Kind);
@@ -233,18 +233,18 @@ public sealed class AstMergerTests
     {
         var schema = new AstSchema
         {
-            ContentRules = new[]
-            {
+            ContentRules =
+            [
                 new ContentRule(PathSelector.Exact("outer/payload"), "xml", "innerXml")
-            },
+            ],
             NestedSchemas = new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase)
             {
                 ["innerXml"] = new AstSchema
                 {
-                    ContentRules = new[]
-                    {
+                    ContentRules =
+                    [
                         new ContentRule(PathSelector.Exact("inner/payload"), "xml", "leafXml")
-                    }
+                    ]
                 },
                 ["leafXml"] = AstSchema.Empty
             }
@@ -253,9 +253,9 @@ public sealed class AstMergerTests
             """<outer><payload>&lt;inner&gt;&lt;payload&gt;&amp;lt;leaf id="1" /&amp;gt;&lt;/payload&gt;&lt;/inner&gt;</payload></outer>""",
             null,
             schema);
-        var registry = new AstFormatRegistry(new[] { _xml });
+        var registry = new AstFormatRegistry([_xml]);
 
-        var expanded = new NestedContentExpander().Expand(document, schema, registry);
+        var expanded = NestedContentExpander.Expand(document, schema, registry);
 
         var outerContent = expanded.Root.Children.Single().Children.Single();
         Assert.Equal("innerXml", outerContent.Fields["schemaRef"]);
@@ -270,16 +270,16 @@ public sealed class AstMergerTests
     {
         var schema = new AstSchema
         {
-            ContentRules = new[] { new ContentRule(PathSelector.Exact("outer/payload"), "xml") }
+            ContentRules = [new ContentRule(PathSelector.Exact("outer/payload"), "xml")]
         };
         var document = _xml.Parse(
             """<outer><payload>&lt;inner id="1"&gt;Tom &amp;amp; Jerry&lt;/inner&gt;</payload></outer>""",
             null,
             schema);
-        var registry = new AstFormatRegistry(new[] { _xml });
-        var expanded = new NestedContentExpander().Expand(document, schema, registry);
+        var registry = new AstFormatRegistry([_xml]);
+        var expanded = NestedContentExpander.Expand(document, schema, registry);
 
-        var collapsed = new NestedContentCollapser().Collapse(expanded, registry);
+        var collapsed = NestedContentCollapser.Collapse(expanded, registry);
 
         var rendered = _xml.RenderDocument(collapsed);
         Assert.Contains("&lt;inner id=&quot;1&quot;&gt;Tom &amp;amp; Jerry&lt;/inner&gt;", rendered);
@@ -300,22 +300,22 @@ public sealed class AstMergerTests
             "xml",
             new AstNode(
                 "outer",
-                children: new[]
-                {
+                children:
+                [
                     new AstNode(
                         "payload",
-                        children: new[]
-                        {
+                        children:
+                        [
                             new AstNode(
                                 "$content",
                                 new Dictionary<string, string> { ["format"] = "xml" },
-                                children: new[] { new AstNode("inner", conflict: conflict) })
-                        })
-                }));
-        var registry = new AstFormatRegistry(new[] { _xml });
+                                children: [new AstNode("inner", conflict: conflict)])
+                        ])
+                ]));
+        var registry = new AstFormatRegistry([_xml]);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            new NestedContentCollapser().Collapse(document, registry));
+            NestedContentCollapser.Collapse(document, registry));
         Assert.Contains("owning encoded scalar boundary", exception.Message);
     }
 

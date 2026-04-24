@@ -40,11 +40,11 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
             var hostDocument = _host.ParseHostWithMappedTokens(stitched.Source, sourcePath, schema);
             return new AstDocument(
                 Format,
-                CreateRoot("safe", new[]
-                {
-                    new AstNode("$host", AstNodeMetadata.Create("host"), children: new[] { hostDocument.Root }),
+                CreateRoot("safe",
+                [
+                    new AstNode("$host", AstNodeMetadata.Create("host"), children: [hostDocument.Root]),
                     CreateMappedCollection(stitched.Tokens)
-                }),
+                ]),
                 sourcePath,
                 sourceText);
         }
@@ -173,7 +173,6 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
             var nonce = CreateMarkerNonce(sourceText, attempt);
             if (!sourceText.Contains(MappedTokenFields.MarkerPrefix + nonce, StringComparison.Ordinal))
                 return nonce;
-
         }
 
         throw new InvalidOperationException("Could not create a mapped token marker nonce that is absent from the source text.");
@@ -191,16 +190,16 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
         string sourceText,
         string? sourcePath,
         AstDocument mappedDocument,
-        string unsafeReason) => new AstDocument(
+        string unsafeReason) => new(
             Format,
-            CreateRoot("unsafe", unsafeReason, new[]
-            {
+            CreateRoot("unsafe", unsafeReason,
+            [
                 new AstNode(
                     "$mapped",
                     mappedDocument.Root.Fields,
                     sourceText,
                     mappedDocument.Root.Children)
-            }),
+            ]),
             sourcePath,
             sourceText);
 
@@ -218,7 +217,7 @@ public sealed class MappedFormatAdapter : IAstFormatAdapter
         return new AstNode("$mapped", fields, children: children);
     }
 
-    private static AstNode CreateMappedCollection(IReadOnlyList<MappedTokenReference> tokens) => new AstNode(
+    private static AstNode CreateMappedCollection(IReadOnlyList<MappedTokenReference> tokens) => new(
             "$mappedTokens",
             AstNodeMetadata.Create("mappedCollection"),
             children: tokens.Select(CreateMappedNode).ToArray());

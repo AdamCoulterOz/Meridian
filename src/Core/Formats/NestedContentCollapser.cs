@@ -4,7 +4,7 @@ namespace Meridian.Core.Formats;
 
 public sealed class NestedContentCollapser
 {
-    public AstDocument Collapse(AstDocument document, IAstFormatRegistry registry)
+    public static AstDocument Collapse(AstDocument document, IAstFormatRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(registry);

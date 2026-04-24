@@ -89,6 +89,6 @@ static AstSchema LoadSchema(IReadOnlyDictionary<string, string> options, string 
 
     return new AstSchema
     {
-        GlobalDiscriminatorFields = new[] { "id", "Id", "languagecode" }
+        GlobalDiscriminatorFields = ["id", "Id", "languagecode"]
     };
 }

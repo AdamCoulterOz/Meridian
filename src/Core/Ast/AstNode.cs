@@ -51,5 +51,5 @@ public sealed record AstNode
 
     public AstNode WithPathAndIdentity(string path, string identity) => this with { Path = path, Identity = identity };
 
-    public static AstNode ConflictNode(string kind, string path, string identity, MergeConflict conflict) => new AstNode(kind, path: path, identity: identity, conflict: conflict);
+    public static AstNode ConflictNode(string kind, string path, string identity, MergeConflict conflict) => new(kind, path: path, identity: identity, conflict: conflict);
 }

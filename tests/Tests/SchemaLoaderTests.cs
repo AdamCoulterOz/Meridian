@@ -86,27 +86,26 @@ files:
     {
         var schema = new AstSchema
         {
-            IdentityRules = new[]
-            {
+            IdentityRules =
+            [
                 new NodeIdentityRule(
                     PathSelector.Exact("root/item"),
-                    new DiscriminatorKey.Composite(new CompositePart[]
-                    {
+                    new DiscriminatorKey.Composite(
+                    [
                         new(new DiscriminatorKey.Field("id")),
                         new(new DiscriminatorKey.PathValue("name"), Optional: true)
-                    }))
-            },
-            CompanionRules = new[]
-            {
+                    ]))
+            ],
+            CompanionRules =
+            [
                 new CompanionRule(
                     PathTemplate: "items/{root/name}",
                     FormatFrom: new FormatFromRule(
                         "root/type",
-                        new[]
-                        {
+                        [
                             new FormatMapEntry(new SchemaScalarValue.Integer(3), "javascript")
-                        }))
-            }
+                        ]))
+            ]
         };
 
         var json = JsonSerializer.Serialize(schema, new JsonSerializerOptions(JsonSerializerDefaults.Web));
@@ -192,5 +191,4 @@ files:
         Assert.Contains("Dependent/@schemaName=contact", result.Document.Root.Children[0].Children[0].Children[0].Identity);
         Assert.Contains("Dependent/@schemaName=incident", result.Document.Root.Children[0].Children[0].Children[1].Identity);
     }
-
 }

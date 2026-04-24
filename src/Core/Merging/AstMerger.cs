@@ -41,7 +41,7 @@ public sealed class AstMerger
                 baseAssigned.Document.Root.Identity ?? "/" + baseAssigned.Document.Root.Kind,
                 conflict);
 
-            return new MergeResult(@base with { Root = conflictRoot }, diagnostics, new[] { conflict });
+            return new MergeResult(@base with { Root = conflictRoot }, diagnostics, [conflict]);
         }
 
         var conflicts = new List<MergeConflict>();
@@ -115,7 +115,7 @@ public sealed class AstMerger
             .WithChildren(mergedChildren.Children);
     }
 
-    private IReadOnlyDictionary<string, string>? MergeFields(
+    private static IReadOnlyDictionary<string, string>? MergeFields(
         AstNode @base,
         AstNode ours,
         AstNode theirs,
@@ -142,7 +142,6 @@ public sealed class AstMerger
 
             if (scalar.Value is not null)
                 merged[field] = scalar.Value;
-
         }
 
         return merged;
@@ -176,7 +175,6 @@ public sealed class AstMerger
             var merged = MergeChild(identity, baseNode, oursNode, theirsNode, schema, renderer, conflicts);
             if (merged is not null)
                 mergedById[identity] = merged;
-
         }
 
         var baseOrder = @base.Children.Select(child => child.Identity!).ToArray();
@@ -300,7 +298,7 @@ public sealed class AstMerger
         AstNode? ours,
         AstNode? theirs,
         IAstTextRenderer renderer,
-        string message) => new MergeConflict(
+        string message) => new(
             ConflictKind.Node,
             ours?.Path ?? theirs?.Path ?? @base?.Path ?? "<unknown>",
             @base is null ? null : renderer.RenderNode(@base),

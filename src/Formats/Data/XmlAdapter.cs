@@ -315,7 +315,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         return new AstNode("$fieldValue:" + fieldName, fields, children: children);
     }
 
-    private static ParsedToken ParseAttributeToken(Match match, string fieldName, int mappedOrdinal) => new ParsedToken(
+    private static ParsedToken ParseAttributeToken(Match match, string fieldName, int mappedOrdinal) => new(
             match.Groups["id"].Value,
             CreateFieldValueSemanticKey(fieldName, mappedOrdinal));
 
@@ -393,7 +393,6 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
             var fieldName = fieldValue.Fields[AstNodeMetadata.NameField];
             if (emittedFields.Add(fieldName))
                 AppendAttribute(builder, fieldName, RenderMappedFieldValue(fieldValue, mappedSourceByTokenId));
-
         }
 
         var xmlChildren = node.Children.Where(child => !IsMappedFieldValue(child)).ToArray();
@@ -485,7 +484,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
     private static string IndentConflictBody(string? text, string indent) => string.Join(
             Environment.NewLine,
             (text ?? string.Empty)
-                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Split(["\r\n", "\n"], StringSplitOptions.None)
                 .Select(line => line.Length == 0 ? line : indent + line));
 
     private sealed class XmlTokenContextTracker : IMappedTokenContextTracker
@@ -502,7 +501,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
         {
             if (_quote is not null)
             {
-                contexts = new[] { MappedTokenContext.FieldValue };
+                contexts = [MappedTokenContext.FieldValue];
                 unsupportedReason = null;
                 return true;
             }
@@ -514,7 +513,7 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
                 return false;
             }
 
-            contexts = new[] { MappedTokenContext.ChildNode };
+            contexts = [MappedTokenContext.ChildNode];
             unsupportedReason = null;
             return true;
         }

@@ -1,4 +1,3 @@
-using Meridian.Core.Ast;
 using Meridian.Core.Formats;
 using Meridian.Core.Schema;
 using Meridian.Core.Mapped;
@@ -73,7 +72,7 @@ actions:
     public void TextAdaptersRoundTripOpaqueContent()
     {
         IAstFormatAdapter[] adapters =
-        {
+        [
             new MappedTextAdapter(),
             new RawAdapter(),
             new CssAdapter(),
@@ -82,7 +81,7 @@ actions:
             new GifAdapter(),
             new IcoAdapter(),
             new XapAdapter()
-        };
+        ];
 
         foreach (var adapter in adapters)
         {
@@ -220,36 +219,36 @@ actions:
     {
         var schema = new AstSchema
         {
-            ContentRules = new[]
-            {
+            ContentRules =
+            [
                 new ContentRule(PathSelector.Exact("outer/payload"), "json", "payloadJson")
-            },
+            ],
             NestedSchemas = new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase)
             {
                 ["payloadJson"] = new AstSchema
                 {
-                    ContentRules = new[]
-                    {
+                    ContentRules =
+                    [
                         new ContentRule(PathSelector.Exact("$root/message"), "html:fragment", "messageHtml")
-                    }
+                    ]
                 },
                 ["messageHtml"] = AstSchema.Empty
             }
         };
         var xml = new XmlAdapter();
-        var registry = new AstFormatRegistry(new IAstFormatAdapter[]
-        {
+        var registry = new AstFormatRegistry(
+        [
             xml,
             new JsonAdapter(),
             new HtmlFragmentAdapter()
-        });
+        ]);
         var document = xml.Parse(
             """<outer><payload>{"message":"&lt;strong&gt;Hi&lt;/strong&gt;"}</payload></outer>""",
             null,
             schema);
 
-        var expanded = new NestedContentExpander().Expand(document, schema, registry);
-        var collapsed = new NestedContentCollapser().Collapse(expanded, registry);
+        var expanded = NestedContentExpander.Expand(document, schema, registry);
+        var collapsed = NestedContentCollapser.Collapse(expanded, registry);
 
         var rendered = xml.RenderDocument(collapsed);
         Assert.Contains("&quot;message&quot;", rendered);
@@ -259,8 +258,8 @@ actions:
     [Fact]
     public void RegistryExposesAllStructuredFormats()
     {
-        var registry = new AstFormatRegistry(new IAstFormatAdapter[]
-        {
+        var registry = new AstFormatRegistry(
+        [
             new XmlAdapter(),
             new JsonAdapter(),
             new Json5Adapter(),
@@ -277,7 +276,7 @@ actions:
             new GifAdapter(),
             new IcoAdapter(),
             new XapAdapter()
-        }, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        ], new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["svg"] = "xml",
             ["xsl"] = "xml",

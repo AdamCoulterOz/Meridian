@@ -38,7 +38,6 @@ public sealed record CompanionRule(
             var rawValue = AstPath.ReadValue(metadataRoot, FormatFrom.Path);
             if (rawValue is not null && FormatFrom.TryResolve(rawValue, out var mappedFormat))
                 return mappedFormat;
-
         }
 
         if (!string.IsNullOrWhiteSpace(Format))

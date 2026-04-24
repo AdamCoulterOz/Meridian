@@ -19,7 +19,7 @@ public sealed class AstIdentityAssigner
         return new IdentityAssignmentResult(document with { Root = root }, diagnostics);
     }
 
-    private AstNode AssignNode(
+    private static AstNode AssignNode(
         AstNode node,
         AstSchema schema,
         string path,
@@ -106,7 +106,6 @@ public sealed class AstIdentityAssigner
 
             if (!part.Optional)
                 parts.Add(resolved);
-
         }
 
         return new ResolvedKey(string.Join("+", parts));

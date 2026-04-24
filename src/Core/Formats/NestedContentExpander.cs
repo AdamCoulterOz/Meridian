@@ -5,7 +5,7 @@ namespace Meridian.Core.Formats;
 
 public sealed class NestedContentExpander
 {
-    public AstDocument Expand(AstDocument document, AstSchema schema, IAstFormatRegistry registry)
+    public static AstDocument Expand(AstDocument document, AstSchema schema, IAstFormatRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(schema);
@@ -48,7 +48,7 @@ public sealed class NestedContentExpander
             children.Add(new AstNode(
                                         "$content",
                                         contentFields,
-                                        children: new[] { expandedNestedDocument.Root }));
+                                        children: [expandedNestedDocument.Root]));
 
             return node.WithValue(null).WithChildren(children);
         }
