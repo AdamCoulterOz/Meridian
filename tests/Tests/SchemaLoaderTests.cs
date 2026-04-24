@@ -54,6 +54,33 @@ files:
     }
 
     [Fact]
+    public void SchemaLoaderBindsCompanionFormatFromIntegerEnumKeys()
+    {
+        var schemaSet = AstSchemaYamlLoader.Load("""
+schemaVersion: 0.1
+name: test
+files:
+  - match: WebResources/*.data.xml
+    root: WebResource
+    companions:
+      - pathTemplate: WebResources/{WebResource/Name}
+        formatFrom:
+          path: WebResource/WebResourceType
+          enum:
+            1: html:fragment
+            3: javascript
+            11: svg
+        defaultFormat: raw
+""");
+        var schema = schemaSet.CompileForFile("WebResources/demo.data.xml", "WebResource");
+        var metadata = _xml.Parse("<WebResource><Name>demo</Name><WebResourceType>3</WebResourceType></WebResource>", null, schema);
+        var companion = Assert.Single(schema.CompanionRules);
+
+        Assert.Equal("WebResources/demo", companion.ResolvePath(metadata.Root));
+        Assert.Equal("javascript", companion.ResolveFormat(metadata.Root));
+    }
+
+    [Fact]
     public void SchemaLoaderCompilesChildElementDiscriminatorRules()
     {
         var schemaSet = AstSchemaYamlLoader.Load("""

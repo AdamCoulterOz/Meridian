@@ -1,34 +1,33 @@
-using YamlDotNet.RepresentationModel;
-using YamlDotNet.Core;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace Meridian.Core.Schema;
 
 public static class AstSchemaYamlLoader
 {
+    private static readonly IDeserializer Deserializer = new DeserializerBuilder()
+        .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .IgnoreUnmatchedProperties()
+        .Build();
+
     public static AstSchemaSet Load(string yaml)
     {
         ArgumentNullException.ThrowIfNull(yaml);
 
-        var stream = new YamlStream();
-        stream.Load(new StringReader(yaml));
-        if (stream.Documents.Count == 0 || stream.Documents[0].RootNode is not YamlMappingNode root)
-        {
+        var document = Deserializer.Deserialize<SchemaDocumentDto>(yaml) ??
             throw new InvalidOperationException("Schema YAML must contain a root mapping.");
-        }
 
-        var defaults = ParseDefaults(root);
-        var formatAliases = ParseFormatAliases(root);
-        var nestedSchemas = ParseNestedSchemas(root);
-        var files = ParseFiles(root);
+        var defaults = ConvertDefaults(document.Defaults);
+        var nestedSchemas = ConvertNestedSchemas(document.NestedSchemas);
 
         return new AstSchemaSet(
-            Scalar(root, "schemaVersion"),
-            Scalar(root, "name"),
+            document.SchemaVersion,
+            document.Name,
             defaults with { NestedSchemas = nestedSchemas },
             nestedSchemas,
-            files)
+            ConvertFiles(document.Files))
         {
-            FormatAliases = formatAliases
+            FormatAliases = ToOrdinalIgnoreCaseDictionary(document.FormatAliases)
         };
     }
 
@@ -38,89 +37,44 @@ public static class AstSchemaYamlLoader
         return Load(File.ReadAllText(path));
     }
 
-    private static AstSchema ParseDefaults(YamlMappingNode root)
+    private static AstSchema ConvertDefaults(DefaultsDto? defaults)
     {
-        var globalFields = new List<string>();
-        var defaults = Mapping(root, "defaults");
-        var xml = Mapping(defaults, "xml");
-        var discriminators = Sequence(xml, "discriminators");
-        if (discriminators is not null)
-        {
-            foreach (var discriminator in discriminators.OfType<YamlMappingNode>())
-            {
-                var attribute = Scalar(discriminator, "attribute");
-                if (!string.IsNullOrWhiteSpace(attribute))
-                {
-                    globalFields.Add(attribute);
-                }
-            }
-        }
-
         return new AstSchema
         {
-            GlobalDiscriminatorFields = globalFields
+            GlobalDiscriminatorFields = defaults?.Xml?.Discriminators?
+                .Select(discriminator => discriminator.Attribute)
+                .Where(attribute => !string.IsNullOrWhiteSpace(attribute))
+                .Cast<string>()
+                .ToArray() ?? Array.Empty<string>()
         };
     }
 
-    private static IReadOnlyDictionary<string, string> ParseFormatAliases(YamlMappingNode root)
+    private static IReadOnlyDictionary<string, AstSchema> ConvertNestedSchemas(IDictionary<string, NestedSchemaDto>? nestedSchemas)
     {
-        var aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var aliasNode = Mapping(root, "formatAliases");
-        if (aliasNode is null)
+        if (nestedSchemas is null)
         {
-            return aliases;
+            return new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase);
         }
 
-        foreach (var pair in aliasNode.Children)
-        {
-            if (pair.Key is not YamlScalarNode key || string.IsNullOrWhiteSpace(key.Value))
-            {
-                continue;
-            }
-
-            aliases[key.Value] = ScalarValue(pair.Value);
-        }
-
-        return aliases;
+        return nestedSchemas.ToDictionary(
+            pair => pair.Key,
+            pair => ConvertNestedSchema(pair.Value),
+            StringComparer.OrdinalIgnoreCase);
     }
 
-    private static IReadOnlyDictionary<string, AstSchema> ParseNestedSchemas(YamlMappingNode root)
-    {
-        var nestedSchemas = new Dictionary<string, AstSchema>(StringComparer.OrdinalIgnoreCase);
-        var node = Mapping(root, "nestedSchemas");
-        if (node is null)
-        {
-            return nestedSchemas;
-        }
-
-        foreach (var pair in node.Children)
-        {
-            var name = ((YamlScalarNode)pair.Key).Value;
-            if (string.IsNullOrWhiteSpace(name) || pair.Value is not YamlMappingNode schemaNode)
-            {
-                continue;
-            }
-
-            nestedSchemas[name] = ParseNestedSchema(schemaNode);
-        }
-
-        return nestedSchemas;
-    }
-
-    private static AstSchema ParseNestedSchema(YamlMappingNode schemaNode)
+    private static AstSchema ConvertNestedSchema(NestedSchemaDto nestedSchema)
     {
         var contentRules = new List<ContentRule>();
         var orderedChildren = new List<PathSelector>();
-        var root = Mapping(schemaNode, "root");
-        if (root is not null)
-        {
-            ParsePropertyContentRules(root, "$root", contentRules);
-            ParseOrderedChildren(root, orderedChildren);
 
-            var item = Mapping(root, "item");
-            if (item is not null)
+        if (nestedSchema.Root is not null)
+        {
+            AddPropertyContentRules(nestedSchema.Root, "$root", contentRules);
+            AddOrderedChildren(nestedSchema.Root.OrderedChildren, orderedChildren);
+
+            if (nestedSchema.Root.Item is not null)
             {
-                ParsePropertyContentRules(item, @"^\$root/\$item\d{6}", contentRules, useRegex: true);
+                AddPropertyContentRules(nestedSchema.Root.Item, @"^\$root/\$item\d{6}", contentRules, useRegex: true);
             }
         }
 
@@ -131,157 +85,124 @@ public static class AstSchemaYamlLoader
         };
     }
 
-    private static void ParsePropertyContentRules(
-        YamlMappingNode node,
+    private static void AddPropertyContentRules(
+        SchemaNodeDto node,
         string parentPath,
         List<ContentRule> contentRules,
         bool useRegex = false)
     {
-        var properties = Mapping(node, "properties");
-        if (properties is null)
+        if (node.Properties is null)
         {
             return;
         }
 
-        foreach (var pair in properties.Children)
+        foreach (var pair in node.Properties)
         {
-            if (pair.Key is not YamlScalarNode key || string.IsNullOrWhiteSpace(key.Value) || pair.Value is not YamlMappingNode property)
+            if (string.IsNullOrWhiteSpace(pair.Value.Format))
             {
                 continue;
             }
 
-            var format = Scalar(property, "format");
-            if (string.IsNullOrWhiteSpace(format))
-            {
-                continue;
-            }
-
-            var path = parentPath + "/" + key.Value;
+            var path = parentPath + "/" + pair.Key;
             contentRules.Add(new ContentRule(
                 useRegex ? PathSelector.Regex(path + "$") : PathSelector.Exact(path),
-                format,
-                Scalar(property, "schemaRef"),
-                Scalar(property, "note")));
+                pair.Value.Format,
+                pair.Value.SchemaRef,
+                pair.Value.Note));
         }
     }
 
-    private static IReadOnlyList<FileSchemaRule> ParseFiles(YamlMappingNode root)
+    private static IReadOnlyList<FileSchemaRule> ConvertFiles(IReadOnlyList<FileSchemaRuleDto>? files)
     {
-        var files = new List<FileSchemaRule>();
-        var fileNodes = Sequence(root, "files");
-        if (fileNodes is null)
+        if (files is null)
         {
-            return files;
+            return Array.Empty<FileSchemaRule>();
         }
 
-        foreach (var fileNode in fileNodes.OfType<YamlMappingNode>())
-        {
-            files.Add(new FileSchemaRule(
-                Scalar(fileNode, "match") ?? throw new InvalidOperationException("File schema rule is missing match."),
-                Scalar(fileNode, "root"),
-                ParseIdentityRules(fileNode),
-                ParseOrderedChildren(fileNode),
-                ParseContentRules(fileNode),
-                ParseCompanionRules(fileNode)));
-        }
-
-        return files;
+        return files.Select(file => new FileSchemaRule(
+            file.Match ?? throw new InvalidOperationException("File schema rule is missing match."),
+            file.Root,
+            ConvertIdentityRules(file.Discriminators),
+            ConvertOrderedChildren(file.OrderedChildren),
+            ConvertContentRules(file.Content),
+            ConvertCompanionRules(file.Companions))).ToArray();
     }
 
-    private static IReadOnlyList<NodeIdentityRule> ParseIdentityRules(YamlMappingNode fileNode)
+    private static IReadOnlyList<NodeIdentityRule> ConvertIdentityRules(IReadOnlyList<DiscriminatorRuleDto>? discriminators)
     {
-        var rules = new List<NodeIdentityRule>();
-        var discriminators = Sequence(fileNode, "discriminators");
         if (discriminators is null)
         {
-            return rules;
+            return Array.Empty<NodeIdentityRule>();
         }
 
-        foreach (var discriminator in discriminators.OfType<YamlMappingNode>())
-        {
-            var path = Scalar(discriminator, "path");
-            var key = Mapping(discriminator, "key");
-            if (string.IsNullOrWhiteSpace(path) || key is null)
-            {
-                continue;
-            }
-
-            rules.Add(new NodeIdentityRule(PathSelector.Exact(path), ParseDiscriminatorKey(key), Scalar(discriminator, "note")));
-        }
-
-        return rules;
+        return discriminators
+            .Where(discriminator => !string.IsNullOrWhiteSpace(discriminator.Path) && discriminator.Key is not null)
+            .Select(discriminator => new NodeIdentityRule(
+                PathSelector.Exact(discriminator.Path!),
+                ConvertDiscriminatorKey(discriminator.Key!),
+                discriminator.Note))
+            .ToArray();
     }
 
-    private static DiscriminatorKey ParseDiscriminatorKey(YamlMappingNode key)
+    private static DiscriminatorKey ConvertDiscriminatorKey(DiscriminatorKeyDto key)
     {
-        var attribute = Scalar(key, "attribute");
-        if (!string.IsNullOrWhiteSpace(attribute))
+        if (!string.IsNullOrWhiteSpace(key.Attribute))
         {
-            return new DiscriminatorKey.Field(attribute);
+            return new DiscriminatorKey.Field(key.Attribute);
         }
 
-        var element = Scalar(key, "element");
-        if (!string.IsNullOrWhiteSpace(element))
+        if (!string.IsNullOrWhiteSpace(key.Element))
         {
-            return new DiscriminatorKey.PathValue(element);
+            return new DiscriminatorKey.PathValue(key.Element);
         }
 
-        if (key.Children.TryGetValue(new YamlScalarNode("text"), out var textNode) &&
-            bool.TryParse(((YamlScalarNode)textNode).Value, out var isText) &&
-            isText)
+        if (key.Text == true)
         {
             return new DiscriminatorKey.Text();
         }
 
-        var structural = Scalar(key, "structural");
-        if (string.Equals(structural, "orderedSlot", StringComparison.Ordinal))
+        if (string.Equals(key.Structural, "orderedSlot", StringComparison.Ordinal))
         {
             return new DiscriminatorKey.Structural(StructuralDiscriminator.OrderedSlot);
         }
 
-        var composite = Sequence(key, "composite");
-        if (composite is not null)
+        if (key.Composite is { Count: > 0 })
         {
-            return new DiscriminatorKey.Composite(composite.OfType<YamlMappingNode>().Select(ParseCompositePart).ToArray());
+            return new DiscriminatorKey.Composite(key.Composite.Select(ConvertCompositePart).ToArray());
         }
 
         throw new InvalidOperationException("Unsupported discriminator key shape.");
     }
 
-    private static CompositePart ParseCompositePart(YamlMappingNode part)
+    private static CompositePart ConvertCompositePart(CompositePartDto part)
     {
-        var optional = bool.TryParse(Scalar(part, "optional"), out var parsedOptional) && parsedOptional;
-        var attribute = Scalar(part, "attribute");
-        if (!string.IsNullOrWhiteSpace(attribute))
+        if (!string.IsNullOrWhiteSpace(part.Attribute))
         {
-            return new CompositePart(new DiscriminatorKey.Field(attribute), optional);
+            return new CompositePart(new DiscriminatorKey.Field(part.Attribute), part.Optional);
         }
 
-        var path = Scalar(part, "path");
-        if (!string.IsNullOrWhiteSpace(path))
+        if (!string.IsNullOrWhiteSpace(part.Path))
         {
-            return new CompositePart(new DiscriminatorKey.PathValue(path), optional);
+            return new CompositePart(new DiscriminatorKey.PathValue(part.Path), part.Optional);
         }
 
-        var element = Scalar(part, "element");
-        if (!string.IsNullOrWhiteSpace(element))
+        if (!string.IsNullOrWhiteSpace(part.Element))
         {
-            return new CompositePart(new DiscriminatorKey.PathValue(element), optional);
+            return new CompositePart(new DiscriminatorKey.PathValue(part.Element), part.Optional);
         }
 
         throw new InvalidOperationException("Composite discriminator part must define attribute, element, or path.");
     }
 
-    private static IReadOnlyList<PathSelector> ParseOrderedChildren(YamlMappingNode node)
+    private static IReadOnlyList<PathSelector> ConvertOrderedChildren(IReadOnlyList<object>? orderedChildren)
     {
         var selectors = new List<PathSelector>();
-        ParseOrderedChildren(node, selectors);
+        AddOrderedChildren(orderedChildren, selectors);
         return selectors;
     }
 
-    private static void ParseOrderedChildren(YamlMappingNode node, List<PathSelector> selectors)
+    private static void AddOrderedChildren(IReadOnlyList<object>? orderedChildren, List<PathSelector> selectors)
     {
-        var orderedChildren = Sequence(node, "orderedChildren");
         if (orderedChildren is null)
         {
             return;
@@ -289,17 +210,15 @@ public static class AstSchemaYamlLoader
 
         foreach (var item in orderedChildren)
         {
-            if (item is YamlScalarNode scalar && !string.IsNullOrWhiteSpace(scalar.Value))
+            if (item is string path && !string.IsNullOrWhiteSpace(path))
             {
-                selectors.Add(ParsePathSelector(scalar.Value));
+                selectors.Add(ParsePathSelector(path));
+                continue;
             }
-            else if (item is YamlMappingNode mapping)
+
+            if (TryReadString(item, "regex", out var regex) && !string.IsNullOrWhiteSpace(regex))
             {
-                var regex = Scalar(mapping, "regex");
-                if (!string.IsNullOrWhiteSpace(regex))
-                {
-                    selectors.Add(PathSelector.Regex(regex));
-                }
+                selectors.Add(PathSelector.Regex(regex));
             }
         }
     }
@@ -317,135 +236,244 @@ public static class AstSchemaYamlLoader
         return PathSelector.Exact(value);
     }
 
-    private static IReadOnlyList<ContentRule> ParseContentRules(YamlMappingNode node)
+    private static IReadOnlyList<ContentRule> ConvertContentRules(IReadOnlyList<ContentRuleDto>? content)
     {
-        var rules = new List<ContentRule>();
-        var content = Sequence(node, "content");
         if (content is null)
         {
-            return rules;
+            return Array.Empty<ContentRule>();
         }
 
-        foreach (var item in content.OfType<YamlMappingNode>())
-        {
-            var path = Scalar(item, "path");
-            var format = Scalar(item, "format");
-            if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(format))
-            {
-                continue;
-            }
-
-            rules.Add(new ContentRule(
-                ParsePathSelector(path),
-                format,
-                Scalar(item, "schemaRef"),
-                Scalar(item, "note")));
-        }
-
-        return rules;
+        return content
+            .Where(rule => !string.IsNullOrWhiteSpace(rule.Path) && !string.IsNullOrWhiteSpace(rule.Format))
+            .Select(rule => new ContentRule(
+                ParsePathSelector(rule.Path!),
+                rule.Format!,
+                rule.SchemaRef,
+                rule.Note))
+            .ToArray();
     }
 
-    private static IReadOnlyList<CompanionRule> ParseCompanionRules(YamlMappingNode node)
+    private static IReadOnlyList<CompanionRule> ConvertCompanionRules(IReadOnlyList<CompanionRuleDto>? companions)
     {
-        var rules = new List<CompanionRule>();
-        var companions = Sequence(node, "companions");
         if (companions is null)
         {
-            return rules;
+            return Array.Empty<CompanionRule>();
         }
 
-        foreach (var companion in companions.OfType<YamlMappingNode>())
+        return companions.Select(companion => new CompanionRule(
+            companion.Path,
+            companion.PathTemplate,
+            companion.PathFrom,
+            companion.PathFromMatchedPath is null
+                ? null
+                : new PathFromMatchedPathRule(
+                    companion.PathFromMatchedPath.RemoveSuffix,
+                    companion.PathFromMatchedPath.Regex,
+                    companion.PathFromMatchedPath.Replace),
+            companion.Format,
+            companion.FormatFrom is null
+                ? null
+                : new FormatFromRule(
+                    companion.FormatFrom.Path ?? throw new InvalidOperationException("formatFrom requires path."),
+                    ConvertFormatMap(companion.FormatFrom.Enum)),
+            companion.DefaultFormat,
+            companion.SchemaRef,
+            companion.Note)).ToArray();
+    }
+
+    private static IReadOnlyList<FormatMapEntry> ConvertFormatMap(IDictionary<object, string>? enumMap)
+    {
+        if (enumMap is null)
         {
-            rules.Add(new CompanionRule(
-                Scalar(companion, "path"),
-                Scalar(companion, "pathTemplate"),
-                Scalar(companion, "pathFrom"),
-                ParsePathFromMatchedPath(companion),
-                Scalar(companion, "format"),
-                ParseFormatFrom(companion),
-                Scalar(companion, "defaultFormat"),
-                Scalar(companion, "schemaRef"),
-                Scalar(companion, "note")));
+            return Array.Empty<FormatMapEntry>();
         }
 
-        return rules;
+        return enumMap.Select(pair => new FormatMapEntry(ConvertSchemaScalarValue(pair.Key), pair.Value)).ToArray();
     }
 
-    private static PathFromMatchedPathRule? ParsePathFromMatchedPath(YamlMappingNode node)
+    private static SchemaScalarValue ConvertSchemaScalarValue(object value)
     {
-        var rule = Mapping(node, "pathFromMatchedPath");
-        if (rule is null)
+        return value switch
         {
-            return null;
-        }
-
-        return new PathFromMatchedPathRule(
-            Scalar(rule, "removeSuffix"),
-            Scalar(rule, "regex"),
-            Scalar(rule, "replace"));
+            byte integer => new SchemaScalarValue.Integer(integer),
+            short integer => new SchemaScalarValue.Integer(integer),
+            int integer => new SchemaScalarValue.Integer(integer),
+            long integer => new SchemaScalarValue.Integer(integer),
+            sbyte integer => new SchemaScalarValue.Integer(integer),
+            ushort integer => new SchemaScalarValue.Integer(integer),
+            uint integer => new SchemaScalarValue.Integer(integer),
+            ulong integer when integer <= long.MaxValue => new SchemaScalarValue.Integer((long)integer),
+            string text when long.TryParse(text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var integer) =>
+                new SchemaScalarValue.Integer(integer),
+            string text => new SchemaScalarValue.String(text),
+            _ => new SchemaScalarValue.String(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty)
+        };
     }
 
-    private static FormatFromRule? ParseFormatFrom(YamlMappingNode node)
+    private static IReadOnlyDictionary<string, string> ToOrdinalIgnoreCaseDictionary(IDictionary<string, string>? values)
     {
-        var formatFrom = Mapping(node, "formatFrom");
-        if (formatFrom is null)
+        return values is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : values.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static bool TryReadString(object value, string key, out string? text)
+    {
+        if (value is IDictionary<object, object> objectMap &&
+            objectMap.TryGetValue(key, out var objectValue))
         {
-            return null;
+            text = Convert.ToString(objectValue, System.Globalization.CultureInfo.InvariantCulture);
+            return true;
         }
 
-        var path = Scalar(formatFrom, "path") ?? throw new InvalidOperationException("formatFrom requires path.");
-        var enumMap = Mapping(formatFrom, "enum")?.Children.Select(pair =>
-            new FormatMapEntry(ParseSchemaScalarValue(pair.Key), ScalarValue(pair.Value))).ToArray() ??
-            Array.Empty<FormatMapEntry>();
-
-        return new FormatFromRule(path, enumMap);
-    }
-
-    private static SchemaScalarValue ParseSchemaScalarValue(YamlNode node)
-    {
-        if (node is not YamlScalarNode scalar)
+        if (value is IDictionary<string, object> stringMap &&
+            stringMap.TryGetValue(key, out var stringValue))
         {
-            throw new InvalidOperationException("Expected scalar YAML enum key.");
+            text = Convert.ToString(stringValue, System.Globalization.CultureInfo.InvariantCulture);
+            return true;
         }
 
-        var value = scalar.Value ?? string.Empty;
-        return scalar.Style == ScalarStyle.Plain &&
-            long.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var integer)
-            ? new SchemaScalarValue.Integer(integer)
-            : new SchemaScalarValue.String(value);
+        text = null;
+        return false;
     }
 
-    private static string ScalarValue(YamlNode node)
+    private sealed record SchemaDocumentDto
     {
-        return node is YamlScalarNode scalar
-            ? scalar.Value ?? string.Empty
-            : throw new InvalidOperationException("Expected scalar YAML value.");
+        public string? SchemaVersion { get; init; }
+
+        public string? Name { get; init; }
+
+        public DefaultsDto? Defaults { get; init; }
+
+        public Dictionary<string, string>? FormatAliases { get; init; }
+
+        public Dictionary<string, NestedSchemaDto>? NestedSchemas { get; init; }
+
+        public List<FileSchemaRuleDto>? Files { get; init; }
     }
 
-    private static YamlMappingNode? Mapping(YamlMappingNode? node, string key)
+    private sealed record DefaultsDto
     {
-        return node is not null &&
-            node.Children.TryGetValue(new YamlScalarNode(key), out var value) &&
-            value is YamlMappingNode mapping
-            ? mapping
-            : null;
+        public XmlDefaultsDto? Xml { get; init; }
     }
 
-    private static YamlSequenceNode? Sequence(YamlMappingNode? node, string key)
+    private sealed record XmlDefaultsDto
     {
-        return node is not null &&
-            node.Children.TryGetValue(new YamlScalarNode(key), out var value) &&
-            value is YamlSequenceNode sequence
-            ? sequence
-            : null;
+        public List<XmlDiscriminatorDto>? Discriminators { get; init; }
     }
 
-    private static string? Scalar(YamlMappingNode? node, string key)
+    private sealed record XmlDiscriminatorDto
     {
-        return node is not null &&
-            node.Children.TryGetValue(new YamlScalarNode(key), out var value) &&
-            value is YamlScalarNode scalar
-            ? scalar.Value
-            : null;
+        public string? Attribute { get; init; }
+    }
+
+    private sealed record NestedSchemaDto
+    {
+        public SchemaNodeDto? Root { get; init; }
+    }
+
+    private sealed record SchemaNodeDto
+    {
+        public Dictionary<string, ContentRuleDto>? Properties { get; init; }
+
+        public List<object>? OrderedChildren { get; init; }
+
+        public SchemaNodeDto? Item { get; init; }
+    }
+
+    private sealed record FileSchemaRuleDto
+    {
+        public string? Match { get; init; }
+
+        public string? Root { get; init; }
+
+        public List<DiscriminatorRuleDto>? Discriminators { get; init; }
+
+        public List<object>? OrderedChildren { get; init; }
+
+        public List<ContentRuleDto>? Content { get; init; }
+
+        public List<CompanionRuleDto>? Companions { get; init; }
+    }
+
+    private sealed record DiscriminatorRuleDto
+    {
+        public string? Path { get; init; }
+
+        public DiscriminatorKeyDto? Key { get; init; }
+
+        public string? Note { get; init; }
+    }
+
+    private sealed record DiscriminatorKeyDto
+    {
+        public string? Attribute { get; init; }
+
+        public string? Element { get; init; }
+
+        public bool? Text { get; init; }
+
+        public string? Structural { get; init; }
+
+        public List<CompositePartDto>? Composite { get; init; }
+    }
+
+    private sealed record CompositePartDto
+    {
+        public string? Attribute { get; init; }
+
+        public string? Path { get; init; }
+
+        public string? Element { get; init; }
+
+        public bool Optional { get; init; }
+    }
+
+    private sealed record ContentRuleDto
+    {
+        public string? Path { get; init; }
+
+        public string? Format { get; init; }
+
+        public string? SchemaRef { get; init; }
+
+        public string? Note { get; init; }
+    }
+
+    private sealed record CompanionRuleDto
+    {
+        public string? Path { get; init; }
+
+        public string? PathTemplate { get; init; }
+
+        public string? PathFrom { get; init; }
+
+        public PathFromMatchedPathRuleDto? PathFromMatchedPath { get; init; }
+
+        public string? Format { get; init; }
+
+        public FormatFromRuleDto? FormatFrom { get; init; }
+
+        public string? DefaultFormat { get; init; }
+
+        public string? SchemaRef { get; init; }
+
+        public string? Note { get; init; }
+    }
+
+    private sealed record PathFromMatchedPathRuleDto
+    {
+        public string? RemoveSuffix { get; init; }
+
+        public string? Regex { get; init; }
+
+        public string? Replace { get; init; }
+    }
+
+    private sealed record FormatFromRuleDto
+    {
+        public string? Path { get; init; }
+
+        public Dictionary<object, string>? Enum { get; init; }
     }
 }
