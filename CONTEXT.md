@@ -10,6 +10,7 @@ Current state:
 
 - The repository targets .NET 11.
 - The core AST merge model and schema loader are implemented.
+- Consumer usage is documented in `README.md`; deeper extension notes live in `docs/architecture.md`.
 - XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid, mapped-text fallback, CSS, image placeholder, `xap`, and raw adapters exist. Closely related external adapters are grouped into format-family projects under `src/Formats`.
 - The Git merge-driver command can merge supported files with an optional schema.
 - Mapped format composition exists for formats such as `liquid:xml`.
