@@ -555,32 +555,36 @@ public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
 
                 if (_inTag)
                 {
-                    if (character is '"' or '\'')
+                    switch (character)
                     {
-                        _quote = character;
-                        _expectingAttributeValue = false;
-                    }
-                    else if (character == '>')
-                    {
-                        _inTag = false;
-                        _attributeName.Clear();
-                        _currentFieldName = null;
-                        _expectingAttributeValue = false;
-                    }
-                    else if (character == '=')
-                    {
-                        _currentFieldName = _attributeName.ToString();
-                        _attributeName.Clear();
-                        _expectingAttributeValue = true;
-                    }
-                    else if (char.IsWhiteSpace(character) || character == '/')
-                    {
-                        if (!_expectingAttributeValue)
-                            _attributeName.Clear();
+                        case '"' or '\'':
+                            _quote = character;
+                            _expectingAttributeValue = false;
+                            break;
 
+                        case '>':
+                            _inTag = false;
+                            _attributeName.Clear();
+                            _currentFieldName = null;
+                            _expectingAttributeValue = false;
+                            break;
+
+                        case '=':
+                            _currentFieldName = _attributeName.ToString();
+                            _attributeName.Clear();
+                            _expectingAttributeValue = true;
+                            break;
+
+                        case var separator when separator == '/' || char.IsWhiteSpace(separator):
+                            if (!_expectingAttributeValue)
+                                _attributeName.Clear();
+                            break;
+
+                        default:
+                            if (!_expectingAttributeValue)
+                                _attributeName.Append(character);
+                            break;
                     }
-                    else if (!_expectingAttributeValue)
-                        _attributeName.Append(character);
 
                     continue;
                 }
