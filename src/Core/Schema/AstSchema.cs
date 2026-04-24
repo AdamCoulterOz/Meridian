@@ -173,9 +173,7 @@ public sealed record FormatMapEntry(SchemaScalarValue Value, string Format);
 [JsonDerivedType(typeof(SchemaScalarValue.Integer), "integer")]
 public abstract record SchemaScalarValue
 {
-    private SchemaScalarValue()
-    {
-    }
+    private SchemaScalarValue() { }
 
     public abstract bool Matches(string rawValue);
 
