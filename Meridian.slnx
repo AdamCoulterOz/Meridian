@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Meridian.Core/Meridian.Core.csproj" />
+    <Project Path="src/Meridian.Formats.Structured/Meridian.Formats.Structured.csproj" />
+    <Project Path="src/Meridian.Formats.Xml/Meridian.Formats.Xml.csproj" />
+    <Project Path="src/Meridian.Tools.GitMerge/Meridian.Tools.GitMerge.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Meridian.Tests/Meridian.Tests.csproj" />
+  </Folder>
+</Solution>
