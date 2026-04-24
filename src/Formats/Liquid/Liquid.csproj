@@ -1,11 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Core\Meridian.Core.csproj" />
+    <ProjectReference Include="../../Core/Core.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
+    <AssemblyName>Meridian.Formats.Liquid</AssemblyName>
+    <RootNamespace>Meridian.Formats.Liquid</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

@@ -1,11 +1,11 @@
 <Solution>
-  <Project Path="src/Core/Meridian.Core.csproj" />
-  <Project Path="src/Tools/GitMerge/Meridian.Tools.GitMerge.csproj" />
-  <Project Path="src/Formats/Data/Meridian.Formats.Data.csproj" />
-  <Project Path="src/Formats/Images/Meridian.Formats.Images.csproj" />
-  <Project Path="src/Formats/Liquid/Meridian.Formats.Liquid.csproj" />
-  <Project Path="src/Formats/TemplateText/Meridian.Formats.TemplateText.csproj" />
-  <Project Path="src/Formats/Web/Meridian.Formats.Web.csproj" />
-  <Project Path="src/Formats/Xap/Meridian.Formats.Xap.csproj" />
-  <Project Path="tests/Tests/Meridian.Tests.csproj" />
+  <Project Path="src/Core/Core.csproj" />
+  <Project Path="src/Tools/GitMerge/GitMerge.csproj" />
+  <Project Path="src/Formats/Data/Data.csproj" />
+  <Project Path="src/Formats/Images/Images.csproj" />
+  <Project Path="src/Formats/Liquid/Liquid.csproj" />
+  <Project Path="src/Formats/TemplateText/TemplateText.csproj" />
+  <Project Path="src/Formats/Web/Web.csproj" />
+  <Project Path="src/Formats/Xap/Xap.csproj" />
+  <Project Path="tests/Tests/Tests.csproj" />
 </Solution>
