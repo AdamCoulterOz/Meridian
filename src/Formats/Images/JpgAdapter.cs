@@ -5,7 +5,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Images;
 
-public sealed class JpgAdapter : IAstFormatAdapter
+public sealed class JpgAdapter : IFormatAdapter
 {
     public string Format => "image:jpg";
 

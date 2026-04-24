@@ -1,6 +1,6 @@
 using Meridian.Core.Ast;
+using Meridian.Core.Formats.Mapped;
 using Meridian.Core.Schema;
-using Meridian.Core.Mapped;
 
 namespace Meridian.Core.Identity;
 

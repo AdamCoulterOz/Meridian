@@ -7,7 +7,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Web;
 
-public sealed class JavaScriptAdapter : IAstFormatAdapter
+public sealed class JavaScriptAdapter : IFormatAdapter
 {
     public string Format => "javascript";
 

@@ -3,13 +3,13 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Core.Formats;
 
-public sealed class AstFormatRegistry : IAstFormatRegistry
+public sealed class FormatRegistry : IFormatRegistry
 {
-    private readonly Dictionary<string, IAstFormatAdapter> _adapters;
+    private readonly Dictionary<string, IFormatAdapter> _adapters;
     private readonly Dictionary<string, string> _aliases;
 
-    public AstFormatRegistry(
-        IEnumerable<IAstFormatAdapter> adapters,
+    public FormatRegistry(
+        IEnumerable<IFormatAdapter> adapters,
         IReadOnlyDictionary<string, string>? aliases = null)
     {
         ArgumentNullException.ThrowIfNull(adapters);

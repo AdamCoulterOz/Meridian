@@ -5,7 +5,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Images;
 
-public sealed class GifAdapter : IAstFormatAdapter
+public sealed class GifAdapter : IFormatAdapter
 {
     public string Format => "image:gif";
 

@@ -5,7 +5,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Images;
 
-public sealed class PngAdapter : IAstFormatAdapter
+public sealed class PngAdapter : IFormatAdapter
 {
     public string Format => "image:png";
 

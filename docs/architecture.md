@@ -27,8 +27,9 @@ Git still supplies the normal three inputs: base, ours, and theirs. Meridian cha
 - identity assignment and ambiguity diagnostics;
 - three-way merge mechanics;
 - conflict marker construction;
-- nested content expansion/collapse;
-- mapped format composition for template-like sources.
+- generic format registry and adapter contracts;
+- nested content expansion/collapse under `Core/Formats/Nested`;
+- mapped format composition for template-like sources under `Core/Formats/Mapped`.
 
 It should not know about product-specific formats such as Power Platform solution files. Those belong in schemas or consumer tools.
 
@@ -144,4 +145,3 @@ Meridian prefers:
 - Stronger semantic keys for mapped template tokens.
 - Byte-safe binary handling.
 - Package adapters for composite formats such as `docx` and `xlsx`.
-

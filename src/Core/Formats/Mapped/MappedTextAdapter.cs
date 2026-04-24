@@ -3,9 +3,9 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Core.Mapped;
+namespace Meridian.Core.Formats.Mapped;
 
-public sealed class MappedTextAdapter : IAstFormatAdapter
+public sealed class MappedTextAdapter : IFormatAdapter
 {
     public string Format => "mapped-text";
 

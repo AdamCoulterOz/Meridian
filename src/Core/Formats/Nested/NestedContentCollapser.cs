@@ -1,10 +1,11 @@
 using Meridian.Core.Ast;
+using Meridian.Core.Formats;
 
-namespace Meridian.Core.Formats;
+namespace Meridian.Core.Formats.Nested;
 
 public sealed class NestedContentCollapser
 {
-    public static AstDocument Collapse(AstDocument document, IAstFormatRegistry registry)
+    public static AstDocument Collapse(AstDocument document, IFormatRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(registry);
@@ -12,7 +13,7 @@ public sealed class NestedContentCollapser
         return document with { Root = CollapseNode(document.Root, registry) };
     }
 
-    private static AstNode CollapseNode(AstNode node, IAstFormatRegistry registry)
+    private static AstNode CollapseNode(AstNode node, IFormatRegistry registry)
     {
         var collapsedChildren = node.Children
             .Select(child => CollapseNode(child, registry))

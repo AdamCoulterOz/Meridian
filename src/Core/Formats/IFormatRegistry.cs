@@ -3,7 +3,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Core.Formats;
 
-public interface IAstFormatRegistry
+public interface IFormatRegistry
 {
     bool TryResolveAdapterFormat(string format, out string adapterFormat);
 

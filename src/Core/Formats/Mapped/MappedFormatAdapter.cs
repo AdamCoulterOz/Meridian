@@ -5,9 +5,9 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Core.Mapped;
+namespace Meridian.Core.Formats.Mapped;
 
-public sealed class MappedFormatAdapter : IAstFormatAdapter
+public sealed class MappedFormatAdapter : IFormatAdapter
 {
     private readonly IMappedSourceAdapter _mappedSource;
     private readonly IMappedHost _host;

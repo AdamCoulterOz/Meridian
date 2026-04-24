@@ -5,7 +5,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Web;
 
-public sealed class CssAdapter : IAstFormatAdapter
+public sealed class CssAdapter : IFormatAdapter
 {
     public string Format => "css";
 

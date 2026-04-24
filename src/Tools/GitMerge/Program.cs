@@ -65,7 +65,7 @@ static Dictionary<string, string> ParseOptions(IReadOnlyList<string> values)
     return result;
 }
 
-static IAstFormatAdapter? CreateAdapter(string repoPath)
+static IFormatAdapter? CreateAdapter(string repoPath)
 {
     var extension = Path.GetExtension(repoPath).ToLowerInvariant();
     return extension switch

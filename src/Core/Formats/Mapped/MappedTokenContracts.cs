@@ -2,7 +2,7 @@ using Meridian.Core.Ast;
 using Meridian.Core.Formats;
 using Meridian.Core.Schema;
 
-namespace Meridian.Core.Mapped;
+namespace Meridian.Core.Formats.Mapped;
 
 public enum MappedTokenContext
 {
@@ -34,7 +34,7 @@ public static class MappedTokenFields
     public const string MarkerSuffix = "__";
 }
 
-public interface IMappedSourceAdapter : IAstFormatAdapter
+public interface IMappedSourceAdapter : IFormatAdapter
 {
     string SourceName { get; }
     bool IsLiteralNode(AstNode node);

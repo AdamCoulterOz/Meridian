@@ -4,7 +4,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Core.Formats;
 
-public sealed class RawAdapter : IAstFormatAdapter
+public sealed class RawAdapter : IFormatAdapter
 {
     public string Format => "raw";
 

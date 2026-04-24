@@ -19,7 +19,9 @@ Current state:
 
 ## Architecture And Structure
 
-- `src/Core` contains AST contracts, schema model/loading, identity assignment, nested content expansion/collapse, three-way merge mechanics, raw opaque handling, mapped-text fallback, mapped format composition, mapped token contracts, and conflict marker helpers.
+- `src/Core` contains AST contracts, schema model/loading, identity assignment, three-way merge mechanics, conflict marker helpers, and generic format infrastructure.
+- `src/Core/Formats/Nested` contains nested content expansion/collapse.
+- `src/Core/Formats/Mapped` contains mapped-text fallback, mapped format composition, and mapped token contracts.
 - `src/Formats/Data` contains XML, JSON, JSON5, and YAML adapters.
 - `src/Formats/Web` contains HTML fragment, CSS, and JavaScript adapters.
 - `src/Formats/Images` contains image placeholder adapters for PNG, JPEG, GIF, and ICO payloads.

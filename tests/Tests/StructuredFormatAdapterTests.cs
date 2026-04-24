@@ -1,6 +1,7 @@
 using Meridian.Core.Formats;
+using Meridian.Core.Formats.Mapped;
+using Meridian.Core.Formats.Nested;
 using Meridian.Core.Schema;
-using Meridian.Core.Mapped;
 using Meridian.Formats.Data;
 using Meridian.Formats.Images;
 using Meridian.Formats.Liquid;
@@ -71,7 +72,7 @@ actions:
     [Fact]
     public void TextAdaptersRoundTripOpaqueContent()
     {
-        IAstFormatAdapter[] adapters =
+        IFormatAdapter[] adapters =
         [
             new MappedTextAdapter(),
             new RawAdapter(),
@@ -236,7 +237,7 @@ actions:
             }
         };
         var xml = new XmlAdapter();
-        var registry = new AstFormatRegistry(
+        var registry = new FormatRegistry(
         [
             xml,
             new JsonAdapter(),
@@ -258,7 +259,7 @@ actions:
     [Fact]
     public void RegistryExposesAllStructuredFormats()
     {
-        var registry = new AstFormatRegistry(
+        var registry = new FormatRegistry(
         [
             new XmlAdapter(),
             new JsonAdapter(),

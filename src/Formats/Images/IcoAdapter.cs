@@ -5,7 +5,7 @@ using Meridian.Core.Schema;
 
 namespace Meridian.Formats.Images;
 
-public sealed class IcoAdapter : IAstFormatAdapter
+public sealed class IcoAdapter : IFormatAdapter
 {
     public string Format => "image:ico";
 

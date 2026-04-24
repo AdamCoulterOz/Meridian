@@ -1,11 +1,12 @@
 using Meridian.Core.Ast;
+using Meridian.Core.Formats;
 using Meridian.Core.Schema;
 
-namespace Meridian.Core.Formats;
+namespace Meridian.Core.Formats.Nested;
 
 public sealed class NestedContentExpander
 {
-    public static AstDocument Expand(AstDocument document, AstSchema schema, IAstFormatRegistry registry)
+    public static AstDocument Expand(AstDocument document, AstSchema schema, IFormatRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(schema);
@@ -17,7 +18,7 @@ public sealed class NestedContentExpander
     private static AstDocument Expand(
         AstDocument document,
         AstSchema schema,
-        IAstFormatRegistry registry,
+        IFormatRegistry registry,
         IReadOnlyDictionary<string, AstSchema> schemaCatalog) => document with
         {
             Root = ExpandNode(document.Root, schema, registry, schemaCatalog, document.Root.Path ?? document.Root.Kind)
@@ -26,7 +27,7 @@ public sealed class NestedContentExpander
     private static AstNode ExpandNode(
         AstNode node,
         AstSchema schema,
-        IAstFormatRegistry registry,
+        IFormatRegistry registry,
         IReadOnlyDictionary<string, AstSchema> schemaCatalog,
         string path)
     {

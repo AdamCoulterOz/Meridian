@@ -4,13 +4,13 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Meridian.Core.Ast;
 using Meridian.Core.Formats;
+using Meridian.Core.Formats.Mapped;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Core.Mapped;
 
 namespace Meridian.Formats.Data;
 
-public sealed class XmlAdapter : IAstFormatAdapter, IMappedHost
+public sealed class XmlAdapter : IFormatAdapter, IMappedHost
 {
     private const string TokenElementName = "__meridian_mapped";
     private const string FieldOrderField = "$fieldOrder";

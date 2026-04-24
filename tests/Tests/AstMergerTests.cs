@@ -1,9 +1,10 @@
 using Meridian.Core.Ast;
 using Meridian.Core.Formats;
+using Meridian.Core.Formats.Mapped;
+using Meridian.Core.Formats.Nested;
 using Meridian.Core.Identity;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Core.Mapped;
 using Meridian.Formats.Data;
 
 namespace Meridian.Tests;
@@ -218,7 +219,7 @@ public sealed class AstMergerTests
             ContentRules = [new ContentRule(PathSelector.Exact("outer/payload"), "xml")]
         };
         var document = _xml.Parse("""<outer><payload>&lt;inner id="1" /&gt;</payload></outer>""", null, schema);
-        var registry = new AstFormatRegistry([_xml]);
+        var registry = new FormatRegistry([_xml]);
 
         var expanded = NestedContentExpander.Expand(document, schema, registry);
 
@@ -253,7 +254,7 @@ public sealed class AstMergerTests
             """<outer><payload>&lt;inner&gt;&lt;payload&gt;&amp;lt;leaf id="1" /&amp;gt;&lt;/payload&gt;&lt;/inner&gt;</payload></outer>""",
             null,
             schema);
-        var registry = new AstFormatRegistry([_xml]);
+        var registry = new FormatRegistry([_xml]);
 
         var expanded = NestedContentExpander.Expand(document, schema, registry);
 
@@ -276,7 +277,7 @@ public sealed class AstMergerTests
             """<outer><payload>&lt;inner id="1"&gt;Tom &amp;amp; Jerry&lt;/inner&gt;</payload></outer>""",
             null,
             schema);
-        var registry = new AstFormatRegistry([_xml]);
+        var registry = new FormatRegistry([_xml]);
         var expanded = NestedContentExpander.Expand(document, schema, registry);
 
         var collapsed = NestedContentCollapser.Collapse(expanded, registry);
@@ -312,7 +313,7 @@ public sealed class AstMergerTests
                                 children: [new AstNode("inner", conflict: conflict)])
                         ])
                 ]));
-        var registry = new AstFormatRegistry([_xml]);
+        var registry = new FormatRegistry([_xml]);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
             NestedContentCollapser.Collapse(document, registry));
