@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace Meridian.Core.Schema;
@@ -183,6 +184,9 @@ public sealed record FormatFromRule(string Path, IReadOnlyList<FormatMapEntry> E
 
 public sealed record FormatMapEntry(SchemaScalarValue Value, string Format);
 
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(SchemaScalarValue.String), "string")]
+[JsonDerivedType(typeof(SchemaScalarValue.Integer), "integer")]
 public abstract record SchemaScalarValue
 {
     private SchemaScalarValue()
@@ -226,6 +230,12 @@ public sealed record PathSelector(string Pattern, bool IsRegex = false)
     public static PathSelector Regex(string pattern) => new(pattern, IsRegex: true);
 }
 
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(DiscriminatorKey.Field), "field")]
+[JsonDerivedType(typeof(DiscriminatorKey.PathValue), "path")]
+[JsonDerivedType(typeof(DiscriminatorKey.Composite), "composite")]
+[JsonDerivedType(typeof(DiscriminatorKey.Text), "text")]
+[JsonDerivedType(typeof(DiscriminatorKey.Structural), "structural")]
 public abstract record DiscriminatorKey
 {
     private DiscriminatorKey()

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Meridian.Core.Identity;
 using Meridian.Core.Schema;
 using Meridian.Formats.Data;
@@ -78,6 +79,46 @@ files:
 
         Assert.Equal("WebResources/demo", companion.ResolvePath(metadata.Root));
         Assert.Equal("javascript", companion.ResolveFormat(metadata.Root));
+    }
+
+    [Fact]
+    public void AstSchemaRoundTripsPolymorphicRuntimeSchemaWithStj()
+    {
+        var schema = new AstSchema
+        {
+            IdentityRules = new[]
+            {
+                new NodeIdentityRule(
+                    PathSelector.Exact("root/item"),
+                    new DiscriminatorKey.Composite(new CompositePart[]
+                    {
+                        new(new DiscriminatorKey.Field("id")),
+                        new(new DiscriminatorKey.PathValue("name"), Optional: true)
+                    }))
+            },
+            CompanionRules = new[]
+            {
+                new CompanionRule(
+                    PathTemplate: "items/{root/name}",
+                    FormatFrom: new FormatFromRule(
+                        "root/type",
+                        new[]
+                        {
+                            new FormatMapEntry(new SchemaScalarValue.Integer(3), "javascript")
+                        }))
+            }
+        };
+
+        var json = JsonSerializer.Serialize(schema, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var roundTripped = JsonSerializer.Deserialize<AstSchema>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        Assert.Contains("\"$type\":\"composite\"", json);
+        var composite = Assert.IsType<DiscriminatorKey.Composite>(Assert.Single(roundTripped!.IdentityRules).Key);
+        Assert.IsType<DiscriminatorKey.Field>(composite.Parts[0].Key);
+        Assert.IsType<DiscriminatorKey.PathValue>(composite.Parts[1].Key);
+        var formatEntry = Assert.Single(Assert.Single(roundTripped.CompanionRules).FormatFrom!.Enum);
+        Assert.IsType<SchemaScalarValue.Integer>(formatEntry.Value);
+        Assert.True(formatEntry.Value.Matches("3"));
     }
 
     [Fact]

@@ -1,20 +1,21 @@
+using System.Text.Json;
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace Meridian.Core.Schema;
 
 public static class AstSchemaYamlLoader
 {
-    private static readonly IDeserializer Deserializer = new DeserializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .IgnoreUnmatchedProperties()
-        .Build();
+    private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder().Build();
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public static AstSchemaSet Load(string yaml)
     {
         ArgumentNullException.ThrowIfNull(yaml);
 
-        var document = Deserializer.Deserialize<SchemaDocumentDto>(yaml) ??
+        var yamlObject = YamlDeserializer.Deserialize<object>(yaml) ??
+            throw new InvalidOperationException("Schema YAML must contain a root mapping.");
+        var json = JsonSerializer.Serialize(ToJsonCompatible(yamlObject), JsonOptions);
+        var document = JsonSerializer.Deserialize<SchemaDocumentDto>(json, JsonOptions) ??
             throw new InvalidOperationException("Schema YAML must contain a root mapping.");
 
         var defaults = ConvertDefaults(document.Defaults);
@@ -216,6 +217,13 @@ public static class AstSchemaYamlLoader
                 continue;
             }
 
+            if (item is JsonElement { ValueKind: JsonValueKind.String } scalarPath &&
+                !string.IsNullOrWhiteSpace(scalarPath.GetString()))
+            {
+                selectors.Add(ParsePathSelector(scalarPath.GetString()!));
+                continue;
+            }
+
             if (TryReadString(item, "regex", out var regex) && !string.IsNullOrWhiteSpace(regex))
             {
                 selectors.Add(PathSelector.Regex(regex));
@@ -281,7 +289,7 @@ public static class AstSchemaYamlLoader
             companion.Note)).ToArray();
     }
 
-    private static IReadOnlyList<FormatMapEntry> ConvertFormatMap(IDictionary<object, string>? enumMap)
+    private static IReadOnlyList<FormatMapEntry> ConvertFormatMap(IDictionary<string, string>? enumMap)
     {
         if (enumMap is null)
         {
@@ -319,22 +327,36 @@ public static class AstSchemaYamlLoader
 
     private static bool TryReadString(object value, string key, out string? text)
     {
-        if (value is IDictionary<object, object> objectMap &&
-            objectMap.TryGetValue(key, out var objectValue))
+        if (value is JsonElement element &&
+            element.ValueKind == JsonValueKind.Object &&
+            element.TryGetProperty(key, out var property))
         {
-            text = Convert.ToString(objectValue, System.Globalization.CultureInfo.InvariantCulture);
-            return true;
-        }
-
-        if (value is IDictionary<string, object> stringMap &&
-            stringMap.TryGetValue(key, out var stringValue))
-        {
-            text = Convert.ToString(stringValue, System.Globalization.CultureInfo.InvariantCulture);
+            text = property.ValueKind == JsonValueKind.String
+                ? property.GetString()
+                : property.GetRawText();
             return true;
         }
 
         text = null;
         return false;
+    }
+
+    private static object? ToJsonCompatible(object? value)
+    {
+        return value switch
+        {
+            null => null,
+            IDictionary<object, object> map => map.ToDictionary(
+                pair => Convert.ToString(pair.Key, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+                pair => ToJsonCompatible(pair.Value),
+                StringComparer.Ordinal),
+            IDictionary<string, object> map => map.ToDictionary(
+                pair => pair.Key,
+                pair => ToJsonCompatible(pair.Value),
+                StringComparer.Ordinal),
+            IEnumerable<object> sequence when value is not string => sequence.Select(ToJsonCompatible).ToArray(),
+            _ => value
+        };
     }
 
     private sealed record SchemaDocumentDto
@@ -474,6 +496,6 @@ public static class AstSchemaYamlLoader
     {
         public string? Path { get; init; }
 
-        public Dictionary<object, string>? Enum { get; init; }
+        public Dictionary<string, string>? Enum { get; init; }
     }
 }
