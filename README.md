@@ -8,7 +8,30 @@ Instead of asking Git to guess from lines, Meridian parses each side of a three-
 
 ## Why Use It
 
-Use Meridian when a plain text merge turns independent structured edits into a conflict:
+Use Meridian when a plain text merge turns independent structured edits into a conflict.
+
+Base:
+
+```xml
+<label description="Near Miss" languagecode="1033" />
+<label description="Near Miss" languagecode="3081" />
+```
+
+One side changes the Australian English label:
+
+```xml
+<label description="Near Miss" languagecode="1033" />
+<label description="Incident" languagecode="3081" />
+```
+
+The other side changes the US English label:
+
+```xml
+<label description="Safety Event" languagecode="1033" />
+<label description="Near Miss" languagecode="3081" />
+```
+
+Git may only see adjacent lines changing and produce:
 
 ```xml
 <<<<<<< ours
@@ -20,7 +43,7 @@ Use Meridian when a plain text merge turns independent structured edits into a c
 >>>>>>> theirs
 ```
 
-Those edits are not really competing. One side changed the `3081` label; the other changed the `1033` label. With a schema that says `languagecode` identifies sibling labels, Meridian can merge the structure instead:
+Those edits are not really competing. With a schema that says `languagecode` identifies sibling labels, Meridian can merge the structure instead:
 
 ```xml
 <label description="Safety Event" languagecode="1033" />
