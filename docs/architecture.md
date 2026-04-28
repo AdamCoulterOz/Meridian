@@ -116,7 +116,7 @@ The core model is generic. Power Platform WebResource metadata is one consumer u
 
 ## Git Integration Boundary
 
-`source/Tools/GitMerge` is intentionally thin:
+`source/Tools/GitMerge` is intentionally thin. Its command surface is declared with Spectre.Console.Cli command/settings classes and attribute-based options/arguments:
 
 - parse Git merge-driver arguments;
 - parse Git external-diff arguments;

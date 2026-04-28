@@ -27,7 +27,7 @@ Current state:
 - `source/Formats/Web` contains HTML fragment, CSS, and JavaScript adapters.
 - `source/Formats/Images` contains image placeholder adapters for PNG, JPEG, GIF, and ICO payloads.
 - `source/Formats` also contains dedicated projects for Liquid and `xap`.
-- `source/Tools/GitMerge` contains a thin Git merge-driver and external-diff style command.
+- `source/Tools/GitMerge` contains a thin Git merge-driver and external-diff style command using Spectre.Console.Cli command/settings classes with attribute-based options and arguments.
 - `tests/Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, mapped format composition, Git conflict marker rendering, and file-based generic fixtures.
 
 ## Key Decisions And Invariants
