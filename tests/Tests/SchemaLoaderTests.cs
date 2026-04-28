@@ -63,6 +63,92 @@ files:
     }
 
     [Fact]
+    public void SchemaDiscoveryFindsMeridianSchemasFromRepositoryRootToFileDirectory()
+    {
+        var root = CreateTemporaryRepository();
+        Directory.CreateDirectory(Path.Combine(root, "area", "sub"));
+        File.WriteAllText(Path.Combine(root, "root.meridian.yaml"), "name: root");
+        File.WriteAllText(Path.Combine(root, "area", "area.meridian.yaml"), "name: area");
+        File.WriteAllText(Path.Combine(root, "area", "sub", "z.meridian.yaml"), "name: z");
+        File.WriteAllText(Path.Combine(root, "area", "sub", "a.meridian.yaml"), "name: a");
+
+        var result = MergeSchemaDiscovery.DiscoverForFile("area/sub/file.xml", root);
+
+        Assert.Equal(root, result.RepositoryRoot);
+        Assert.Equal(
+            [
+                "root.meridian.yaml",
+                "area/area.meridian.yaml",
+                "area/sub/a.meridian.yaml",
+                "area/sub/z.meridian.yaml"
+            ],
+            result.SchemaFiles.Select(path => Path.GetRelativePath(root, path).Replace('\\', '/')).ToArray());
+    }
+
+    [Fact]
+    public void SchemaLoaderOverlaysSchemaFilesByRecursiveMappingKey()
+    {
+        var root = CreateTemporaryRepository();
+        var child = Path.Combine(root, "App");
+        Directory.CreateDirectory(child);
+        var rootSchema = Path.Combine(root, "root.meridian.yaml");
+        var childSchema = Path.Combine(child, "app.meridian.yaml");
+        File.WriteAllText(rootSchema, """
+schemaVersion: 0.1
+name: root
+defaults:
+  globalDiscriminatorFields:
+    - id
+  orderedChildren:
+    - root/baseOrder
+nestedSchemas:
+  payload:
+    contentRules:
+      - path: payload/name
+        format: plain
+files:
+  - match: "**/*.xml"
+    discriminators:
+      - path: root/item
+        key:
+          attribute: id
+""");
+        File.WriteAllText(childSchema, """
+schemaVersion: 0.1
+name: child
+defaults:
+  globalDiscriminatorFields:
+    - sku
+nestedSchemas:
+  payload:
+    orderedChildren:
+      - payload/items
+files:
+  - match: App/*.xml
+    discriminators:
+      - path: root/item
+        key:
+          attribute: sku
+""");
+
+        var schemaSet = MergeSchemaYamlLoader.LoadFiles([rootSchema, childSchema]);
+        var schema = schemaSet.CompileForFile("App/product.xml");
+
+        Assert.Equal("child", schemaSet.Name);
+        Assert.Equal(["sku"], schema.GlobalDiscriminatorFields);
+        Assert.Equal("root/baseOrder", Assert.Single(schema.OrderedChildren).Pattern);
+
+        var nested = schema.NestedSchemas["payload"];
+        Assert.Equal("payload/name", Assert.Single(nested.ContentRules).Path.Pattern);
+        Assert.Equal("payload/items", Assert.Single(nested.OrderedChildren).Pattern);
+
+        var identityRule = Assert.Single(schema.IdentityRules);
+        Assert.Equal("root/item", identityRule.Path.Pattern);
+        var field = Assert.IsType<DiscriminatorKey.Field>(identityRule.Key);
+        Assert.Equal("sku", field.Name);
+    }
+
+    [Fact]
     public void CompanionPathFromMatchedPathFailsWhenMetadataTemplateDisagrees()
     {
         var schemaSet = MergeSchemaYamlLoader.Load("""
@@ -221,5 +307,13 @@ files:
         Assert.False(result.HasErrors);
         Assert.Contains("Dependent/@schemaName=contact", result.Document.Root.Children[0].Children[0].Children[0].Identity);
         Assert.Contains("Dependent/@schemaName=incident", result.Document.Root.Children[0].Children[0].Children[1].Identity);
+    }
+
+    private static string CreateTemporaryRepository()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "meridian-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        return root;
     }
 }

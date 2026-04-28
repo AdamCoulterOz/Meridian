@@ -2,9 +2,9 @@
 
 ## Project Purpose And Current State
 
-Meridian is a general-purpose structure-aware three-way merge toolkit.
+Meridian is a general-purpose structure-aware three-way merge and two-way compare toolkit.
 
-It provides a format-agnostic merge core, pluggable format adapters, schema-driven node identity rules, nested content traversal, and a Git merge-driver command. Domain-specific repositories, such as PowerSource, should use Meridian by supplying schemas and workflow tooling rather than embedding domain rules in Meridian itself.
+It provides a format-agnostic merge/diff core, pluggable format adapters, schema-driven node identity rules, nested content traversal, and a Git integration command. Domain-specific repositories, such as PowerSource, should use Meridian by supplying schemas and workflow tooling rather than embedding domain rules in Meridian itself.
 
 Current state:
 
@@ -13,20 +13,21 @@ Current state:
 - Consumer usage is documented in `README.md`; deeper extension notes live in `docs/architecture.md`.
 - The Meridian schema authoring contract is documented as JSON Schema in `schemas/meridian.schema.json`, including descriptions for editor and LLM-assisted generation.
 - XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid, mapped-text fallback, CSS, image placeholder, `xap`, and raw adapters exist. Closely related external adapters are grouped into format-family projects under `source/Formats`.
-- The Git merge-driver command can merge supported files with an optional schema.
+- The Git integration command can merge supported files and produce two-way semantic diffs with an optional schema.
+- The Git integration command can automatically discover `*.meridian.yaml` schema files from the target file directory up to the Git repository root.
 - Mapped format composition exists for formats such as `liquid:xml`.
 - A generic catalog fixture exists to exercise schema-driven XML identity and clean three-way merge behavior without domain-specific assumptions.
 
 ## Architecture And Structure
 
-- `source/Core` contains document tree contracts, schema model/loading, identity assignment, three-way merge mechanics, conflict marker helpers, and generic format infrastructure.
+- `source/Core` contains document tree contracts, schema model/loading, identity assignment, three-way merge mechanics, structural diff mechanics, conflict marker helpers, and generic format infrastructure.
 - `source/Core/Formats/Nested` contains nested content expansion/collapse.
 - `source/Core/Formats/Mapped` contains mapped-text fallback, mapped format composition, and mapped token contracts.
 - `source/Formats/Data` contains XML, JSON, JSON5, and YAML adapters.
 - `source/Formats/Web` contains HTML fragment, CSS, and JavaScript adapters.
 - `source/Formats/Images` contains image placeholder adapters for PNG, JPEG, GIF, and ICO payloads.
 - `source/Formats` also contains dedicated projects for Liquid and `xap`.
-- `source/Tools/GitMerge` contains a thin Git merge-driver style command.
+- `source/Tools/GitMerge` contains a thin Git merge-driver and external-diff style command.
 - `tests/Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, mapped format composition, Git conflict marker rendering, and file-based generic fixtures.
 
 ## Key Decisions And Invariants
@@ -50,6 +51,8 @@ Current state:
 - Source-preserving output matters. Clean merges should avoid rewriting formatting, declarations, namespace declarations, attribute order, and sibling order unless an explicit canonicalization policy is active.
 - Git merge-driver placeholders should be consumed exactly as Git supplies them; callers should not shell-quote `%O`, `%A`, `%B`, or `%P` inside Git driver config.
 - The Git merge command must continue to support explicit schema loading so domain repositories can provide file-specific discriminator and ordering rules.
+- The Git diff command must use the same identity and ordered-child schema rules as merge; unordered sibling reorders should not be reported as semantic differences.
+- Automatic schema discovery applies `*.meridian.yaml` files from repository root to file directory; mapping keys merge recursively and nearer non-mapping values replace earlier values.
 
 ## Mapped Format Model
 

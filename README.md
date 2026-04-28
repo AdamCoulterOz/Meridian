@@ -50,8 +50,10 @@ Meridian is early, usable source-first tooling. It is not packaged yet as a NuGe
 Today it includes:
 
 - a `merge-file` command suitable for Git merge-driver integration;
+- a `diff-file` command suitable for Git external-diff integration;
 - XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid, CSS, raw, image-placeholder, and XAP adapters in source;
 - schema-driven identity and ordered-child rules in the Git merge path;
+- schema-driven identity and ordered-child rules in the Git diff path;
 - schema models and library utilities for nested content formats, companion file rules, and format aliases;
 - two-sided Git conflict marker output for unresolved conflicts.
 
@@ -76,17 +78,32 @@ dotnet run --project source/Tools/GitMerge/GitMerge.csproj -- \
   --base path/to/base.xml \
   --ours path/to/ours.xml \
   --theirs path/to/theirs.xml \
-  --path catalog.xml \
-  --schema meridian.schema.yaml
+  --path catalog.xml
 ```
 
 `merge-file` writes the merged result back to `--ours`, matching Git merge-driver expectations.
+
+Run a two-way structural diff from source:
+
+```bash
+dotnet run --project source/Tools/GitMerge/GitMerge.csproj -- \
+  diff-file \
+  --old path/to/old.xml \
+  --new path/to/new.xml \
+  --path catalog.xml
+```
+
+`diff-file` writes a semantic diff to stdout. It matches children by Meridian identity rules, so schema-unordered sibling reorders are ignored while schema-ordered child reorders are reported.
+
+When `--schema` is omitted, the Git command discovers schema files automatically. It starts at the directory containing `--path`, walks up to the Git repository root, finds `*.meridian.yaml` files in each directory, then applies them from root to leaf. Mapping keys are recursively merged; nearer schema files overwrite earlier values. Non-mapping values, including lists, replace the earlier value.
 
 Exit codes:
 
 - `0`: clean merge.
 - `1`: merge completed with conflict markers.
 - `2`: usage, adapter, or configuration error.
+
+For `diff-file`, `0` means the comparison completed, including when differences are printed. `2` means usage, adapter, schema, or identity configuration error. This keeps the command compatible with Git external-diff invocation.
 
 ## Git Merge Driver
 
@@ -95,7 +112,7 @@ In the repository that contains the files you want to merge, add a Git merge dri
 ```ini
 [merge "meridian"]
     name = Meridian structural merge
-    driver = dotnet run --project ../Meridian/source/Tools/GitMerge/GitMerge.csproj -- merge-file --base %O --ours %A --theirs %B --path %P --schema meridian.schema.yaml
+    driver = dotnet run --project ../Meridian/source/Tools/GitMerge/GitMerge.csproj -- merge-file --base %O --ours %A --theirs %B --path %P
 ```
 
 Adjust the `../Meridian/...` path to wherever Meridian lives relative to the consuming repo.
@@ -113,7 +130,45 @@ Then opt files into the driver with `.gitattributes`:
 *.js merge=meridian
 ```
 
-Commit both `.gitattributes` and `meridian.schema.yaml` in the consuming repo so every clone gets the same merge behavior.
+Commit `.gitattributes` and the relevant `*.meridian.yaml` schema files in the consuming repo so every clone gets the same merge behavior.
+
+## Git Diff Driver
+
+In the repository that contains the files you want to compare, add a Git diff driver:
+
+```ini
+[diff "meridian"]
+    command = dotnet run --project ../Meridian/source/Tools/GitMerge/GitMerge.csproj -- diff-file
+```
+
+Git appends its external-diff arguments after the configured command:
+
+```text
+<repo-path> <old-file> <old-hex> <old-mode> <new-file> <new-hex> <new-mode>
+```
+
+Meridian consumes the repo path and temporary file paths directly.
+
+Pass `--schema some-file.yaml` before Git's appended arguments only when you want to bypass automatic discovery and use one explicit schema file.
+
+Then opt files into the driver with `.gitattributes`:
+
+```gitattributes
+*.xml diff=meridian
+*.json diff=meridian
+*.json5 diff=meridian
+*.yml diff=meridian
+*.yaml diff=meridian
+*.html diff=meridian
+*.htm diff=meridian
+*.js diff=meridian
+```
+
+You can combine merge and diff attributes on the same files:
+
+```gitattributes
+*.xml merge=meridian diff=meridian
+```
 
 ## Schema Quickstart
 
@@ -299,7 +354,7 @@ using Meridian.Core.Schema;
 using Meridian.Formats.Data;
 
 var schema = MergeSchemaYamlLoader
-    .LoadFile("meridian.schema.yaml")
+    .LoadFile("repo.meridian.yaml")
     .CompileForFile("catalog.xml", "Catalog");
 
 var xml = new XmlAdapter();

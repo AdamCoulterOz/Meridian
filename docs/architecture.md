@@ -119,11 +119,16 @@ The core model is generic. Power Platform WebResource metadata is one consumer u
 `source/Tools/GitMerge` is intentionally thin:
 
 - parse Git merge-driver arguments;
+- parse Git external-diff arguments;
 - select an adapter;
-- load an optional schema;
+- load an explicit schema or discover `*.meridian.yaml` schemas from the file directory up to the Git root;
 - call `Merger`;
+- call `StructuralDiffer`;
 - write the result to Git’s `%A` file;
+- write semantic diffs to stdout;
 - return Git-compatible exit codes.
+
+Discovered schema files are applied from root to leaf with recursive mapping-key overlay semantics. Non-mapping values, including lists, are replaced by the nearer file.
 
 The merge core does not depend on Git.
 
