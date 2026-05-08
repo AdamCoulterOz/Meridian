@@ -27,6 +27,7 @@
     <ProjectReference Include="../../source/Formats/Liquid/Liquid.csproj" />
     <ProjectReference Include="../../source/Formats/Web/Web.csproj" />
     <ProjectReference Include="../../source/Formats/Xap/Xap.csproj" />
+    <ProjectReference Include="../../source/Tools/GitMerge/GitMerge.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

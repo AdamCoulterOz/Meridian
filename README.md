@@ -97,6 +97,33 @@ dotnet run --project source/Tools/GitMerge/GitMerge.csproj -- \
 
 When `--schema` is omitted, the Git command discovers schema files automatically. It starts at the directory containing `--path`, walks up to the Git repository root, finds `*.meridian.yaml` files in each directory, then applies them from root to leaf. Mapping keys are recursively merged; nearer schema files overwrite earlier values. Non-mapping values, including lists, replace the earlier value.
 
+Schema discovery is for applying schemas by source-tree scope. Schema composition is separate: a schema document can use `includes` or `references` to load other schema documents first, then apply itself last.
+
+```text
+somefolder/.meridian.yaml
+somefolder/.meridian/schema-1.yaml
+somefolder/.meridian/schema-2.yaml
+```
+
+```yaml
+schemaVersion: 0.1
+name: my-solution
+
+includes:
+  - .meridian/schema-1.yaml
+  - .meridian/schema-2.yaml
+```
+
+Relative include paths resolve from the YAML file that contains the include. Remote HTTP/HTTPS includes are also supported:
+
+```yaml
+includes:
+  - https://raw.githubusercontent.com/AdamCoulterOz/PowerSource/main/docs/schemas/powerplatform-solution.rules.yaml
+  - https://raw.githubusercontent.com/AdamCoulterOz/PowerSource/main/docs/schemas/powerpages/generated-components.meridian.yaml
+```
+
+Remote schemas fail loudly when unavailable. Meridian keeps only a per-command in-memory cache keyed by exact URL, sends `Cache-Control: no-cache`, and never uses a persistent remote schema cache. The Git command prints every remote schema URL loaded and whether the URL appears pinned to a Git commit SHA. Branch URLs such as `main` are convenient, but commit SHA URLs are reproducible.
+
 Exit codes:
 
 - `0`: clean merge.

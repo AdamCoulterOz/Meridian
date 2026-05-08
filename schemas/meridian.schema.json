@@ -18,6 +18,14 @@
       "type": "string",
       "description": "Human-readable name for this rule set. Prefer a stable, repository or domain-oriented name."
     },
+    "includes": {
+      "$ref": "#/$defs/includeReferenceArray",
+      "description": "Schema documents to compose before this document. Relative paths resolve from the YAML file containing this include; HTTP/HTTPS URLs are fetched remotely. Included documents are merged in listed order, then this document is applied last."
+    },
+    "references": {
+      "$ref": "#/$defs/includeReferenceArray",
+      "description": "Alias for includes. Use this when 'references' better communicates that the document depends on published canonical schemas."
+    },
     "formatAliases": {
       "$ref": "#/$defs/formatAliasMap"
     },
@@ -42,6 +50,14 @@
     }
   },
   "$defs": {
+    "includeReferenceArray": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": []
+    },
     "astSchema": {
       "type": "object",
       "description": "Reusable collection of merge rules. In top-level defaults and nestedSchemas this uses runtime property names such as identityRules, contentRules, and companionRules. File entries use friendlier authoring names such as discriminators, content, and companions.",

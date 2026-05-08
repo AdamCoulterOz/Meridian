@@ -149,6 +149,234 @@ files:
     }
 
     [Fact]
+    public void SchemaLoaderResolvesRelativeIncludesFromContainingSchemaFile()
+    {
+        var root = CreateTemporaryRepository();
+        var folder = Path.Combine(root, "somefolder");
+        var schemaFolder = Path.Combine(folder, ".meridian");
+        var nestedFolder = Path.Combine(schemaFolder, "nested");
+        Directory.CreateDirectory(nestedFolder);
+
+        var entrypoint = Path.Combine(folder, ".meridian.yaml");
+        File.WriteAllText(
+            entrypoint,
+            """
+schemaVersion: 0.1
+name: local
+includes:
+  - .meridian/schema-1.yaml
+defaults:
+  globalDiscriminatorFields:
+    - sku
+""");
+        File.WriteAllText(
+            Path.Combine(schemaFolder, "schema-1.yaml"),
+            """
+schemaVersion: 0.1
+name: schema-1
+includes:
+  - nested/schema-2.yaml
+defaults:
+  orderedChildren:
+    - root/order
+""");
+        File.WriteAllText(
+            Path.Combine(nestedFolder, "schema-2.yaml"),
+            """
+schemaVersion: 0.1
+name: schema-2
+nestedSchemas:
+  payload:
+    contentRules:
+      - path: payload/value
+        format: plain
+""");
+
+        var loadResult = MergeSchemaYamlLoader.LoadFileWithDiagnostics(entrypoint);
+        var schema = loadResult.SchemaSet.CompileForFile("somefolder/file.xml");
+
+        Assert.Equal("local", loadResult.SchemaSet.Name);
+        Assert.Empty(loadResult.RemoteSchemas);
+        Assert.Equal(["sku"], schema.GlobalDiscriminatorFields);
+        Assert.Equal("root/order", Assert.Single(schema.OrderedChildren).Pattern);
+        Assert.Equal("payload/value", Assert.Single(schema.NestedSchemas["payload"].ContentRules).Path.Pattern);
+    }
+
+    [Fact]
+    public void SchemaLoaderAppliesEarlierIncludesBeforeLaterIncludesAndContainingFile()
+    {
+        var root = CreateTemporaryRepository();
+        var entrypoint = Path.Combine(root, "repo.meridian.yaml");
+        var first = Path.Combine(root, "first.yaml");
+        var second = Path.Combine(root, "second.yaml");
+
+        File.WriteAllText(
+            entrypoint,
+            """
+schemaVersion: 0.1
+name: entry
+includes:
+  - first.yaml
+  - second.yaml
+defaults:
+  globalDiscriminatorFields:
+    - entry
+""");
+        File.WriteAllText(
+            first,
+            """
+schemaVersion: 0.1
+name: first
+defaults:
+  globalDiscriminatorFields:
+    - first
+  orderedChildren:
+    - root/from-first
+""");
+        File.WriteAllText(
+            second,
+            """
+schemaVersion: 0.1
+name: second
+defaults:
+  globalDiscriminatorFields:
+    - second
+""");
+
+        var schemaSet = MergeSchemaYamlLoader.LoadFile(entrypoint);
+        var schema = schemaSet.CompileForFile("file.xml");
+
+        Assert.Equal("entry", schemaSet.Name);
+        Assert.Equal(["entry"], schema.GlobalDiscriminatorFields);
+        Assert.Equal("root/from-first", Assert.Single(schema.OrderedChildren).Pattern);
+    }
+
+    [Fact]
+    public void SchemaLoaderFailsLoudlyForIncludeCycles()
+    {
+        var root = CreateTemporaryRepository();
+        var first = Path.Combine(root, "first.meridian.yaml");
+        var second = Path.Combine(root, "second.yaml");
+
+        File.WriteAllText(
+            first,
+            """
+schemaVersion: 0.1
+includes:
+  - second.yaml
+""");
+        File.WriteAllText(
+            second,
+            """
+schemaVersion: 0.1
+includes:
+  - first.meridian.yaml
+""");
+
+        var error = Assert.Throws<InvalidOperationException>(() => MergeSchemaYamlLoader.LoadFile(first));
+
+        Assert.Contains("Schema include cycle detected", error.Message);
+        Assert.Contains("first.meridian.yaml", error.Message);
+        Assert.Contains("second.yaml", error.Message);
+    }
+
+    [Fact]
+    public void SchemaLoaderResolvesRemoteIncludesWithPerLoadCacheAndPinDiagnostics()
+    {
+        var root = CreateTemporaryRepository();
+        var entrypoint = Path.Combine(root, "repo.meridian.yaml");
+        var pinnedUri = "https://raw.githubusercontent.com/AdamCoulterOz/PowerSource/0123456789abcdef0123456789abcdef01234567/schema.yaml";
+        var childUri = "https://raw.githubusercontent.com/AdamCoulterOz/PowerSource/0123456789abcdef0123456789abcdef01234567/child.yaml";
+        var fetched = new List<string>();
+
+        File.WriteAllText(
+            entrypoint,
+            $"""
+schemaVersion: 0.1
+name: entry
+includes:
+  - {pinnedUri}
+  - {pinnedUri}
+""");
+
+        var result = MergeSchemaYamlLoader.LoadFileWithDiagnostics(
+            entrypoint,
+            new MergeSchemaLoadOptions
+            {
+                RemoteSchemaFetcher = uri =>
+                {
+                    fetched.Add(uri.AbsoluteUri);
+                    return uri.AbsoluteUri == pinnedUri
+                        ? """
+schemaVersion: 0.1
+name: remote
+includes:
+  - child.yaml
+defaults:
+  orderedChildren:
+    - root/remote-order
+"""
+                        : uri.AbsoluteUri == childUri
+                            ? """
+schemaVersion: 0.1
+name: child
+defaults:
+  globalDiscriminatorFields:
+    - remote-id
+"""
+                            : throw new InvalidOperationException("Unexpected URI " + uri.AbsoluteUri);
+                }
+            });
+
+        var schema = result.SchemaSet.CompileForFile("file.xml");
+
+        Assert.Equal(["remote-id"], schema.GlobalDiscriminatorFields);
+        Assert.Equal("root/remote-order", Assert.Single(schema.OrderedChildren).Pattern);
+        Assert.Equal([pinnedUri, childUri], fetched);
+        Assert.Equal([pinnedUri, childUri], result.RemoteSchemas.Select(remote => remote.Uri).ToArray());
+        Assert.All(result.RemoteSchemas, remote => Assert.True(remote.IsPinnedToGitCommitSha));
+    }
+
+    [Fact]
+    public void SchemaLoaderFailsLoudlyWhenRemoteIncludeIsUnavailable()
+    {
+        var root = CreateTemporaryRepository();
+        var entrypoint = Path.Combine(root, "repo.meridian.yaml");
+        var remoteUri = "https://example.invalid/schema.yaml";
+
+        File.WriteAllText(
+            entrypoint,
+            $"""
+schemaVersion: 0.1
+includes:
+  - {remoteUri}
+""");
+
+        var error = Assert.Throws<InvalidOperationException>(() => MergeSchemaYamlLoader.LoadFileWithDiagnostics(
+            entrypoint,
+            new MergeSchemaLoadOptions
+            {
+                RemoteSchemaFetcher = _ => throw new HttpRequestException("offline")
+            }));
+
+        Assert.Contains(remoteUri, error.Message);
+        Assert.Contains("could not be fetched", error.Message);
+        Assert.Contains("offline", error.Message);
+    }
+
+    [Fact]
+    public void SchemaLoaderFailsLoudlyWhenInlineYamlHasIncludes()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => MergeSchemaYamlLoader.Load("""
+schemaVersion: 0.1
+includes:
+  - base.yaml
+"""));
+
+        Assert.Contains("Inline schema YAML cannot resolve includes", error.Message);
+    }
+
+    [Fact]
     public void CompanionPathFromMatchedPathFailsWhenMetadataTemplateDisagrees()
     {
         var schemaSet = MergeSchemaYamlLoader.Load("""

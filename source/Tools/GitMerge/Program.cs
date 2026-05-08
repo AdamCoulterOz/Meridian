@@ -198,11 +198,19 @@ internal static class GitIntegration
     public static MergeSchema LoadSchema(string? schemaPath, string repoPath)
     {
         if (!string.IsNullOrWhiteSpace(schemaPath))
-            return MergeSchemaYamlLoader.LoadFile(schemaPath).CompileForFile(repoPath);
+        {
+            var loadResult = MergeSchemaYamlLoader.LoadFileWithDiagnostics(schemaPath);
+            WriteRemoteSchemaDiagnostics(loadResult.RemoteSchemas);
+            return loadResult.SchemaSet.CompileForFile(repoPath);
+        }
 
         var discovery = MergeSchemaDiscovery.DiscoverForFile(repoPath, Environment.CurrentDirectory);
         if (discovery.SchemaFiles.Count > 0)
-            return MergeSchemaYamlLoader.LoadFiles(discovery.SchemaFiles).CompileForFile(repoPath);
+        {
+            var loadResult = MergeSchemaYamlLoader.LoadFilesWithDiagnostics(discovery.SchemaFiles);
+            WriteRemoteSchemaDiagnostics(loadResult.RemoteSchemas);
+            return loadResult.SchemaSet.CompileForFile(repoPath);
+        }
 
         Console.Error.WriteLine(
             $"Warning: No Meridian schema files matching '{MergeSchemaDiscovery.SchemaFilePattern}' were found from '{discovery.TargetDirectory}' up to '{discovery.RepositoryRoot}'. Using built-in default discriminator fields.");
@@ -211,6 +219,23 @@ internal static class GitIntegration
         {
             GlobalDiscriminatorFields = ["id", "Id", "languagecode"]
         };
+    }
+
+    private static void WriteRemoteSchemaDiagnostics(IReadOnlyList<RemoteSchemaLoad> remoteSchemas)
+    {
+        if (remoteSchemas.Count == 0)
+            return;
+
+        Console.Error.WriteLine("Meridian remote schemas loaded:");
+        foreach (var remoteSchema in remoteSchemas)
+        {
+            var pinStatus = remoteSchema.IsPinnedToGitCommitSha
+                ? "pinned to commit SHA"
+                : "not pinned to a detected commit SHA";
+            Console.Error.WriteLine($"  - {remoteSchema.Uri} ({pinStatus})");
+        }
+
+        Console.Error.WriteLine($"Meridian remote schema cache policy: {MergeSchemaYamlLoader.RemoteSchemaCachePolicy}.");
     }
 
     public static void WriteDiagnostics(IEnumerable<Meridian.Core.Identity.IdentityDiagnostic> diagnostics)

@@ -11,10 +11,12 @@ Current state:
 - The repository targets .NET 11.
 - The core document tree merge model and schema loader are implemented.
 - Consumer usage is documented in `README.md`; deeper extension notes live in `docs/architecture.md`.
+- Repository cognition is split across `CONTEXT.md` for current operational state, `HISTORY.md` for architectural and operational change history, and `INTERFACE.md` for the stable public boundary.
 - The Meridian schema authoring contract is documented as JSON Schema in `schemas/meridian.schema.json`, including descriptions for editor and LLM-assisted generation.
 - XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid, mapped-text fallback, CSS, image placeholder, `xap`, and raw adapters exist. Closely related external adapters are grouped into format-family projects under `source/Formats`.
 - The Git integration command can merge supported files and produce two-way semantic diffs with an optional schema.
 - The Git integration command can automatically discover `*.meridian.yaml` schema files from the target file directory up to the Git repository root.
+- Schema documents can compose other schema documents with `includes` or `references`; local relative includes resolve from the containing YAML file and remote HTTP/HTTPS includes are fetched with explicit diagnostics.
 - Mapped format composition exists for formats such as `liquid:xml`.
 - A generic catalog fixture exists to exercise schema-driven XML identity and clean three-way merge behavior without domain-specific assumptions.
 
@@ -28,7 +30,7 @@ Current state:
 - `source/Formats/Images` contains image placeholder adapters for PNG, JPEG, GIF, and ICO payloads.
 - `source/Formats` also contains dedicated projects for Liquid and `xap`.
 - `source/Tools/GitMerge` contains a thin Git merge-driver and external-diff style command using Spectre.Console.Cli command/settings classes with attribute-based options and arguments.
-- `tests/Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, mapped format composition, Git conflict marker rendering, and file-based generic fixtures.
+- `tests/Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, mapped format composition, Git conflict marker rendering, file-based generic fixtures, and Git merge/diff integration command behavior.
 
 ## Key Decisions And Invariants
 
@@ -53,6 +55,8 @@ Current state:
 - The Git merge command must continue to support explicit schema loading so domain repositories can provide file-specific discriminator and ordering rules.
 - The Git diff command must use the same identity and ordered-child schema rules as merge; unordered sibling reorders should not be reported as semantic differences.
 - Automatic schema discovery applies `*.meridian.yaml` files from repository root to file directory; mapping keys merge recursively and nearer non-mapping values replace earlier values.
+- Schema discovery and schema composition are separate concerns: discovery applies source-tree scope, while `includes`/`references` compose schema documents before the including document is overlaid.
+- Include resolution must fail loudly for missing documents, unavailable remote URLs, invalid include values, and cycles. Remote schema diagnostics must identify the exact URL and whether it appears pinned to a Git commit SHA.
 
 ## Mapped Format Model
 
@@ -76,4 +80,4 @@ Current state:
 - Add lossless or source-preserving formatting preservation for JSON, YAML, JSON5, HTML, and JavaScript where practical.
 - Replace opaque adapters for binary formats with byte-safe handling.
 - Add first-class package adapters for composite formats such as `docx` and `xlsx`.
-- Add small integration fixtures for real Git merge-driver runs.
+- Decide packaging and distribution shape before external consumers depend on source checkout paths.
