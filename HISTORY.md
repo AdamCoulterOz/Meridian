@@ -6,6 +6,7 @@
 - Added a GitHub Actions CI workflow (`.github/workflows/ci.yml`) that installs the .NET 11 preview SDK and runs `dotnet build` and `dotnet test` on the solution for pushes and pull requests to `main`.
 - Documented the remote-schema include security posture (SSRF / supply-chain surface when Meridian runs as an automatic Git driver) in `README.md`.
 - Adopted the Apache License 2.0. Added `LICENSE` (full Apache-2.0 text), a `NOTICE` attribution file, and a root `Directory.Build.props` setting `PackageLicenseExpression` to `Apache-2.0` and the project copyright for all current and future packable projects. Apache-2.0 was chosen over MIT for its explicit patent grant and patent-retaliation terms, and over copyleft options to keep Meridian freely embeddable by consumers.
+- Published a public contact point (`adam.coulter@me.com`) via `NOTICE`, the README `Contact` section, and a `SECURITY.md` security policy that also documents the remote-schema SSRF surface. Added a static GitHub Pages landing site under `docs/` (`index.html` plus `.nojekyll`) explaining what Meridian is and how it works.
 
 ## 2026-05-08
 

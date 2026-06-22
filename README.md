@@ -451,3 +451,7 @@ formatAliases:
 ## License
 
 Meridian is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution. The Apache-2.0 patent grant and patent-retaliation terms apply to all contributions.
+
+## Contact
+
+Questions, issues, and security reports: **adam.coulter@me.com**. For security-sensitive reports, please follow [SECURITY.md](SECURITY.md) rather than opening a public issue.

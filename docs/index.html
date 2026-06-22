@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Meridian — structural merge for source formats Git only sees as text</title>
+<meta name="description" content="Meridian is a language-aware, schema-driven three-way merge and two-way diff toolkit for XML, JSON, YAML and other structured source files." />
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --fg: #e6edf3;
+    --muted: #9da7b3;
+    --accent: #58a6ff;
+    --accent-2: #3fb950;
+    --warn: #d29922;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.65;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+  header.hero {
+    border-bottom: 1px solid var(--border);
+    background: radial-gradient(1200px 400px at 50% -10%, rgba(88,166,255,0.14), transparent);
+    padding: 72px 0 56px;
+    text-align: center;
+  }
+  .hero h1 { font-size: 2.6rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .hero .tagline { font-size: 1.2rem; color: var(--muted); margin: 0 auto 28px; max-width: 640px; }
+  .badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+  .badge {
+    font-family: var(--mono); font-size: 0.8rem; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; background: var(--panel);
+  }
+  .cta { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    display: inline-block; padding: 10px 20px; border-radius: 8px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--panel); color: var(--fg);
+  }
+  .btn.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+  .btn:hover { text-decoration: none; border-color: var(--accent); }
+  section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+  section h2 { font-size: 1.6rem; margin: 0 0 16px; letter-spacing: -0.01em; }
+  section h3 { font-size: 1.15rem; margin: 28px 0 8px; }
+  p { color: #c9d4e0; }
+  .muted { color: var(--muted); }
+  pre {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; overflow-x: auto; font-family: var(--mono); font-size: 0.86rem; line-height: 1.5;
+  }
+  code { font-family: var(--mono); font-size: 0.88em; }
+  p code, li code { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .card h3 { margin-top: 0; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li { position: relative; padding: 8px 0 8px 44px; }
+  .steps li::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 8px; width: 28px; height: 28px;
+    display: grid; place-items: center; border-radius: 50%;
+    background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid var(--accent);
+    font-weight: 700; font-size: 0.85rem;
+  }
+  .add { color: var(--accent-2); }
+  .del { color: #f85149; }
+  .base { color: var(--warn); }
+  footer { padding: 40px 0 64px; color: var(--muted); }
+  footer a { color: var(--accent); }
+  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } .hero h1 { font-size: 2rem; } }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <h1>Meridian</h1>
+    <p class="tagline">Language-aware structural merge tooling for source formats that Git can only see as text.</p>
+    <div class="badges">
+      <span class="badge">.NET 11</span>
+      <span class="badge">Apache-2.0</span>
+      <span class="badge">XML · JSON · JSON5 · YAML · HTML</span>
+      <span class="badge">Git merge &amp; diff driver</span>
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/AdamCoulterOz/Meridian">View on GitHub</a>
+      <a class="btn" href="#how">How it works</a>
+      <a class="btn" href="#start">Quick start</a>
+    </div>
+  </div>
+</header>
+
+<section id="what">
+  <div class="wrap">
+    <h2>What it is</h2>
+    <p>
+      Meridian is for repositories where normal line-based merging is too fragile: unpacked
+      solution XML, JSON config, YAML manifests, generated-ish metadata, templated files, and
+      nested formats such as JSON inside XML.
+    </p>
+    <p>
+      Instead of asking Git to guess from lines, Meridian parses each side of a three-way merge
+      into a document tree, matches nodes by schema-defined identity, merges the structure, and
+      writes normal Git conflict markers only where the structural merge cannot be resolved
+      safely. It is domain-neutral: repositories teach it their formats through schema files
+      rather than baking product knowledge into the tool.
+    </p>
+  </div>
+</section>
+
+<section id="why">
+  <div class="wrap">
+    <h2>The problem</h2>
+    <p>A plain text merge turns two independent, non-competing edits into a conflict:</p>
+<pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; ours
+&lt;label description="Near Miss" languagecode="1033" /&gt;
+&lt;label description="Incident"  languagecode="3081" /&gt;
+<span class="base">||||||| base</span>
+&lt;label description="Near Miss" languagecode="1033" /&gt;
+&lt;label description="Near Miss" languagecode="3081" /&gt;
+=======
+&lt;label description="Safety Event" languagecode="1033" /&gt;
+&lt;label description="Near Miss"    languagecode="3081" /&gt;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; theirs</pre>
+    <p>
+      Those edits are not really competing — each side changed a <em>different</em> label. With a
+      schema that says <code>languagecode</code> identifies sibling labels, Meridian merges the
+      structure instead and produces the obvious result:
+    </p>
+<pre>&lt;label description="Safety Event" languagecode="1033" /&gt;
+&lt;label description="Incident"     languagecode="3081" /&gt;</pre>
+    <p class="muted">
+      Sorting siblings would also dodge this one case, but many structured files mix unordered
+      lookup collections with ordered UI layout, execution steps, and fallback precedence —
+      sorting everything corrupts those. Meridian keeps order meaningful only where the schema
+      says it is.
+    </p>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><strong>Parse.</strong> A format adapter turns each of base, ours, and theirs into a document tree of nodes (kind, fields, value, children).</li>
+      <li><strong>Identify.</strong> Schema rules assign each node a stable identity that is local to its parent — a discriminator attribute, an element value, a composite key, or an explicit ordered slot.</li>
+      <li><strong>Merge structurally.</strong> Nodes are matched by identity, not by line position. Independent edits to different nodes both apply.</li>
+      <li><strong>Respect order only where it matters.</strong> Sibling order participates in the merge only for parent paths the schema lists as <code>orderedChildren</code>.</li>
+      <li><strong>Fail loud, never guess.</strong> If repeated siblings cannot be given unique identities, or both sides change an ordered collection differently, Meridian emits a conflict instead of silently aligning the wrong nodes.</li>
+    </ol>
+<pre>base source   ─▶ adapter ─▶ base tree   ┐
+ours source   ─▶ adapter ─▶ ours tree   ├─▶ identity assignment
+theirs source ─▶ adapter ─▶ theirs tree ┘   ─▶ three-way structural merge
+                                            ─▶ adapter render (markers only where needed)</pre>
+  </div>
+</section>
+
+<section id="concepts">
+  <div class="wrap">
+    <h2>Core concepts</h2>
+    <div class="cols">
+      <div class="card">
+        <h3>Identity is local</h3>
+        <p>Identity means "inside this parent, siblings with this node name are matched by this value" — not global uniqueness. Ambiguous identity is an error, not a guess.</p>
+      </div>
+      <div class="card">
+        <h3>Order is opt-in</h3>
+        <p>Once nodes have identities, sibling order is ignored by default. Declare <code>orderedChildren</code> only where sequence is genuinely semantic.</p>
+      </div>
+      <div class="card">
+        <h3>Nested content</h3>
+        <p>A scalar that contains another format — JSON inside XML, HTML inside JSON — can be parsed, merged as its own tree, and re-embedded with correct escaping.</p>
+      </div>
+      <div class="card">
+        <h3>Schema-owned semantics</h3>
+        <p>Discriminators, ordered children, content formats, companion files, and format aliases live in <code>*.meridian.yaml</code> — composable, discoverable, and consumer-owned.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <h2>Quick start</h2>
+    <p>Build from source (requires the .NET 11 SDK) and run a structural three-way merge:</p>
+<pre>git clone https://github.com/AdamCoulterOz/Meridian.git
+cd Meridian
+dotnet build Meridian.slnx
+dotnet test Meridian.slnx
+
+dotnet run --project source/Tools/GitMerge/GitMerge.csproj -- \
+  merge-file --base base.xml --ours ours.xml --theirs theirs.xml --path catalog.xml</pre>
+    <p>Wire it into a repository as a Git merge driver, then opt files in with <code>.gitattributes</code>:</p>
+<pre># .git/config (or repo config)
+[merge "meridian"]
+    name = Meridian structural merge
+    driver = dotnet run --project ../Meridian/source/Tools/GitMerge/GitMerge.csproj -- \
+             merge-file --base %O --ours %A --theirs %B --path %P
+
+# .gitattributes
+*.xml  merge=meridian diff=meridian
+*.json merge=meridian diff=meridian
+*.yaml merge=meridian diff=meridian</pre>
+    <p>A minimal schema describes only merge-relevant facts:</p>
+<pre>schemaVersion: 0.1
+name: catalog
+
+defaults:
+  globalDiscriminatorFields: [id, Id, languagecode]
+
+files:
+  - match: catalog.xml
+    discriminators:
+      - path: Catalog/Products/Product
+        key: { attribute: sku }
+    orderedChildren:
+      - Catalog/DisplayOrder</pre>
+    <p class="muted">Full documentation, schema reference, and library usage live in the <a href="https://github.com/AdamCoulterOz/Meridian#readme">project README</a> and <a href="https://github.com/AdamCoulterOz/Meridian/blob/main/docs/architecture.md">architecture notes</a>.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Meridian is licensed under the <a href="https://github.com/AdamCoulterOz/Meridian/blob/main/LICENSE">Apache License 2.0</a>.
+      Contact: <a href="mailto:adam.coulter@me.com">adam.coulter@me.com</a>.
+    </p>
+    <p class="muted">Copyright 2026 Adam Coulter.</p>
+  </div>
+</footer>
+</body>
+</html>
