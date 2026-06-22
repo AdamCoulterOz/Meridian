@@ -1,0 +1,8 @@
+<Project>
+
+  <PropertyGroup>
+    <Copyright>Copyright 2026 Adam Coulter</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>

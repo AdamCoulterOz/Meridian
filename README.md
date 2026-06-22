@@ -447,3 +447,7 @@ formatAliases:
 
 - [Architecture notes](docs/architecture.md)
 - [Generic catalog fixture](tests/Tests/Fixtures/GenericCatalog/catalog.schema.yaml)
+
+## License
+
+Meridian is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution. The Apache-2.0 patent grant and patent-retaliation terms apply to all contributions.

@@ -5,6 +5,7 @@
 - Fixed XML structural fidelity in the non-mapped `XmlAdapter` parse/render path. Clean merges previously dropped XML comments, discarded namespace prefixes on element and attribute names, and lost significant mixed-content text. The adapter now preserves comments, processing instructions, CDATA, and significant text as child nodes, and carries namespace prefixes through `Kind` and attribute keys. Leaf-text elements still parse to a scalar value and whitespace-only formatting is still normalized, so existing schema, discriminator, nested-content, and pretty-print behavior is unchanged.
 - Added a GitHub Actions CI workflow (`.github/workflows/ci.yml`) that installs the .NET 11 preview SDK and runs `dotnet build` and `dotnet test` on the solution for pushes and pull requests to `main`.
 - Documented the remote-schema include security posture (SSRF / supply-chain surface when Meridian runs as an automatic Git driver) in `README.md`.
+- Adopted the Apache License 2.0. Added `LICENSE` (full Apache-2.0 text), a `NOTICE` attribution file, and a root `Directory.Build.props` setting `PackageLicenseExpression` to `Apache-2.0` and the project copyright for all current and future packable projects. Apache-2.0 was chosen over MIT for its explicit patent grant and patent-retaliation terms, and over copyleft options to keep Meridian freely embeddable by consumers.
 
 ## 2026-05-08
 
