@@ -140,28 +140,24 @@ public sealed class XmlAdapter : IFormatAdapter, IMappedHost
 
     private static string RenderNode(TreeNode node, int depth)
     {
+        var indent = new string(' ', depth * 2);
+
         if (node.Conflict is { Kind: not ConflictKind.Scalar })
             return CreateIndentedConflictMarkers(
                 node.Conflict.OursText,
                 node.Conflict.BaseText,
                 node.Conflict.TheirsText,
-                new string(' ', depth * 2));
+                indent);
+
+        if (node.TryGetMetadataType(out var specialType) && specialType is not null && IsSpecialNodeType(specialType))
+            return indent + RenderSpecialNode(node, specialType);
 
         var builder = new StringBuilder();
-        var indent = new string(' ', depth * 2);
         builder.Append(indent);
         builder.Append('<');
         builder.Append(node.Kind);
 
-        foreach (var field in node.Fields
-            .Where(field => !field.Key.StartsWith('$')))
-        {
-            builder.Append(' ');
-            builder.Append(field.Key);
-            builder.Append("=\"");
-            builder.Append(SecurityElement.Escape(field.Value));
-            builder.Append('"');
-        }
+        AppendElementAttributes(builder, node);
 
         if (node.Conflict is null && node.Children.Count == 0 && string.IsNullOrEmpty(node.Value))
         {
@@ -170,6 +166,20 @@ public sealed class XmlAdapter : IFormatAdapter, IMappedHost
         }
 
         builder.Append('>');
+
+        if (node.Conflict is null && IsInlineContent(node))
+        {
+            if (node.Value is not null)
+                builder.Append(SecurityElement.Escape(node.Value));
+
+            foreach (var child in node.Children)
+                builder.Append(RenderCompactNode(child));
+
+            builder.Append("</");
+            builder.Append(node.Kind);
+            builder.Append('>');
+            return builder.ToString();
+        }
 
         if (node.Conflict is { Kind: ConflictKind.Scalar } scalarConflict)
         {
@@ -203,20 +213,120 @@ public sealed class XmlAdapter : IFormatAdapter, IMappedHost
         return builder.ToString();
     }
 
+    private static string RenderCompactNode(TreeNode node)
+    {
+        if (node.Conflict is not null)
+            return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
+
+        if (node.TryGetMetadataType(out var specialType) && specialType is not null && IsSpecialNodeType(specialType))
+            return RenderSpecialNode(node, specialType);
+
+        var builder = new StringBuilder();
+        builder.Append('<');
+        builder.Append(node.Kind);
+
+        AppendElementAttributes(builder, node);
+
+        if (node.Children.Count == 0 && string.IsNullOrEmpty(node.Value))
+        {
+            builder.Append(" />");
+            return builder.ToString();
+        }
+
+        builder.Append('>');
+        if (node.Value is not null)
+            builder.Append(SecurityElement.Escape(node.Value));
+
+        foreach (var child in node.Children)
+            builder.Append(RenderCompactNode(child));
+
+        builder.Append("</");
+        builder.Append(node.Kind);
+        builder.Append('>');
+        return builder.ToString();
+    }
+
+    private static void AppendElementAttributes(StringBuilder builder, TreeNode node)
+    {
+        foreach (var field in node.Fields.Where(field => !field.Key.StartsWith('$')))
+        {
+            builder.Append(' ');
+            builder.Append(field.Key);
+            builder.Append("=\"");
+            builder.Append(SecurityElement.Escape(field.Value));
+            builder.Append('"');
+        }
+    }
+
+    private static bool IsSpecialNodeType(string type) => type is "text" or "cdata" or "comment" or "pi";
+
+    private static bool IsInlineContent(TreeNode node) => node.Children.Any(child =>
+        child.TryGetMetadataType(out var type) && type is "text" or "cdata");
+
+    private static string RenderSpecialNode(TreeNode node, string type) => type switch
+    {
+        "text" => SecurityElement.Escape(node.Value ?? string.Empty) ?? string.Empty,
+        "cdata" => "<![CDATA[" + (node.Value ?? string.Empty) + "]]>",
+        "comment" => "<!--" + (node.Value ?? string.Empty) + "-->",
+        "pi" => "<?" + (node.Value ?? string.Empty) + "?>",
+        _ => SecurityElement.Escape(node.Value ?? string.Empty) ?? string.Empty
+    };
+
     private static TreeNode ParseElement(XElement element)
     {
         var fields = element.Attributes()
             .ToDictionary(AttributeKey, attribute => attribute.Value, StringComparer.Ordinal);
+        var name = QualifiedName(element);
 
-        var childElements = element.Elements().Select(ParseElement).ToArray();
-        var value = childElements.Length == 0 ? element.Value : null;
+        var hasChildElements = element.Elements().Any();
+        var hasCommentsOrInstructions = element.Nodes().Any(node => node is XComment or XProcessingInstruction);
+
+        if (!hasChildElements && !hasCommentsOrInstructions)
+            return new TreeNode(
+                name,
+                fields,
+                element.Value,
+                sourceText: element.ToString(SaveOptions.DisableFormatting));
+
+        var children = new List<TreeNode>();
+        var specialIndex = 0;
+        foreach (var node in element.Nodes())
+            switch (node)
+            {
+                case XElement childElement:
+                    children.Add(ParseElement(childElement));
+                    break;
+                case XComment comment:
+                    children.Add(new TreeNode($"$comment{specialIndex++:D6}", NodeMetadata.Create("comment"), comment.Value));
+                    break;
+                case XProcessingInstruction instruction:
+                    children.Add(new TreeNode(
+                        $"$pi{specialIndex++:D6}",
+                        NodeMetadata.Create("pi"),
+                        instruction.Target + (string.IsNullOrEmpty(instruction.Data) ? string.Empty : " " + instruction.Data)));
+                    break;
+                case XCData cdata:
+                    children.Add(new TreeNode($"$cdata{specialIndex++:D6}", NodeMetadata.Create("cdata"), cdata.Value));
+                    break;
+                case XText text when !string.IsNullOrWhiteSpace(text.Value):
+                    children.Add(new TreeNode($"$text{specialIndex++:D6}", NodeMetadata.Create("text"), text.Value));
+                    break;
+            }
 
         return new TreeNode(
-            element.Name.LocalName,
+            name,
             fields,
-            value,
-            childElements,
+            value: null,
+            children: children,
             sourceText: element.ToString(SaveOptions.DisableFormatting));
+    }
+
+    private static string QualifiedName(XElement element)
+    {
+        var prefix = element.GetPrefixOfNamespace(element.Name.Namespace);
+        return string.IsNullOrEmpty(prefix)
+            ? element.Name.LocalName
+            : prefix + ":" + element.Name.LocalName;
     }
 
     private static TreeNode ParseMappedElement(XElement element)
@@ -461,12 +571,18 @@ public sealed class XmlAdapter : IFormatAdapter, IMappedHost
 
     private static string AttributeKey(XAttribute attribute)
     {
-        if (!attribute.IsNamespaceDeclaration)
+        if (attribute.IsNamespaceDeclaration)
+            return string.Equals(attribute.Name.LocalName, "xmlns", StringComparison.Ordinal)
+                ? "xmlns"
+                : "xmlns:" + attribute.Name.LocalName;
+
+        if (attribute.Name.Namespace == XNamespace.None)
             return attribute.Name.LocalName;
 
-        return string.Equals(attribute.Name.LocalName, "xmlns", StringComparison.Ordinal)
-                            ? "xmlns"
-                            : "xmlns:" + attribute.Name.LocalName;
+        var prefix = attribute.Parent?.GetPrefixOfNamespace(attribute.Name.Namespace);
+        return string.IsNullOrEmpty(prefix)
+            ? attribute.Name.LocalName
+            : prefix + ":" + attribute.Name.LocalName;
     }
 
     private static string CreateIndentedConflictMarkers(string? ours, string? @base, string? theirs, string bodyIndent)

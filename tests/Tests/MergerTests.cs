@@ -212,6 +212,86 @@ public sealed class MergerTests
     }
 
     [Fact]
+    public void XmlRoundTripPreservesComments()
+    {
+        var document = _xml.Parse(
+            """
+<root>
+  <!-- important comment -->
+  <item id="1" />
+</root>
+""",
+            null,
+            DefaultSchema);
+
+        var rendered = _xml.RenderDocument(document);
+
+        Assert.Contains("<!-- important comment -->", rendered);
+        Assert.Contains("""<item id="1" />""", rendered);
+    }
+
+    [Fact]
+    public void XmlRoundTripPreservesNamespacePrefixesOnElementsAndAttributes()
+    {
+        var document = _xml.Parse(
+            """<root xmlns:app="urn:app"><app:item app:flag="on" id="1" /></root>""",
+            null,
+            DefaultSchema);
+
+        var rendered = _xml.RenderDocument(document);
+
+        Assert.Contains("""<root xmlns:app="urn:app">""", rendered);
+        Assert.Contains("<app:item", rendered);
+        Assert.Contains("""app:flag="on""", rendered);
+        Assert.DoesNotContain("<item", rendered);
+    }
+
+    [Fact]
+    public void XmlRoundTripPreservesMixedContentText()
+    {
+        var document = _xml.Parse(
+            """<para>text before <child /> text after</para>""",
+            null,
+            DefaultSchema);
+
+        var rendered = _xml.RenderDocument(document);
+
+        Assert.Contains("<para>text before <child /> text after</para>", rendered);
+    }
+
+    [Fact]
+    public void CleanMergePreservesCommentsNamespacePrefixesAndMixedContent()
+    {
+        var baseXml =
+            """
+<root xmlns:app="urn:app">
+  <!-- important comment -->
+  <app:item id="1">text before <child /> text after</app:item>
+</root>
+""";
+
+        var result = Merge(
+            baseXml,
+            baseXml,
+            """
+<root xmlns:app="urn:app">
+  <!-- important comment -->
+  <app:item id="1">text before <child /> text after</app:item>
+  <app:item id="2">second</app:item>
+</root>
+""",
+            DefaultSchema);
+
+        Assert.False(result.HasConflicts);
+        var rendered = _xml.RenderDocument(result.Document);
+        Assert.Contains("<!-- important comment -->", rendered);
+        Assert.Contains("<app:item", rendered);
+        Assert.Contains("text before <child /> text after", rendered);
+        Assert.Contains(">second</app:item>", rendered);
+        Assert.DoesNotContain("<item", rendered);
+    }
+
+    [Fact]
     public void NestedContentExpanderUsesSchemaContentRules()
     {
         var schema = new MergeSchema

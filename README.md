@@ -124,6 +124,17 @@ includes:
 
 Remote schemas fail loudly when unavailable. Meridian keeps only a per-command in-memory cache keyed by exact URL, sends `Cache-Control: no-cache`, and never uses a persistent remote schema cache. The Git command prints every remote schema URL loaded and whether the URL appears pinned to a Git commit SHA. Branch URLs such as `main` are convenient, but commit SHA URLs are reproducible.
 
+### Security Considerations For Remote Schemas
+
+Remote includes are convenient but they are an outbound network capability that runs during ordinary Git operations. When Meridian is wired in as a merge or diff driver, schema loading happens automatically every time Git merges or diffs an opted-in file. A `*.meridian.yaml` file in the repository — or any document it pulls in through `includes`/`references` — can therefore cause your machine to issue HTTP/HTTPS requests as a side effect of `git merge` or `git diff`.
+
+Treat schema files, including their transitive includes, as trusted code:
+
+- A schema committed by another contributor (or fetched from a remote URL) can direct Meridian to request arbitrary HTTP/HTTPS URLs. On a host with access to internal services or a cloud instance-metadata endpoint, this is a server-side request forgery (SSRF) surface. Meridian does not restrict remote includes to an allowlist and does not block private, loopback, or link-local addresses.
+- Remote includes are fetched, not executed, but the fetched content becomes your merge schema and can change how files are merged. Review remote schemas the same way you would review a dependency.
+- Prefer commit-SHA-pinned URLs over branch URLs so the schema you reviewed is the schema you load. Meridian flags whether each remote URL appears pinned.
+- If you do not need remote composition, keep `includes`/`references` local (relative paths only). Local-only schemas perform no network I/O.
+
 Exit codes:
 
 - `0`: clean merge.
