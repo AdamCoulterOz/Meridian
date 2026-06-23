@@ -2,7 +2,9 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 using Meridian.Formats.Data;
+using Meridian.Formats.Images;
 using Meridian.Formats.Web;
+using Meridian.Formats.Xap;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -130,6 +132,10 @@ internal sealed class MergeFileCommand : AsyncCommand<MergeFileSettings>
         }
 
         var schema = GitIntegration.LoadSchema(settings.SchemaPath, repoPath);
+
+        if (adapter is IBinaryFormatAdapter binaryAdapter)
+            return await MergeBinaryAsync(binaryAdapter, basePath, oursPath, theirsPath, schema, cancellationToken);
+
         var baseDocument = adapter.Parse(await File.ReadAllTextAsync(basePath, cancellationToken), basePath, schema);
         var oursDocument = adapter.Parse(await File.ReadAllTextAsync(oursPath, cancellationToken), oursPath, schema);
         var theirsDocument = adapter.Parse(await File.ReadAllTextAsync(theirsPath, cancellationToken), theirsPath, schema);
@@ -143,6 +149,34 @@ internal sealed class MergeFileCommand : AsyncCommand<MergeFileSettings>
             Console.Error.WriteLine($"Conflict: {conflict.Path}: {conflict.Message}");
 
         return result.HasConflicts ? 1 : 0;
+    }
+
+    private static async Task<int> MergeBinaryAsync(
+        IBinaryFormatAdapter adapter,
+        string basePath,
+        string oursPath,
+        string theirsPath,
+        MergeSchema schema,
+        CancellationToken cancellationToken)
+    {
+        var baseDocument = adapter.ParseBytes(await File.ReadAllBytesAsync(basePath, cancellationToken), basePath, schema);
+        var oursDocument = adapter.ParseBytes(await File.ReadAllBytesAsync(oursPath, cancellationToken), oursPath, schema);
+        var theirsDocument = adapter.ParseBytes(await File.ReadAllBytesAsync(theirsPath, cancellationToken), theirsPath, schema);
+
+        var result = new Merger().Merge(baseDocument, oursDocument, theirsDocument, schema, adapter);
+        GitIntegration.WriteDiagnostics(result.IdentityDiagnostics);
+
+        if (result.HasConflicts)
+        {
+            // Binary content cannot carry text conflict markers. Leave ours on disk untouched and report the conflict.
+            foreach (var conflict in result.Conflicts)
+                Console.Error.WriteLine($"Conflict: {conflict.Path}: binary content changed on both sides; left as ours.");
+
+            return 1;
+        }
+
+        await File.WriteAllBytesAsync(oursPath, adapter.RenderDocumentBytes(result.Document), cancellationToken);
+        return 0;
     }
 }
 
@@ -161,6 +195,17 @@ internal sealed class DiffFileCommand : AsyncCommand<DiffFileSettings>
         }
 
         var schema = GitIntegration.LoadSchema(settings.SchemaPath, repoPath);
+
+        if (adapter is IBinaryFormatAdapter)
+        {
+            var oldBytes = await File.ReadAllBytesAsync(oldPath, cancellationToken);
+            var newBytes = await File.ReadAllBytesAsync(newPath, cancellationToken);
+            if (!oldBytes.AsSpan().SequenceEqual(newBytes))
+                Console.WriteLine($"Binary files a/{repoPath} and b/{repoPath} differ");
+
+            return 0;
+        }
+
         var oldDocument = adapter.Parse(await File.ReadAllTextAsync(oldPath, cancellationToken), oldPath, schema);
         var newDocument = adapter.Parse(await File.ReadAllTextAsync(newPath, cancellationToken), newPath, schema);
         var result = new StructuralDiffer().Diff(oldDocument, newDocument, schema, adapter);
@@ -191,6 +236,13 @@ internal static class GitIntegration
             ".yml" => new YamlAdapter(),
             ".html" => new HtmlFragmentAdapter(),
             ".htm" => new HtmlFragmentAdapter(),
+            ".css" => new CssAdapter(),
+            ".png" => new PngAdapter(),
+            ".jpg" => new JpgAdapter(),
+            ".jpeg" => new JpgAdapter(),
+            ".gif" => new GifAdapter(),
+            ".ico" => new IcoAdapter(),
+            ".xap" => new XapAdapter(),
             _ => null
         };
     }

@@ -4,6 +4,8 @@
     <ProjectReference Include="../../Core/Core.csproj" />
     <ProjectReference Include="../../Formats/Data/Data.csproj" />
     <ProjectReference Include="../../Formats/Web/Web.csproj" />
+    <ProjectReference Include="../../Formats/Images/Images.csproj" />
+    <ProjectReference Include="../../Formats/Xap/Xap.csproj" />
   </ItemGroup>
 
   <ItemGroup>

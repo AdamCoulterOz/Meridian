@@ -1,5 +1,13 @@
 # History
 
+## 2026-06-23
+
+- Implemented the format adapters ("providers") that were previously opaque placeholders.
+  - JavaScript is now structural: Esprima parses the source and supplies exact statement byte ranges; each top-level statement is kept as its verbatim source slice with leading trivia, keyed by declared name (function/class/variable) or module specifier, with positional fallback. Clean round-trips are exact; independent top-level edits merge. Module syntax is parsed via `ParseModule` with a `ParseScript` fallback.
+  - CSS is now structural and source-preserving: a brace/string/comment/paren-aware scanner splits the stylesheet into rules (by selector), declarations (by property), at-rules, comments, and whitespace, capturing every byte so any input round-trips exactly. Independent rule/declaration edits merge; same-property edits conflict.
+  - PNG, JPEG, GIF, ICO, and XAP are now byte-safe via a shared `BinaryFormatAdapter` base and the new `IBinaryFormatAdapter` contract. Content is a lossless base64 scalar; the Git CLI reads/writes these as bytes, resolves to the changed side when only one side changed, and reports a conflict (leaving `--ours` untouched) when both diverge. Raw and mapped-text adapters were consolidated onto a shared `OpaqueTextAdapter` base.
+  - The Git CLI registers `.css`, `.png`, `.jpg`/`.jpeg`, `.gif`, `.ico`, and `.xap` by extension, and `diff-file` reports binary differences without dumping content.
+
 ## 2026-06-22
 
 - Fixed XML structural fidelity in the non-mapped `XmlAdapter` parse/render path. Clean merges previously dropped XML comments, discarded namespace prefixes on element and attribute names, and lost significant mixed-content text. The adapter now preserves comments, processing instructions, CDATA, and significant text as child nodes, and carries namespace prefixes through `Kind` and attribute keys. Leaf-text elements still parse to a scalar value and whitespace-only formatting is still normalized, so existing schema, discriminator, nested-content, and pretty-print behavior is unchanged.

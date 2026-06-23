@@ -51,13 +51,16 @@ Today it includes:
 
 - a `merge-file` command suitable for Git merge-driver integration;
 - a `diff-file` command suitable for Git external-diff integration;
-- XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid, CSS, raw, image-placeholder, and XAP adapters in source;
+- structural adapters for XML, JSON, JSON5, YAML, HTML fragment, JavaScript, CSS, and Liquid in source;
+- byte-safe adapters for binary image (PNG, JPEG, GIF, ICO) and XAP payloads;
 - schema-driven identity and ordered-child rules in the Git merge path;
 - schema-driven identity and ordered-child rules in the Git diff path;
 - schema models and library utilities for nested content formats, companion file rules, and format aliases;
 - two-sided Git conflict marker output for unresolved conflicts.
 
-The current CLI auto-selects adapters by file extension for XML, JSON, JSON5, JavaScript, YAML, and HTML files. Additional adapters are available to consumers embedding Meridian directly.
+The current CLI auto-selects adapters by file extension for XML, JSON, JSON5, JavaScript, YAML, HTML, and CSS files, and for binary `.png`, `.jpg`/`.jpeg`, `.gif`, `.ico`, and `.xap` files. Additional adapters are available to consumers embedding Meridian directly.
+
+JavaScript merges by top-level declaration: Esprima parses the source and each top-level statement is kept as its verbatim slice, keyed by the declared function/class/variable name (or module specifier for imports), so editing one declaration and adding another merge independently. CSS merges by rule and by declaration: rules are matched by selector and declarations within a block by property name, so independent edits land cleanly while two edits to the same property conflict. Binary formats are compared by exact byte content; when both sides change a binary file differently the merge reports a conflict and leaves `--ours` untouched, because binary content cannot carry text conflict markers.
 
 ## Build
 
@@ -420,10 +423,12 @@ Common schema format names:
 | `json5` | JSON5 with comments/trailing commas. |
 | `yaml` | YAML documents and nested content. |
 | `html:fragment` | HTML fragments, not necessarily full documents. |
-| `javascript` | JavaScript source. |
+| `javascript` | JavaScript source, merged by top-level declaration. |
+| `css` | CSS, merged by rule selector and declaration property. |
 | `liquid:xml` | Liquid mapped over XML when using composed adapters. |
 | `plain` | Plain scalar text. |
 | `raw` | Opaque content; useful as a safe default. |
+| `image:png` `image:jpg` `image:gif` `image:ico` `xap` | Byte-safe binary payloads, compared by exact content. |
 
 Schema aliases let consumers keep precise logical names:
 
@@ -431,15 +436,15 @@ Schema aliases let consumers keep precise logical names:
 formatAliases:
   svg: xml
   resx: xml
-  image:png: raw
 ```
 
 ## Current Limitations
 
 - Formatting preservation is not yet source-patch based; clean structural merges may rewrite formatting.
-- The Git merge CLI currently registers a practical subset of adapters by extension.
 - The Git merge CLI does not automatically traverse nested content or companion files yet.
-- Binary formats are placeholders unless a consumer supplies byte-safe handling.
+- Binary formats merge by whole-file byte content, not by internal structure; a both-sides change is a conflict rather than a structural merge.
+- JavaScript merges top-level declarations by name and other statements positionally; it does not yet merge inside a function body.
+- CSS merges top-level rules and block declarations; deeply nested structures beyond at-rule blocks are preserved verbatim rather than merged.
 - Mapped templating support intentionally falls back to opaque behavior when tokens appear in unsafe host-language positions.
 - Packaging is not done yet; use from source for now.
 

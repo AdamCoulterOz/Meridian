@@ -148,6 +148,62 @@ public sealed class GitIntegrationCommandTests
         Assert.Contains("""<item id="2">Remote</item>""", merged);
     }
 
+    [Fact]
+    public async Task MergeFileCommandMergesBinaryWhenOnlyOneSideChanged()
+    {
+        var repository = CreateTemporaryRepository();
+        WriteCatalogSchema(repository);
+        var basePath = Path.Combine(repository, "base.png");
+        var oursPath = Path.Combine(repository, "ours.png");
+        var theirsPath = Path.Combine(repository, "theirs.png");
+
+        byte[] baseBytes = [0x89, 0x50, 0x4E, 0x47, 0x00, 0xFF, 0xFE];
+        byte[] theirsBytes = [0x89, 0x50, 0x4E, 0x47, 0x20, 0xFF, 0xFE];
+        await File.WriteAllBytesAsync(basePath, baseBytes);
+        await File.WriteAllBytesAsync(oursPath, baseBytes);
+        await File.WriteAllBytesAsync(theirsPath, theirsBytes);
+
+        var result = await RunGitMergeAsync(
+            repository,
+            "merge-file",
+            "--base", basePath,
+            "--ours", oursPath,
+            "--theirs", theirsPath,
+            "--path", "image.png");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(theirsBytes, await File.ReadAllBytesAsync(oursPath));
+    }
+
+    [Fact]
+    public async Task MergeFileCommandLeavesBinaryConflictAsOurs()
+    {
+        var repository = CreateTemporaryRepository();
+        WriteCatalogSchema(repository);
+        var basePath = Path.Combine(repository, "base.png");
+        var oursPath = Path.Combine(repository, "ours.png");
+        var theirsPath = Path.Combine(repository, "theirs.png");
+
+        byte[] baseBytes = [0x00, 0x01, 0x02];
+        byte[] oursBytes = [0x10, 0x01, 0x02];
+        byte[] theirsBytes = [0x20, 0x01, 0x02];
+        await File.WriteAllBytesAsync(basePath, baseBytes);
+        await File.WriteAllBytesAsync(oursPath, oursBytes);
+        await File.WriteAllBytesAsync(theirsPath, theirsBytes);
+
+        var result = await RunGitMergeAsync(
+            repository,
+            "merge-file",
+            "--base", basePath,
+            "--ours", oursPath,
+            "--theirs", theirsPath,
+            "--path", "image.png");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("binary", result.StandardError);
+        Assert.Equal(oursBytes, await File.ReadAllBytesAsync(oursPath));
+    }
+
     private static string CreateTemporaryRepository()
     {
         var root = Path.Combine(Path.GetTempPath(), "meridian-git-integration-tests", Guid.NewGuid().ToString("N"));

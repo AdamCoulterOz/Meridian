@@ -46,8 +46,8 @@ Responsibilities Meridian should not own:
 
 ## Public Interfaces
 
-- `Meridian.Core` exposes the document tree, schema, identity, merge, diff, nested-content, mapped-format, and format adapter contracts.
-- Format projects under `source/Formats` expose concrete adapters for data, web, Liquid, image-placeholder, and XAP-style formats.
+- `Meridian.Core` exposes the document tree, schema, identity, merge, diff, nested-content, mapped-format, and format adapter contracts, including `IFormatAdapter`, the `OpaqueTextAdapter` base, and the byte-safe `IBinaryFormatAdapter`/`BinaryFormatAdapter` contract.
+- Format projects under `source/Formats` expose concrete adapters for data, web (HTML fragment, structural CSS, structural JavaScript), Liquid, byte-safe image, and byte-safe XAP formats.
 - `source/Tools/GitMerge` exposes the `meridian` command surface:
   - `merge-file --base <PATH> --ours <PATH> --theirs <PATH> --path <REPO_PATH> [--schema <SCHEMA_YAML>]`
   - `diff-file --old <PATH> --new <PATH> --path <REPO_PATH> [--schema <SCHEMA_YAML>]`
@@ -70,8 +70,8 @@ Responsibilities Meridian should not own:
 
 ## Side Effects
 
-- `merge-file` writes the merged result to the `--ours` path.
-- `diff-file` writes structural diff output to stdout.
+- `merge-file` writes the merged result to the `--ours` path. For binary adapters it reads and writes file content as bytes; when both sides change a binary file differently it leaves `--ours` untouched and exits with conflict status, because binary content cannot carry text conflict markers.
+- `diff-file` writes structural diff output to stdout, or a single "binary files differ" line for binary adapters.
 - Identity, schema, adapter, conflict, and remote-schema diagnostics are written to stderr.
 - Schema loading may read local files referenced by `--schema`, discovered `*.meridian.yaml` files, `includes`, or `references`.
 - Schema loading may perform HTTP/HTTPS GET requests for remote includes.

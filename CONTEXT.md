@@ -13,7 +13,7 @@ Current state:
 - Consumer usage is documented in `README.md`; deeper extension notes live in `docs/architecture.md`.
 - Repository cognition is split across `CONTEXT.md` for current operational state, `HISTORY.md` for architectural and operational change history, and `INTERFACE.md` for the stable public boundary.
 - The Meridian schema authoring contract is documented as JSON Schema in `schemas/meridian.schema.json`, including descriptions for editor and LLM-assisted generation.
-- XML, JSON, JSON5, YAML, HTML fragment, JavaScript, Liquid, mapped-text fallback, CSS, image placeholder, `xap`, and raw adapters exist. Closely related external adapters are grouped into format-family projects under `source/Formats`.
+- XML, JSON, JSON5, YAML, HTML fragment, JavaScript, CSS, and Liquid adapters parse their formats structurally. JavaScript is structural by top-level declaration (Esprima boundaries, verbatim slices) and CSS is structural by selector and declaration property; both are source-preserving on a clean round-trip. The mapped-text and raw adapters share an `OpaqueTextAdapter` base for genuinely unstructured text. PNG, JPEG, GIF, ICO, and `xap` adapters share a byte-safe `BinaryFormatAdapter` base (lossless base64 scalar, conflict on divergence) and implement `IBinaryFormatAdapter`. Closely related external adapters are grouped into format-family projects under `source/Formats`.
 - The Git integration command can merge supported files and produce two-way semantic diffs with an optional schema.
 - The Git integration command can automatically discover `*.meridian.yaml` schema files from the target file directory up to the Git repository root.
 - Schema documents can compose other schema documents with `includes` or `references`; local relative includes resolve from the containing YAML file and remote HTTP/HTTPS includes are fetched with explicit diagnostics.
@@ -77,7 +77,7 @@ Current state:
 - Add explicit unresolved nested-conflict projection instead of failing during collapse.
 - Strengthen mapped token semantic keys so they remain stable under unrelated token insertion.
 - Add more host adapters and safe token strategies for JSON, YAML, HTML, JavaScript, and other formats.
-- Add lossless or source-preserving formatting preservation for JSON, YAML, JSON5, HTML, and JavaScript where practical.
-- Replace opaque adapters for binary formats with byte-safe handling.
-- Add first-class package adapters for composite formats such as `docx` and `xlsx`.
+- Add lossless or source-preserving formatting preservation for JSON, YAML, JSON5, and HTML where practical (XML, JavaScript, and CSS already round-trip clean merges exactly).
+- Deepen JavaScript merge below the top-level statement boundary and CSS merge below the rule/at-rule-block boundary.
+- Add first-class package adapters for composite formats such as `docx` and `xlsx`, building on the byte-safe `BinaryFormatAdapter` base.
 - Decide packaging and distribution shape before external consumers depend on source checkout paths.

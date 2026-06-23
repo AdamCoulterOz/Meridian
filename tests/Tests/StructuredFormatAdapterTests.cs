@@ -76,7 +76,6 @@ actions:
         [
             new MappedTextAdapter(),
             new RawAdapter(),
-            new CssAdapter(),
             new PngAdapter(),
             new JpgAdapter(),
             new GifAdapter(),
