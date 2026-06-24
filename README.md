@@ -45,26 +45,39 @@ Meridian lets the repository define those facts once in a schema, then uses them
 
 ## Current Status
 
-Meridian is early, usable source-first tooling. It is not packaged yet as a NuGet package or global `dotnet` tool.
+Meridian is early, usable tooling for Git structural merge and diff. Its NuGet tool package id is `MeridianGit`, and the installed command is `meridian`.
 
 Today it includes:
 
-- a `merge-file` command suitable for Git merge-driver integration;
-- a `diff-file` command suitable for Git external-diff integration;
-- structural adapters for XML, JSON, JSON5, YAML, HTML fragment, JavaScript, CSS, and Liquid in source;
-- byte-safe adapters for binary image (PNG, JPEG, GIF, ICO) and XAP payloads;
+- a packable .NET tool package suitable for `dotnet tool install --global MeridianGit`;
+- a `meridian merge` command suitable for Git merge-driver integration;
+- a `meridian diff` command suitable for Git external-diff integration;
+- provider package contracts in `MeridianGit.Abstractions`;
+- grouped provider packages: `MeridianGit.Formats.Markup`, `MeridianGit.Formats.Web`, `MeridianGit.Formats.Images`, `MeridianGit.Formats.PowerPlatform`, and `MeridianGit.Formats.Binary`;
+- structural adapters for XML, JSON, JSON5, YAML, HTML fragment, JavaScript, CSS, and Liquid;
+- byte-safe providers for binary image (PNG, JPEG, GIF, ICO) and XAP payloads;
 - schema-driven identity and ordered-child rules in the Git merge path;
 - schema-driven identity and ordered-child rules in the Git diff path;
 - schema models and library utilities for nested content formats, companion file rules, and format aliases;
 - two-sided Git conflict marker output for unresolved conflicts.
 
-The current CLI auto-selects adapters by file extension for XML, JSON, JSON5, JavaScript, YAML, HTML, and CSS files, and for binary `.png`, `.jpg`/`.jpeg`, `.gif`, `.ico`, and `.xap` files. Additional adapters are available to consumers embedding Meridian directly.
+The current CLI auto-selects providers by file extension for XML, JSON, JSON5, JavaScript, YAML, HTML, CSS, Liquid, binary `.png`, `.jpg`/`.jpeg`, `.gif`, `.ico`, `.xap`, and generic `.bin` files. Known formats are backed by a trusted provider package catalog; the tool bundles the built-in providers for local use and can restore exact trusted provider packages when a known provider assembly is missing.
 
 JavaScript merges by top-level declaration: Esprima parses the source and each top-level statement is kept as its verbatim slice, keyed by the declared function/class/variable name (or module specifier for imports), so editing one declaration and adding another merge independently. CSS merges by rule and by declaration: rules are matched by selector and declarations within a block by property name, so independent edits land cleanly while two edits to the same property conflict. Binary formats are compared by exact byte content; when both sides change a binary file differently the merge reports a conflict and leaves `--ours` untouched, because binary content cannot carry text conflict markers.
 
-## Build
+## Install And Build
 
 Prerequisite: .NET 11 SDK.
+
+Install the published tool package:
+
+```bash
+dotnet tool install --global MeridianGit
+```
+
+The package id is `MeridianGit` because `meridian` is already taken on NuGet. The command installed onto your path is still `meridian`.
+
+To build and test from source:
 
 ```bash
 git clone https://github.com/AdamCoulterOz/Meridian.git
@@ -73,30 +86,34 @@ dotnet build Meridian.slnx
 dotnet test Meridian.slnx
 ```
 
-Run the merge command from source:
+Pack the NuGet package set locally:
 
 ```bash
-dotnet run --project source/Tools/GitMerge/GitMerge.csproj -- \
-  merge-file \
+dotnet pack Meridian.slnx -c Release
+```
+
+Run the merge command:
+
+```bash
+meridian merge \
   --base path/to/base.xml \
   --ours path/to/ours.xml \
   --theirs path/to/theirs.xml \
   --path catalog.xml
 ```
 
-`merge-file` writes the merged result back to `--ours`, matching Git merge-driver expectations.
+`meridian merge` writes the merged result back to `--ours`, matching Git merge-driver expectations.
 
-Run a two-way structural diff from source:
+Run a two-way structural diff:
 
 ```bash
-dotnet run --project source/Tools/GitMerge/GitMerge.csproj -- \
-  diff-file \
+meridian diff \
   --old path/to/old.xml \
   --new path/to/new.xml \
   --path catalog.xml
 ```
 
-`diff-file` writes a semantic diff to stdout. It matches children by Meridian identity rules, so schema-unordered sibling reorders are ignored while schema-ordered child reorders are reported.
+`meridian diff` writes a semantic diff to stdout. It matches children by Meridian identity rules, so schema-unordered sibling reorders are ignored while schema-ordered child reorders are reported.
 
 When `--schema` is omitted, the Git command discovers schema files automatically. It starts at the directory containing `--path`, walks up to the Git repository root, finds `*.meridian.yaml` files in each directory, then applies them from root to leaf. Mapping keys are recursively merged; nearer schema files overwrite earlier values. Non-mapping values, including lists, replace the earlier value.
 
@@ -138,13 +155,19 @@ Treat schema files, including their transitive includes, as trusted code:
 - Prefer commit-SHA-pinned URLs over branch URLs so the schema you reviewed is the schema you load. Meridian flags whether each remote URL appears pinned.
 - If you do not need remote composition, keep `includes`/`references` local (relative paths only). Local-only schemas perform no network I/O.
 
+### Trusted Provider Downloads
+
+MeridianGit resolves known file extensions through trusted provider package metadata. The trusted catalog pins exact package ids, versions, assembly names, provider type names, and supported extensions for grouped `MeridianGit.Formats.*` packages. If a known provider assembly is not already available, the CLI restores that exact package into a user cache and loads its provider registration.
+
+Set `MERIDIANGIT_DISABLE_PROVIDER_DOWNLOAD=1` to prevent provider package restore. Set `MERIDIANGIT_PROVIDER_SOURCES` to a semicolon-separated list of NuGet sources when testing packages from a local feed.
+
 Exit codes:
 
 - `0`: clean merge.
 - `1`: merge completed with conflict markers.
 - `2`: usage, adapter, or configuration error.
 
-For `diff-file`, `0` means the comparison completed, including when differences are printed. `2` means usage, adapter, schema, or identity configuration error. This keeps the command compatible with Git external-diff invocation.
+For `meridian diff`, `0` means the comparison completed, including when differences are printed. `2` means usage, adapter, schema, or identity configuration error. This keeps the command compatible with Git external-diff invocation.
 
 ## Git Merge Driver
 
@@ -153,10 +176,8 @@ In the repository that contains the files you want to merge, add a Git merge dri
 ```ini
 [merge "meridian"]
     name = Meridian structural merge
-    driver = dotnet run --project ../Meridian/source/Tools/GitMerge/GitMerge.csproj -- merge-file --base %O --ours %A --theirs %B --path %P
+    driver = meridian merge --base %O --ours %A --theirs %B --path %P
 ```
-
-Adjust the `../Meridian/...` path to wherever Meridian lives relative to the consuming repo.
 
 Then opt files into the driver with `.gitattributes`:
 
@@ -179,7 +200,7 @@ In the repository that contains the files you want to compare, add a Git diff dr
 
 ```ini
 [diff "meridian"]
-    command = dotnet run --project ../Meridian/source/Tools/GitMerge/GitMerge.csproj -- diff-file
+    command = meridian diff
 ```
 
 Git appends its external-diff arguments after the configured command:
@@ -345,7 +366,7 @@ content:
 
 Meridian parses the nested content, merges it using the selected adapter and nested schema, then re-embeds it into the parent format. If unresolved conflict markers cannot be safely embedded back into the parent scalar, Meridian fails instead of corrupting escaped content.
 
-Today this is exposed as library functionality through the nested content expander/collapser. The Git `merge-file` command does not automatically expand and collapse nested content yet.
+Today this is exposed as library functionality through the nested content expander/collapser. The Git `merge` command does not automatically expand and collapse nested content yet.
 
 ## Companion Files
 
@@ -383,7 +404,7 @@ formatAliases:
 
 This keeps useful domain meaning in the schema without forcing every logical type to have a dedicated parser on day one.
 
-Companion rules are available in the schema model for consumer tooling. The current Git `merge-file` command merges the one file Git passes to it; it does not automatically chase companion payloads yet.
+Companion rules are available in the schema model for consumer tooling. The current Git `merge` command merges the one file Git passes to it; it does not automatically chase companion payloads yet.
 
 ## Library Usage
 
@@ -392,7 +413,7 @@ The CLI is the easiest way to use Meridian from Git. You can also embed the merg
 ```csharp
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Formats.Data;
+using MeridianGit.Formats.Xml;
 
 var schema = MergeSchemaYamlLoader
     .LoadFile("repo.meridian.yaml")
@@ -428,6 +449,7 @@ Common schema format names:
 | `liquid:xml` | Liquid mapped over XML when using composed adapters. |
 | `plain` | Plain scalar text. |
 | `raw` | Opaque content; useful as a safe default. |
+| `binary` | Generic byte-safe binary payloads, compared by exact content. |
 | `image:png` `image:jpg` `image:gif` `image:ico` `xap` | Byte-safe binary payloads, compared by exact content. |
 
 Schema aliases let consumers keep precise logical names:
@@ -446,7 +468,6 @@ formatAliases:
 - JavaScript merges top-level declarations by name and other statements positionally; it does not yet merge inside a function body.
 - CSS merges top-level rules and block declarations; deeply nested structures beyond at-rule blocks are preserved verbatim rather than merged.
 - Mapped templating support intentionally falls back to opaque behavior when tokens appear in unsafe host-language positions.
-- Packaging is not done yet; use from source for now.
 
 ## More Detail
 

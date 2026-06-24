@@ -1,6 +1,6 @@
 using Meridian.Core.Formats;
 
-namespace Meridian.Formats.Images;
+namespace MeridianGit.Formats.Png;
 
 public sealed class PngAdapter : BinaryFormatAdapter
 {

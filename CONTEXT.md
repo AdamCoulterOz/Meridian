@@ -13,8 +13,10 @@ Current state:
 - Consumer usage is documented in `README.md`; deeper extension notes live in `docs/architecture.md`.
 - Repository cognition is split across `CONTEXT.md` for current operational state, `HISTORY.md` for architectural and operational change history, and `INTERFACE.md` for the stable public boundary.
 - The Meridian schema authoring contract is documented as JSON Schema in `schemas/meridian.schema.json`, including descriptions for editor and LLM-assisted generation.
-- XML, JSON, JSON5, YAML, HTML fragment, JavaScript, CSS, and Liquid adapters parse their formats structurally. JavaScript is structural by top-level declaration (Esprima boundaries, verbatim slices) and CSS is structural by selector and declaration property; both are source-preserving on a clean round-trip. The mapped-text and raw adapters share an `OpaqueTextAdapter` base for genuinely unstructured text. PNG, JPEG, GIF, ICO, and `xap` adapters share a byte-safe `BinaryFormatAdapter` base (lossless base64 scalar, conflict on divergence) and implement `IBinaryFormatAdapter`. Closely related external adapters are grouped into format-family projects under `source/Formats`.
-- The Git integration command can merge supported files and produce two-way semantic diffs with an optional schema.
+- XML, JSON, JSON5, YAML, HTML fragment, JavaScript, CSS, and Liquid adapters parse their formats structurally. JavaScript is structural by top-level declaration (Esprima boundaries, verbatim slices) and CSS is structural by selector and declaration property; both are source-preserving on a clean round-trip. The mapped-text and raw adapters share an `OpaqueTextAdapter` base for genuinely unstructured text. PNG, JPEG, GIF, ICO, and `xap` adapters share a byte-safe `BinaryFormatAdapter` base (lossless base64 scalar, conflict on divergence) and implement `IBinaryFormatAdapter`.
+- The Git integration command is packaged as the `MeridianGit` .NET tool package, installs the `meridian` command, and exposes `meridian merge` and `meridian diff`.
+- Format support is split into grouped `MeridianGit.Formats.*` provider packages. `Markup` covers XML/JSON/JSON5/YAML, `Web` covers HTML/CSS/JavaScript, `Images` covers PNG/JPEG/GIF/ICO, `PowerPlatform` covers XAP/Liquid, and `Binary` covers generic `.bin` payloads. Provider packages implement `MeridianGit.Abstractions.IMeridianGitProvider` and register file extensions to Meridian core adapters.
+- The Git integration command can merge supported files and produce two-way semantic diffs with an optional schema. It resolves providers from bundled registrations first and has a trusted exact-package catalog for known provider restore when a known provider assembly is missing.
 - The Git integration command can automatically discover `*.meridian.yaml` schema files from the target file directory up to the Git repository root.
 - Schema documents can compose other schema documents with `includes` or `references`; local relative includes resolve from the containing YAML file and remote HTTP/HTTPS includes are fetched with explicit diagnostics.
 - Mapped format composition exists for formats such as `liquid:xml`.
@@ -25,11 +27,9 @@ Current state:
 - `source/Core` contains document tree contracts, schema model/loading, identity assignment, three-way merge mechanics, structural diff mechanics, conflict marker helpers, and generic format infrastructure.
 - `source/Core/Formats/Nested` contains nested content expansion/collapse.
 - `source/Core/Formats/Mapped` contains mapped-text fallback, mapped format composition, and mapped token contracts.
-- `source/Formats/Data` contains XML, JSON, JSON5, and YAML adapters.
-- `source/Formats/Web` contains HTML fragment, CSS, and JavaScript adapters.
-- `source/Formats/Images` contains image placeholder adapters for PNG, JPEG, GIF, and ICO payloads.
-- `source/Formats` also contains dedicated projects for Liquid and `xap`.
-- `source/Tools/GitMerge` contains a thin Git merge-driver and external-diff style command using Spectre.Console.Cli command/settings classes with attribute-based options and arguments.
+- `source/MeridianGit.Abstractions` contains provider registration contracts for `MeridianGit.Formats.*` packages.
+- `source/Formats/*` contains grouped provider projects plus adapter implementation folders. The package projects are `Binary`, `Images`, `Markup`, `PowerPlatform`, and `Web`; adapter types keep format-specific namespaces such as `MeridianGit.Formats.Xml` and `MeridianGit.Formats.Png`.
+- `source/Tools/GitMerge` contains the `MeridianGit` .NET tool implementation using Spectre.Console.Cli command/settings classes with attribute-based options and arguments.
 - `tests/Tests` contains coverage for identity generation, ambiguity detection, schema loading, unordered merge, ordered child conflicts, nested content traversal, format adapters, mapped format composition, Git conflict marker rendering, file-based generic fixtures, and Git merge/diff integration command behavior.
 
 ## Key Decisions And Invariants
@@ -37,8 +37,9 @@ Current state:
 - Meridian is domain-neutral. Product-specific knowledge must live in external schemas or wrapper tools.
 - The merge engine operates on tree nodes, not plain text.
 - Format adapters own parsing, physical representation, escaping/encoding, and write-back behavior.
-- Format adapter projects are grouped by cohesive format family. Shared format helper assemblies should be avoided unless the shared contract is genuinely format-agnostic and belongs outside a concrete adapter.
+- Format adapter packages are grouped by cohesive consumption lifecycle. Avoid splitting every adapter into its own package unless dependency weight, ownership, or release cadence makes the separation worthwhile.
 - Git integration remains outside `Meridian.Core`.
+- The CLI must not auto-load arbitrary provider packages. Automatic provider restore is limited to the trusted catalog of exact grouped `MeridianGit.Formats.*` package ids, versions, assembly names, provider type names, and extensions.
 - Schema rules define merge-relevant semantics such as discriminators, ordered children, companion files, content formats, nested schema references, and format aliases.
 - Schema content rules should describe decoded logical content, not normal container escaping. The active adapter owns container-specific decoding and re-encoding.
 - Logical format aliases should preserve domain meaning instead of erasing it. For example, a schema may name `svg`, `xsl`, or `resx` while the registry currently aliases them to `xml` until dedicated adapters exist.
@@ -80,4 +81,3 @@ Current state:
 - Add lossless or source-preserving formatting preservation for JSON, YAML, JSON5, and HTML where practical (XML, JavaScript, and CSS already round-trip clean merges exactly).
 - Deepen JavaScript merge below the top-level statement boundary and CSS merge below the rule/at-rule-block boundary.
 - Add first-class package adapters for composite formats such as `docx` and `xlsx`, building on the byte-safe `BinaryFormatAdapter` base.
-- Decide packaging and distribution shape before external consumers depend on source checkout paths.

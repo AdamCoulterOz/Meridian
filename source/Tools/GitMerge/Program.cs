@@ -1,10 +1,7 @@
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Formats.Data;
-using Meridian.Formats.Images;
-using Meridian.Formats.Web;
-using Meridian.Formats.Xap;
+using Meridian.Tools.GitMerge;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -13,9 +10,9 @@ app.Configure(config =>
 {
     config.SetApplicationName("meridian");
     config.PropagateExceptions();
-    config.AddCommand<MergeFileCommand>("merge-file")
+    config.AddCommand<MergeCommand>("merge")
         .WithDescription("Merge one file using Meridian structural three-way merge.");
-    config.AddCommand<DiffFileCommand>("diff-file")
+    config.AddCommand<DiffCommand>("diff")
         .WithDescription("Compare two files using Meridian structural two-way diff.");
 });
 
@@ -34,7 +31,7 @@ catch (Exception error)
     return 2;
 }
 
-internal sealed class MergeFileSettings : CommandSettings
+internal sealed class MergeSettings : CommandSettings
 {
     [CommandOption("--base <PATH>")]
     public string? BasePath { get; init; }
@@ -66,7 +63,7 @@ internal sealed class MergeFileSettings : CommandSettings
     }
 }
 
-internal sealed class DiffFileSettings : CommandSettings
+internal sealed class DiffSettings : CommandSettings
 {
     [CommandArgument(0, "[repo-path]")]
     public string? PositionalRepoPath { get; init; }
@@ -116,15 +113,15 @@ internal sealed class DiffFileSettings : CommandSettings
     }
 }
 
-internal sealed class MergeFileCommand : AsyncCommand<MergeFileSettings>
+internal sealed class MergeCommand : AsyncCommand<MergeSettings>
 {
-    protected override async Task<int> ExecuteAsync(CommandContext context, MergeFileSettings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(CommandContext context, MergeSettings settings, CancellationToken cancellationToken)
     {
         var basePath = settings.BasePath!;
         var oursPath = settings.OursPath!;
         var theirsPath = settings.TheirsPath!;
         var repoPath = settings.RepoPath ?? oursPath;
-        var adapter = GitIntegration.CreateAdapter(repoPath);
+        var adapter = await GitIntegration.CreateAdapterAsync(repoPath, cancellationToken);
         if (adapter is null)
         {
             Console.Error.WriteLine($"No Meridian adapter is registered for '{repoPath}'.");
@@ -180,14 +177,14 @@ internal sealed class MergeFileCommand : AsyncCommand<MergeFileSettings>
     }
 }
 
-internal sealed class DiffFileCommand : AsyncCommand<DiffFileSettings>
+internal sealed class DiffCommand : AsyncCommand<DiffSettings>
 {
-    protected override async Task<int> ExecuteAsync(CommandContext context, DiffFileSettings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(CommandContext context, DiffSettings settings, CancellationToken cancellationToken)
     {
         var oldPath = settings.OldPath ?? settings.PositionalOldPath!;
         var newPath = settings.NewPath ?? settings.PositionalNewPath!;
         var repoPath = settings.RepoPath ?? settings.PositionalRepoPath ?? newPath;
-        var adapter = GitIntegration.CreateAdapter(repoPath);
+        var adapter = await GitIntegration.CreateAdapterAsync(repoPath, cancellationToken);
         if (adapter is null)
         {
             Console.Error.WriteLine($"No Meridian adapter is registered for '{repoPath}'.");
@@ -223,29 +220,8 @@ internal sealed class DiffFileCommand : AsyncCommand<DiffFileSettings>
 
 internal static class GitIntegration
 {
-    public static IFormatAdapter? CreateAdapter(string repoPath)
-    {
-        var extension = Path.GetExtension(repoPath).ToLowerInvariant();
-        return extension switch
-        {
-            ".xml" => new XmlAdapter(),
-            ".json" => new JsonAdapter(),
-            ".json5" => new Json5Adapter(),
-            ".js" => new JavaScriptAdapter(),
-            ".yaml" => new YamlAdapter(),
-            ".yml" => new YamlAdapter(),
-            ".html" => new HtmlFragmentAdapter(),
-            ".htm" => new HtmlFragmentAdapter(),
-            ".css" => new CssAdapter(),
-            ".png" => new PngAdapter(),
-            ".jpg" => new JpgAdapter(),
-            ".jpeg" => new JpgAdapter(),
-            ".gif" => new GifAdapter(),
-            ".ico" => new IcoAdapter(),
-            ".xap" => new XapAdapter(),
-            _ => null
-        };
-    }
+    public static Task<IFormatAdapter?> CreateAdapterAsync(string repoPath, CancellationToken cancellationToken) =>
+        MeridianGitFormatProviders.CreateAdapterAsync(repoPath, cancellationToken);
 
     public static MergeSchema LoadSchema(string? schemaPath, string repoPath)
     {

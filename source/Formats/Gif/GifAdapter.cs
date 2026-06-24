@@ -1,6 +1,6 @@
 using Meridian.Core.Formats;
 
-namespace Meridian.Formats.Images;
+namespace MeridianGit.Formats.Gif;
 
 public sealed class GifAdapter : BinaryFormatAdapter
 {

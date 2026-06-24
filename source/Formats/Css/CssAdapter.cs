@@ -5,7 +5,7 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.Web;
+namespace MeridianGit.Formats.Css;
 
 /// <summary>
 /// Structural, source-preserving CSS adapter. The stylesheet is split into an

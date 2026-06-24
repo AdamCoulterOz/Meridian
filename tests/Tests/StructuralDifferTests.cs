@@ -1,6 +1,6 @@
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Formats.Data;
+using MeridianGit.Formats.Xml;
 
 namespace Meridian.Tests;
 

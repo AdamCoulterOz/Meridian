@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../Core/Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <AssemblyName>MeridianGit.Abstractions</AssemblyName>
+    <RootNamespace>MeridianGit.Abstractions</RootNamespace>
+    <PackageId>MeridianGit.Abstractions</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Adam Coulter</Authors>
+    <Description>Provider registration abstractions for MeridianGit format support.</Description>
+    <PackageTags>git;merge;diff;structural-merge;providers;abstractions</PackageTags>
+    <PackageProjectUrl>https://github.com/AdamCoulterOz/Meridian</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AdamCoulterOz/Meridian</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

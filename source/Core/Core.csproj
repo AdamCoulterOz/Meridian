@@ -4,6 +4,14 @@
     <TargetFramework>net11.0</TargetFramework>
     <AssemblyName>Meridian.Core</AssemblyName>
     <RootNamespace>Meridian.Core</RootNamespace>
+    <PackageId>Meridian.Core</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Adam Coulter</Authors>
+    <Description>Core structural merge, diff, schema, and adapter contracts for Meridian.</Description>
+    <PackageTags>merge;diff;structural-merge;schema;adapters</PackageTags>
+    <PackageProjectUrl>https://github.com/AdamCoulterOz/Meridian</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AdamCoulterOz/Meridian</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

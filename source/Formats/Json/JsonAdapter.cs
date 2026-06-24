@@ -6,7 +6,7 @@ using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.Data;
+namespace MeridianGit.Formats.Json;
 
 public class JsonAdapter : IFormatAdapter
 {

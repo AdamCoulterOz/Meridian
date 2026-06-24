@@ -1,5 +1,15 @@
 # History
 
+## 2026-06-24
+
+- Adjusted the distributable provider package boundary from one package per concrete adapter to cohesive bundles:
+  - `MeridianGit.Formats.Markup` carries XML, JSON, JSON5, and YAML.
+  - `MeridianGit.Formats.Web` carries HTML, CSS, and JavaScript.
+  - `MeridianGit.Formats.Images` carries PNG, JPEG, GIF, and ICO.
+  - `MeridianGit.Formats.PowerPlatform` carries XAP and Liquid.
+  - `MeridianGit.Formats.Binary` carries the generic `.bin` byte-safe provider and is the intended home for future generic binary types.
+  - Adapter namespaces remain format-specific while package restore, provider registration, and CLI trust operate at the bundle level.
+
 ## 2026-06-23
 
 - Implemented the format adapters ("providers") that were previously opaque placeholders.
@@ -7,6 +17,10 @@
   - CSS is now structural and source-preserving: a brace/string/comment/paren-aware scanner splits the stylesheet into rules (by selector), declarations (by property), at-rules, comments, and whitespace, capturing every byte so any input round-trips exactly. Independent rule/declaration edits merge; same-property edits conflict.
   - PNG, JPEG, GIF, ICO, and XAP are now byte-safe via a shared `BinaryFormatAdapter` base and the new `IBinaryFormatAdapter` contract. Content is a lossless base64 scalar; the Git CLI reads/writes these as bytes, resolves to the changed side when only one side changed, and reports a conflict (leaving `--ours` untouched) when both diverge. Raw and mapped-text adapters were consolidated onto a shared `OpaqueTextAdapter` base.
   - The Git CLI registers `.css`, `.png`, `.jpg`/`.jpeg`, `.gif`, `.ico`, and `.xap` by extension, and `diff-file` reports binary differences without dumping content.
+- Established the distributable MeridianGit package shape:
+  - The Git CLI now packs as the `MeridianGit` .NET tool package while installing the user-facing `meridian` command.
+  - Public Git verbs are `meridian merge` and `meridian diff`, replacing the earlier source-run `merge-file`/`diff-file` command names.
+  - Provider registration moved behind `MeridianGit.Abstractions`, with a trusted exact-package restore catalog for known format types.
 
 ## 2026-06-22
 

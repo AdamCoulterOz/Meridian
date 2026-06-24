@@ -22,11 +22,11 @@
 
   <ItemGroup>
     <ProjectReference Include="../../source/Core/Core.csproj" />
-    <ProjectReference Include="../../source/Formats/Data/Data.csproj" />
+    <ProjectReference Include="../../source/Formats/Binary/Binary.csproj" />
     <ProjectReference Include="../../source/Formats/Images/Images.csproj" />
-    <ProjectReference Include="../../source/Formats/Liquid/Liquid.csproj" />
+    <ProjectReference Include="../../source/Formats/Markup/Markup.csproj" />
+    <ProjectReference Include="../../source/Formats/PowerPlatform/PowerPlatform.csproj" />
     <ProjectReference Include="../../source/Formats/Web/Web.csproj" />
-    <ProjectReference Include="../../source/Formats/Xap/Xap.csproj" />
     <ProjectReference Include="../../source/Tools/GitMerge/GitMerge.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 

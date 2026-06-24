@@ -6,21 +6,26 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../Png/*.cs" />
-    <Compile Include="../Jpeg/*.cs" />
-    <Compile Include="../Gif/*.cs" />
-    <Compile Include="../Ico/*.cs" />
+    <Compile Include="../Xml/*.cs" />
+    <Compile Include="../Json/*.cs" />
+    <Compile Include="../Json5/*.cs" />
+    <Compile Include="../Yaml/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Json5" Version="1.0.4" />
+    <PackageReference Include="YamlDotNet" Version="17.0.1" />
   </ItemGroup>
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <AssemblyName>MeridianGit.Formats.Images</AssemblyName>
-    <RootNamespace>MeridianGit.Formats.Images</RootNamespace>
-    <PackageId>MeridianGit.Formats.Images</PackageId>
+    <AssemblyName>MeridianGit.Formats.Markup</AssemblyName>
+    <RootNamespace>MeridianGit.Formats.Markup</RootNamespace>
+    <PackageId>MeridianGit.Formats.Markup</PackageId>
     <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
-    <Description>Byte-safe image format providers for MeridianGit structural merge and diff.</Description>
-    <PackageTags>git;merge;diff;png;jpeg;jpg;gif;ico;binary;meridiangit-format</PackageTags>
+    <Description>XML, JSON, JSON5, and YAML format providers for MeridianGit structural merge and diff.</Description>
+    <PackageTags>git;merge;diff;xml;json;json5;yaml;meridiangit-format</PackageTags>
     <PackageProjectUrl>https://github.com/AdamCoulterOz/Meridian</PackageProjectUrl>
     <RepositoryUrl>https://github.com/AdamCoulterOz/Meridian</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

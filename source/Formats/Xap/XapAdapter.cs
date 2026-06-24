@@ -1,6 +1,6 @@
 using Meridian.Core.Formats;
 
-namespace Meridian.Formats.Xap;
+namespace MeridianGit.Formats.Xap;
 
 public sealed class XapAdapter : BinaryFormatAdapter
 {

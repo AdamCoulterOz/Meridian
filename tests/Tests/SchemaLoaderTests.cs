@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Meridian.Core.Identity;
 using Meridian.Core.Schema;
-using Meridian.Formats.Data;
+using MeridianGit.Formats.Xml;
 
 namespace Meridian.Tests;
 

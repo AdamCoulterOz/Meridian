@@ -5,22 +5,15 @@
     <ProjectReference Include="../../MeridianGit.Abstractions/MeridianGit.Abstractions.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="../Png/*.cs" />
-    <Compile Include="../Jpeg/*.cs" />
-    <Compile Include="../Gif/*.cs" />
-    <Compile Include="../Ico/*.cs" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <AssemblyName>MeridianGit.Formats.Images</AssemblyName>
-    <RootNamespace>MeridianGit.Formats.Images</RootNamespace>
-    <PackageId>MeridianGit.Formats.Images</PackageId>
+    <AssemblyName>MeridianGit.Formats.Binary</AssemblyName>
+    <RootNamespace>MeridianGit.Formats.Binary</RootNamespace>
+    <PackageId>MeridianGit.Formats.Binary</PackageId>
     <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
-    <Description>Byte-safe image format providers for MeridianGit structural merge and diff.</Description>
-    <PackageTags>git;merge;diff;png;jpeg;jpg;gif;ico;binary;meridiangit-format</PackageTags>
+    <Description>Generic byte-safe binary format provider for MeridianGit structural merge and diff.</Description>
+    <PackageTags>git;merge;diff;bin;binary;meridiangit-format</PackageTags>
     <PackageProjectUrl>https://github.com/AdamCoulterOz/Meridian</PackageProjectUrl>
     <RepositoryUrl>https://github.com/AdamCoulterOz/Meridian</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

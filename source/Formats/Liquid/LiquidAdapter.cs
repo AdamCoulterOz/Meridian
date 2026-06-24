@@ -3,7 +3,7 @@ using Meridian.Core.Formats.Mapped;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.Liquid;
+namespace MeridianGit.Formats.Liquid;
 
 public class LiquidAdapter : IMappedSourceAdapter
 {

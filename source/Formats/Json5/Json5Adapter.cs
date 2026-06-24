@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
+using MeridianGit.Formats.Json;
 
-namespace Meridian.Formats.Data;
+namespace MeridianGit.Formats.Json5;
 
 public sealed class Json5Adapter : JsonAdapter
 {

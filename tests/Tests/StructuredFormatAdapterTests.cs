@@ -2,11 +2,20 @@ using Meridian.Core.Formats;
 using Meridian.Core.Formats.Mapped;
 using Meridian.Core.Formats.Nested;
 using Meridian.Core.Schema;
-using Meridian.Formats.Data;
-using Meridian.Formats.Images;
-using Meridian.Formats.Liquid;
-using Meridian.Formats.Web;
-using Meridian.Formats.Xap;
+using MeridianGit.Formats.Binary;
+using MeridianGit.Formats.Css;
+using MeridianGit.Formats.Gif;
+using MeridianGit.Formats.Html;
+using MeridianGit.Formats.Ico;
+using MeridianGit.Formats.JavaScript;
+using MeridianGit.Formats.Jpeg;
+using MeridianGit.Formats.Json;
+using MeridianGit.Formats.Json5;
+using MeridianGit.Formats.Liquid;
+using MeridianGit.Formats.Png;
+using MeridianGit.Formats.Xap;
+using MeridianGit.Formats.Xml;
+using MeridianGit.Formats.Yaml;
 
 namespace Meridian.Tests;
 
@@ -76,6 +85,7 @@ actions:
         [
             new MappedTextAdapter(),
             new RawAdapter(),
+            new BinAdapter(),
             new PngAdapter(),
             new JpgAdapter(),
             new GifAdapter(),
@@ -270,6 +280,7 @@ actions:
             new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter()),
             new MappedTextAdapter(),
             new RawAdapter(),
+            new BinAdapter(),
             new CssAdapter(),
             new PngAdapter(),
             new JpgAdapter(),
@@ -283,7 +294,7 @@ actions:
             ["resx"] = "xml"
         });
 
-        foreach (var format in new[] { "json", "json5", "yaml", "html:fragment", "javascript", "liquid:multi", "liquid:xml", "mapped-text", "raw", "css", "image:png", "image:jpg", "image:gif", "image:ico", "svg", "xsl", "resx", "xap" })
+        foreach (var format in new[] { "json", "json5", "yaml", "html:fragment", "javascript", "liquid:multi", "liquid:xml", "mapped-text", "raw", "binary", "css", "image:png", "image:jpg", "image:gif", "image:ico", "svg", "xsl", "resx", "xap" })
         {
             var source = format switch
             {

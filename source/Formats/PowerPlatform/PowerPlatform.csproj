@@ -6,21 +6,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../Png/*.cs" />
-    <Compile Include="../Jpeg/*.cs" />
-    <Compile Include="../Gif/*.cs" />
-    <Compile Include="../Ico/*.cs" />
+    <Compile Include="../Xap/*.cs" />
+    <Compile Include="../Liquid/*.cs" />
   </ItemGroup>
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <AssemblyName>MeridianGit.Formats.Images</AssemblyName>
-    <RootNamespace>MeridianGit.Formats.Images</RootNamespace>
-    <PackageId>MeridianGit.Formats.Images</PackageId>
+    <AssemblyName>MeridianGit.Formats.PowerPlatform</AssemblyName>
+    <RootNamespace>MeridianGit.Formats.PowerPlatform</RootNamespace>
+    <PackageId>MeridianGit.Formats.PowerPlatform</PackageId>
     <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
-    <Description>Byte-safe image format providers for MeridianGit structural merge and diff.</Description>
-    <PackageTags>git;merge;diff;png;jpeg;jpg;gif;ico;binary;meridiangit-format</PackageTags>
+    <Description>Power Platform-oriented XAP and Liquid format providers for MeridianGit structural merge and diff.</Description>
+    <PackageTags>git;merge;diff;powerplatform;xap;liquid;meridiangit-format</PackageTags>
     <PackageProjectUrl>https://github.com/AdamCoulterOz/Meridian</PackageProjectUrl>
     <RepositoryUrl>https://github.com/AdamCoulterOz/Meridian</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

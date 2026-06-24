@@ -2,9 +2,11 @@ using System.Text;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
-using Meridian.Formats.Images;
-using Meridian.Formats.Web;
-using Meridian.Formats.Xap;
+using MeridianGit.Formats.Binary;
+using MeridianGit.Formats.Css;
+using MeridianGit.Formats.JavaScript;
+using MeridianGit.Formats.Png;
+using MeridianGit.Formats.Xap;
 
 namespace Meridian.Tests;
 
@@ -184,6 +186,18 @@ public sealed class ProviderImplementationTests
     private static readonly byte[] BaseBytes = [0x89, 0x50, 0x4E, 0x47, 0x00, 0xFF, 0xFE, 0x01];
     private static readonly byte[] OursBytes = [0x89, 0x50, 0x4E, 0x47, 0x10, 0xFF, 0xFE, 0x02];
     private static readonly byte[] TheirsBytes = [0x89, 0x50, 0x4E, 0x47, 0x20, 0xFF, 0xFE, 0x03];
+
+    [Fact]
+    public void GenericBinaryAdapterRoundTripsNonTextBytesExactly()
+    {
+        var adapter = new BinAdapter();
+
+        var document = adapter.ParseBytes(BaseBytes, "payload.bin", EmptySchema);
+
+        Assert.Equal("binary", document.Format);
+        Assert.Equal("$binary", document.Root.Kind);
+        Assert.Equal(BaseBytes, adapter.RenderDocumentBytes(document));
+    }
 
     [Fact]
     public void BinaryAdapterRoundTripsNonTextBytesExactly()

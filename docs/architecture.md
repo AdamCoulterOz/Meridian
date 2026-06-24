@@ -43,13 +43,15 @@ A format adapter owns everything physical about a format:
 - rendering tree nodes back into source text;
 - deciding which mapped-token contexts are safe for that host language.
 
-Adapters exist under `source/Formats` by cohesive format family:
+Adapters are packaged under `source/Formats` by cohesive consumption bundle:
 
-- `Data`: XML, JSON, JSON5, YAML;
+- `Markup`: XML, JSON, JSON5, YAML;
 - `Web`: HTML fragment, CSS, JavaScript;
-- `Liquid`: Liquid mapped source parsing;
-- `Images`: image placeholder formats;
-- `Xap`: XAP placeholder format.
+- `Images`: PNG, JPEG, GIF, ICO byte-safe image formats;
+- `PowerPlatform`: XAP byte-safe payloads and Liquid mapped source parsing;
+- `Binary`: generic `.bin` byte-safe payloads and future generic binary formats.
+
+Adapter types keep format-specific namespaces, while the NuGet package and provider registration boundary is the bundle.
 
 ## Identity Assignment
 
@@ -120,7 +122,7 @@ The core model is generic. Power Platform WebResource metadata is one consumer u
 
 - parse Git merge-driver arguments;
 - parse Git external-diff arguments;
-- select an adapter;
+- resolve a format provider from bundled registrations or the trusted provider package catalog;
 - load an explicit schema or discover `*.meridian.yaml` schemas from the file directory up to the Git root;
 - call `Merger`;
 - call `StructuralDiffer`;
@@ -131,6 +133,8 @@ The core model is generic. Power Platform WebResource metadata is one consumer u
 Discovered schema files are applied from root to leaf with recursive mapping-key overlay semantics. Non-mapping values, including lists, are replaced by the nearer file.
 
 The merge core does not depend on Git.
+
+Format provider packages implement `MeridianGit.Abstractions.IMeridianGitProvider` and register file extensions to Meridian core adapters. The CLI owns provider-package trust and restore behavior; format adapters own physical parse/render behavior.
 
 ## Design Biases
 
@@ -145,8 +149,6 @@ Meridian prefers:
 ## Near-Term Technical Follow-Ups
 
 - Source-preserving patch projection so clean merges avoid broad formatting rewrites.
-- More complete CLI adapter registration and format selection.
 - Explicit unresolved nested-conflict projection.
 - Stronger semantic keys for mapped template tokens.
-- Byte-safe binary handling.
 - Package adapters for composite formats such as `docx` and `xlsx`.

@@ -1,7 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="../../Core/Core.csproj" />
+    <ProjectReference Include="../../MeridianGit.Abstractions/MeridianGit.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Html/*.cs" />
+    <Compile Include="../Css/*.cs" />
+    <Compile Include="../JavaScript/*.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -11,8 +18,16 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <AssemblyName>Meridian.Formats.Web</AssemblyName>
-    <RootNamespace>Meridian.Formats.Web</RootNamespace>
+    <AssemblyName>MeridianGit.Formats.Web</AssemblyName>
+    <RootNamespace>MeridianGit.Formats.Web</RootNamespace>
+    <PackageId>MeridianGit.Formats.Web</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Adam Coulter</Authors>
+    <Description>HTML, CSS, and JavaScript format providers for MeridianGit structural merge and diff.</Description>
+    <PackageTags>git;merge;diff;html;css;javascript;meridiangit-format</PackageTags>
+    <PackageProjectUrl>https://github.com/AdamCoulterOz/Meridian</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AdamCoulterOz/Meridian</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

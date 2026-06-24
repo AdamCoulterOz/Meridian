@@ -8,7 +8,7 @@ using Meridian.Core.Formats.Mapped;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
 
-namespace Meridian.Formats.Data;
+namespace MeridianGit.Formats.Xml;
 
 public sealed class XmlAdapter : IFormatAdapter, IMappedHost
 {

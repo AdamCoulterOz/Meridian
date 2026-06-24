@@ -5,7 +5,7 @@ namespace Meridian.Tests;
 public sealed class GitIntegrationCommandTests
 {
     [Fact]
-    public async Task MergeFileCommandUsesGitMergeDriverArgumentsAndWritesOurs()
+    public async Task MergeCommandUsesGitMergeDriverArgumentsAndWritesOurs()
     {
         var repository = CreateTemporaryRepository();
         WriteCatalogSchema(repository);
@@ -19,7 +19,7 @@ public sealed class GitIntegrationCommandTests
 
         var result = await RunGitMergeAsync(
             repository,
-            "merge-file",
+            "merge",
             "--base", basePath,
             "--ours", oursPath,
             "--theirs", theirsPath,
@@ -34,7 +34,7 @@ public sealed class GitIntegrationCommandTests
     }
 
     [Fact]
-    public async Task DiffFileCommandUsesGitExternalDiffArguments()
+    public async Task DiffCommandUsesGitExternalDiffArguments()
     {
         var repository = CreateTemporaryRepository();
         WriteCatalogSchema(repository);
@@ -46,7 +46,7 @@ public sealed class GitIntegrationCommandTests
 
         var result = await RunGitMergeAsync(
             repository,
-            "diff-file",
+            "diff",
             "catalog.xml",
             oldPath,
             "0000000",
@@ -65,7 +65,7 @@ public sealed class GitIntegrationCommandTests
     }
 
     [Fact]
-    public async Task DiffFileCommandUsesExplicitTwoWayArguments()
+    public async Task DiffCommandUsesExplicitTwoWayArguments()
     {
         var repository = CreateTemporaryRepository();
         WriteCatalogSchema(repository);
@@ -77,7 +77,7 @@ public sealed class GitIntegrationCommandTests
 
         var result = await RunGitMergeAsync(
             repository,
-            "diff-file",
+            "diff",
             "--old", oldPath,
             "--new", newPath,
             "--path", "catalog.xml");
@@ -99,7 +99,7 @@ public sealed class GitIntegrationCommandTests
         await File.WriteAllTextAsync(
             Path.Combine(repository, ".gitattributes"),
             "*.xml diff=meridian\n");
-        await RunGitAsync(repository, "config", "diff.meridian.command", $"dotnet \"{GitMergeAssemblyPath}\" diff-file");
+        await RunGitAsync(repository, "config", "diff.meridian.command", $"dotnet \"{GitMergeAssemblyPath}\" diff");
 
         var catalogPath = Path.Combine(repository, "catalog.xml");
         await File.WriteAllTextAsync(catalogPath, """<root><item id="1" name="Old">Before</item></root>""");
@@ -117,7 +117,7 @@ public sealed class GitIntegrationCommandTests
     }
 
     [Fact]
-    public async Task GitMergeDriverUsesMeridianMergeFileCommand()
+    public async Task GitMergeDriverUsesMeridianMergeCommand()
     {
         var repository = CreateTemporaryRepository();
         await InitializeGitRepositoryAsync(repository);
@@ -125,7 +125,7 @@ public sealed class GitIntegrationCommandTests
         await File.WriteAllTextAsync(
             Path.Combine(repository, ".gitattributes"),
             "*.xml merge=meridian\n");
-        await RunGitAsync(repository, "config", "merge.meridian.driver", $"dotnet \"{GitMergeAssemblyPath}\" merge-file --base %O --ours %A --theirs %B --path %P");
+        await RunGitAsync(repository, "config", "merge.meridian.driver", $"dotnet \"{GitMergeAssemblyPath}\" merge --base %O --ours %A --theirs %B --path %P");
 
         var catalogPath = Path.Combine(repository, "catalog.xml");
         await File.WriteAllTextAsync(catalogPath, """<root><item id="1">Base</item></root>""");
@@ -149,7 +149,7 @@ public sealed class GitIntegrationCommandTests
     }
 
     [Fact]
-    public async Task MergeFileCommandMergesBinaryWhenOnlyOneSideChanged()
+    public async Task MergeCommandMergesBinaryWhenOnlyOneSideChanged()
     {
         var repository = CreateTemporaryRepository();
         WriteCatalogSchema(repository);
@@ -165,7 +165,7 @@ public sealed class GitIntegrationCommandTests
 
         var result = await RunGitMergeAsync(
             repository,
-            "merge-file",
+            "merge",
             "--base", basePath,
             "--ours", oursPath,
             "--theirs", theirsPath,
@@ -176,7 +176,7 @@ public sealed class GitIntegrationCommandTests
     }
 
     [Fact]
-    public async Task MergeFileCommandLeavesBinaryConflictAsOurs()
+    public async Task MergeCommandLeavesBinaryConflictAsOurs()
     {
         var repository = CreateTemporaryRepository();
         WriteCatalogSchema(repository);
@@ -193,7 +193,7 @@ public sealed class GitIntegrationCommandTests
 
         var result = await RunGitMergeAsync(
             repository,
-            "merge-file",
+            "merge",
             "--base", basePath,
             "--ours", oursPath,
             "--theirs", theirsPath,
@@ -206,7 +206,7 @@ public sealed class GitIntegrationCommandTests
 
     private static string CreateTemporaryRepository()
     {
-        var root = Path.Combine(Path.GetTempPath(), "meridian-git-integration-tests", Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(Path.GetTempPath(), "meridiangit-integration-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         Directory.CreateDirectory(Path.Combine(root, ".git"));
         return root;

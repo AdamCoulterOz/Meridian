@@ -3,240 +3,837 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Meridian — structural merge for source formats Git only sees as text</title>
-<meta name="description" content="Meridian is a language-aware, schema-driven three-way merge and two-way diff toolkit for XML, JSON, YAML and other structured source files." />
+<title>Meridian | structural merge for source files</title>
+<meta name="description" content="Meridian is a domain-neutral structural merge and semantic diff toolkit for source formats Git can only see as text." />
+<link rel="canonical" href="https://adamcoulteroz.github.io/Meridian/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Meridian | structural merge for source files" />
+<meta property="og:description" content="Merge by structure, not by line order. A domain-neutral structural merge and semantic diff toolkit, wired in as a Git driver." />
+<meta property="og:url" content="https://adamcoulteroz.github.io/Meridian/" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ffffff'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23111820' stroke-width='2'/%3E%3Cpath d='M16 5v22M7 16h18' stroke='%23335fd0' stroke-width='2' stroke-linecap='round'/%3E%3Cellipse cx='16' cy='16' rx='5' ry='10' fill='none' stroke='%2319736a' stroke-width='1.7'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%23335fd0'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600;700&display=swap" />
+<script>(function(){try{var t=localStorage.getItem('meridian-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();</script>
 <style>
-  :root {
-    --bg: #0d1117;
-    --panel: #161b22;
-    --border: #30363d;
-    --fg: #e6edf3;
-    --muted: #9da7b3;
-    --accent: #58a6ff;
-    --accent-2: #3fb950;
-    --warn: #d29922;
-    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+:root{
+  --font-sans:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --font-mono:'Fira Code',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --fw-medium:500;--fw-semibold:600;
+  --dur-fast:.14s;--ease-out:cubic-bezier(.22,1,.36,1);
+  --radius-md:10px;--radius-lg:12px;--radius-xl:18px;
+  --ring:0 0 0 3px var(--accent-subtle);
+  --hairline-top:inset 0 1px 0 rgba(255,255,255,.06);
+  --shadow-sm:0 1px 2px rgba(11,11,12,.05);
+  --shadow-md:0 8px 24px rgba(11,11,12,.10),0 2px 6px rgba(11,11,12,.04);
+  --surface-base:#FFFFFF;--surface-subtle:#F5F5F7;--surface-sunken:#EBEBEF;--surface-card:#FFFFFF;
+  --surface-overlay:rgba(255,255,255,.72);--surface-midnight:#0A1430;--surface-footer:#0A1430;
+  --text-primary:#1D1D1F;--text-secondary:#6E6E73;--text-tertiary:#86868B;
+  --border-subtle:#DEDEDF;--border-default:#C8C8CE;--border-strong:#B0B0B8;
+  --accent:#0B5FFF;--accent-hover:#094AD1;--accent-subtle:#ECF2FF;
+  --success:#1FA855;--success-subtle:#E9F9EE;
+  --signal:#C6F23C;--signal-500:#C6F23C;--signal-300:rgba(198,242,60,.55);--signal-subtle:rgba(198,242,60,.18);
+  --signal-text:#7FAE00;--signal-700:#5E8A00;--signal-on:#0A1430;
+  --warning:#C0863B;
+  --code-bg:#0B0B0C;--code-fg:#E6E6EA;
+  --code-keyword:#1D4ED8;--code-string:#15803D;--code-type:#0E7490;--code-number:#B45309;--code-comment:#6E7781;
+  --gray-400:#9CA3AF;--blue-300:#9DBBFF;--blue-400:#7AA2FF;--blue-700:#1D4ED8;--blue-800:#1E40AF;
+  --green-600:#1FA855;--green-700:#15803D;--amber-700:#B45309;
+}
+:root[data-theme="dark"]{
+  --surface-base:#181A1B;--surface-subtle:#1C1E1F;--surface-sunken:#232628;--surface-card:#1E2021;
+  --surface-overlay:rgba(24,26,27,.72);--surface-midnight:#141617;
+  --text-primary:#D5D1CC;--text-secondary:#A2998D;--text-tertiary:#7E776C;
+  --border-subtle:#393E40;--border-default:#4A4F51;--border-strong:#5C6164;
+  --accent:#3B78FF;--accent-hover:#5E92FF;--accent-subtle:rgba(59,120,255,.18);
+  --success:#30D158;--success-subtle:rgba(48,209,88,.16);
+  --signal-text:#C6F23C;--signal-700:#C6F23C;--signal-subtle:rgba(198,242,60,.16);--signal-300:rgba(198,242,60,.40);
+  --code-bg:#121415;--code-fg:#E3DFD9;--code-keyword:#84A9FF;--code-string:#5FD49A;--code-type:#6FD4E0;--code-number:#E5A66A;--code-comment:#7E776B;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 10px 30px rgba(0,0,0,.5),0 3px 8px rgba(0,0,0,.4);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface-base:#181A1B;--surface-subtle:#1C1E1F;--surface-sunken:#232628;--surface-card:#1E2021;
+  --surface-overlay:rgba(24,26,27,.72);--surface-midnight:#141617;
+  --text-primary:#D5D1CC;--text-secondary:#A2998D;--text-tertiary:#7E776C;
+  --border-subtle:#393E40;--border-default:#4A4F51;--border-strong:#5C6164;
+  --accent:#3B78FF;--accent-hover:#5E92FF;--accent-subtle:rgba(59,120,255,.18);
+  --success:#30D158;--success-subtle:rgba(48,209,88,.16);
+  --signal-text:#C6F23C;--signal-700:#C6F23C;--signal-subtle:rgba(198,242,60,.16);--signal-300:rgba(198,242,60,.40);
+  --code-bg:#121415;--code-fg:#E3DFD9;--code-keyword:#84A9FF;--code-string:#5FD49A;--code-type:#6FD4E0;--code-number:#E5A66A;--code-comment:#7E776B;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 10px 30px rgba(0,0,0,.5),0 3px 8px rgba(0,0,0,.4);
+}}
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  header[id],section[id]{scroll-margin-top:80px}
+  body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-sans);
+    font-size:17px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    transition:background-color .25s var(--ease-out)}
+  a{color:var(--accent)}
+  ::selection{background:rgba(11,95,255,.16)}
+  ::-webkit-scrollbar{height:9px;width:9px}
+  ::-webkit-scrollbar-thumb{background:rgba(127,127,140,.4);border-radius:9px}
+  code{font-family:var(--font-mono)}
+  svg{flex-shrink:0}
+  /* theme toggle icon visibility */
+  .theme-icon{display:inline-flex}
+  .theme-icon--dark{display:none}
+  :root[data-theme="dark"] .theme-icon--light{display:none}
+  :root[data-theme="dark"] .theme-icon--dark{display:inline-flex}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .theme-icon--light{display:none}
+    :root:not([data-theme="light"]) .theme-icon--dark{display:inline-flex}
   }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: var(--sans);
-    line-height: 1.65;
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
   }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
-  header.hero {
-    border-bottom: 1px solid var(--border);
-    background: radial-gradient(1200px 400px at 50% -10%, rgba(88,166,255,0.14), transparent);
-    padding: 72px 0 56px;
-    text-align: center;
+  /* the paired merge-model carousel is built for narrow only; hidden on desktop */
+  .model-steps{display:none}
+  /* --- responsive nav: hamburger + frosted flyout drawer --- */
+  .nav-burger{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
+  .nav-burger:hover{background:var(--surface-sunken);color:var(--text-primary)}
+  .nav-scrim{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.38);opacity:0;visibility:hidden;transition:opacity .22s var(--ease-out),visibility .22s var(--ease-out)}
+  .nav-drawer{position:fixed;top:0;right:0;bottom:0;z-index:51;width:min(82vw,300px);display:flex;flex-direction:column;gap:2px;padding:16px;
+    background:var(--surface-overlay);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-left:1px solid var(--border-subtle);box-shadow:var(--shadow-md);
+    transform:translateX(100%);transition:transform .26s var(--ease-out)}
+  .nav-drawer__head{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 12px;margin-bottom:6px;border-bottom:1px solid var(--border-subtle)}
+  .nav-drawer a{display:block;padding:12px;border-radius:10px;font-size:16px;font-weight:var(--fw-medium);color:var(--text-secondary);text-decoration:none;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
+  .nav-drawer a:hover{background:var(--surface-sunken);color:var(--text-primary)}
+  .nav-drawer__sep{height:1px;background:var(--border-subtle);margin:8px 6px}
+
+  /* model number tile — soft accent chip (both themes) */
+  .step-num{background:var(--accent-subtle);color:var(--accent)}
+
+  /* desktop "Docs" dropdown in the top nav */
+  .nav-docs{position:relative;display:inline-flex}
+  .nav-docs__btn{display:inline-flex;align-items:center;gap:4px;font:500 15px/1 var(--font-sans);color:var(--text-secondary);background:none;border:none;padding:0;cursor:pointer;transition:color var(--dur-fast) var(--ease-out)}
+  .nav-docs:hover .nav-docs__btn,.nav-docs:focus-within .nav-docs__btn{color:var(--text-primary)}
+  .nav-docs__menu{position:absolute;top:calc(100% + 12px);left:0;min-width:180px;display:flex;flex-direction:column;gap:2px;padding:6px;
+    background:var(--surface-overlay);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+    border:1px solid var(--border-subtle);border-radius:12px;box-shadow:var(--shadow-md);z-index:50;
+    opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .16s var(--ease-out),transform .16s var(--ease-out),visibility .16s}
+  .nav-docs__menu::before{content:"";position:absolute;top:-12px;left:0;right:0;height:12px}
+  .nav-docs:hover .nav-docs__menu,.nav-docs:focus-within .nav-docs__menu{opacity:1;visibility:visible;transform:translateY(0)}
+  .nav-docs__menu a{display:block;padding:8px 12px;border-radius:8px;font:500 14px/1.3 var(--font-sans);color:var(--text-secondary);text-decoration:none;white-space:nowrap;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
+  .nav-docs__menu a:hover{background:var(--surface-sunken);color:var(--text-primary)}
+  .nav-close{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:none;background:transparent;color:var(--text-secondary);cursor:pointer}
+  .nav-close:hover{background:var(--surface-sunken);color:var(--text-primary)}
+  @media (max-width:880px){
+    .nav-links{display:none!important}
+    .nav-burger{display:inline-flex}
+    :root[data-nav-open] .nav-scrim{opacity:1;visibility:visible}
+    :root[data-nav-open] .nav-drawer{transform:translateX(0)}
+    /* tighter vertical rhythm between sections on small screens */
+    section[id]{padding-top:48px!important;padding-bottom:48px!important}
+    header[id]{padding-top:48px!important}
+    /* ~70% tighter horizontal gutters on small screens (32px -> 10px) */
+    [style*="max-width:1200px"]{padding-left:10px!important;padding-right:10px!important}
+    section [style*="display:grid"]:not(.carousel),header [style*="display:grid"]{
+      grid-template-columns:minmax(0,1fr)!important}
+    section [style*="display:grid"]>*,header [style*="display:grid"]>*{min-width:0}
+    .keel-cb{min-width:0}
+    /* swipeable card carousel (constraints) */
+    .carousel{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:10px;
+      margin:0 -10px;padding:4px 10px 16px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .carousel::-webkit-scrollbar{display:none}
+    .carousel>*{flex:0 0 min(86%,300px);scroll-snap-align:start}
+    /* merge model: paired step slide (pipeline card + its explanation) */
+    .wide-only{display:none!important}
+    .model-slide{display:flex;flex-direction:column;border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;background:var(--surface-card)}
+    .model-slide>article{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0;background:transparent!important}
+    .model-slide>article:first-child{flex:0 0 auto;min-height:248px}
+    .model-slide>article+article{flex:1 1 auto;border-top:1px solid var(--border-subtle)!important}
+    /* hero worked-example: drop the box, swipe between the two editors */
+    .hero-ex{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important;margin-top:24px!important}
+    .hero-ex__head{background:transparent!important;border-bottom:0!important;padding:0 0 14px!important}
+    .hero-ex__media{padding:4px 10px 16px!important;align-items:stretch!important}
+    .hero-ex__arrow{display:none!important}
+    /* hero stat grid -> horizontal accordion: tap to expand one, others collapse to label strips */
+    .stat-accordion{display:flex!important;grid-template-columns:none!important;margin-top:32px!important}
+    .stat-item{flex:0 1 52px;align-items:center;justify-content:center;padding:16px 0;overflow:hidden;cursor:pointer;
+      transition:flex-grow .35s var(--ease-out),padding .35s var(--ease-out)}
+    .stat-item .stat-k{writing-mode:vertical-rl;letter-spacing:.12em;white-space:nowrap;color:var(--text-secondary)}
+    .stat-item .stat-v{display:none}
+    .stat-item:hover .stat-k{color:var(--text-primary)}
+    .stat-radio:checked + .stat-item{flex-grow:1;align-items:flex-start;justify-content:flex-start;padding:16px 18px}
+    .stat-radio:checked + .stat-item .stat-k{writing-mode:horizontal-tb;color:var(--text-tertiary)}
+    .stat-radio:checked + .stat-item .stat-v{display:block}
+    .stat-radio:focus-visible + .stat-item{box-shadow:inset 0 0 0 2px var(--accent)}
   }
-  .hero h1 { font-size: 2.6rem; margin: 0 0 8px; letter-spacing: -0.02em; }
-  .hero .tagline { font-size: 1.2rem; color: var(--muted); margin: 0 auto 28px; max-width: 640px; }
-  .badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
-  .badge {
-    font-family: var(--mono); font-size: 0.8rem; color: var(--muted);
-    border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; background: var(--panel);
+
+  /* ---- CodeBlock (ported from components/CodeBlock.jsx) ---- */
+  .keel-cb{font-family:var(--font-mono);font-size:13px;line-height:1.65;border-radius:var(--radius-lg);overflow:hidden;font-feature-settings:"liga" 1,"calt" 1;
+    --cb-bg:var(--surface-base);--cb-fg:var(--text-primary);
+    --cb-tabbar-bg:var(--surface-sunken);--cb-line:var(--border-default);--cb-tab-active-bg:var(--surface-base);
+    --cb-meta:var(--text-tertiary);--cb-ln:var(--gray-400);
+    --cb-shadow:inset 0 0 0 1px var(--border-subtle),var(--shadow-sm);
+    --cb-c:#6e7781;--cb-k:var(--blue-700);--cb-s:var(--green-700);--cb-n:var(--amber-700);--cb-t:var(--blue-800);--cb-f:#8250df;
+    background:var(--cb-bg);color:var(--cb-fg);box-shadow:var(--cb-shadow)}
+  .keel-cb--dark,:root[data-theme="dark"] .keel-cb--auto{
+  --cb-bg:var(--code-bg);--cb-fg:var(--code-fg);
+  --cb-tabbar-bg:rgba(255,255,255,.035);--cb-line:rgba(255,255,255,.08);--cb-tab-active-bg:var(--code-bg);
+  --cb-meta:#8A8279;--cb-ln:var(--code-comment);
+  --cb-shadow:var(--hairline-top),var(--shadow-md),inset 0 0 0 1px rgba(255,255,255,.07);
+  --cb-c:var(--code-comment);--cb-k:var(--code-keyword);--cb-s:var(--code-string);--cb-n:var(--code-number);--cb-t:var(--code-type);--cb-f:#d2a8ff;
+}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .keel-cb--auto{
+  --cb-bg:var(--code-bg);--cb-fg:var(--code-fg);
+  --cb-tabbar-bg:rgba(255,255,255,.035);--cb-line:rgba(255,255,255,.08);--cb-tab-active-bg:var(--code-bg);
+  --cb-meta:#8A8279;--cb-ln:var(--code-comment);
+  --cb-shadow:var(--hairline-top),var(--shadow-md),inset 0 0 0 1px rgba(255,255,255,.07);
+  --cb-c:var(--code-comment);--cb-k:var(--code-keyword);--cb-s:var(--code-string);--cb-n:var(--code-number);--cb-t:var(--code-type);--cb-f:#d2a8ff;
+}}
+  .keel-cb__tabs{display:flex;align-items:stretch;font-family:var(--font-sans);font-size:12.5px;font-weight:var(--fw-medium);background:var(--cb-tabbar-bg);border-bottom:1px solid var(--cb-line)}
+  .keel-cb__lead{display:inline-flex;align-items:center;justify-content:center;flex:none;width:40px;align-self:stretch;color:var(--cb-meta);border-right:1px solid var(--cb-line)}
+  .keel-cb__tab{display:flex;align-items:center;gap:8px;padding:9px 15px;border-right:1px solid var(--cb-line);color:inherit;opacity:.55;white-space:nowrap}
+  .keel-cb__tab--active{opacity:1;background:var(--cb-tab-active-bg);box-shadow:inset 0 2px 0 var(--accent)}
+  .keel-cb__dot{width:9px;height:9px;border-radius:2px;flex:none}
+  .keel-cb__lang{margin-left:auto;display:flex;align-items:center;padding:0 15px;font-family:var(--font-sans);font-size:11px;font-weight:var(--fw-semibold);letter-spacing:.04em;text-transform:uppercase;color:var(--cb-meta)}
+  .keel-cb__bar{display:flex;align-items:stretch;background:var(--cb-tabbar-bg);border-bottom:1px solid var(--cb-line)}
+  .keel-cb__title{display:inline-flex;align-items:center;padding:9px 15px;font-family:var(--font-mono);font-size:11.5px;color:var(--cb-meta)}
+  .keel-cb__scroll{overflow:auto}
+  .keel-cb__pre{margin:0;padding:16px 18px;white-space:pre}
+  .keel-cb__pre code{display:block;min-width:max-content}
+  .keel-cb .c{color:var(--cb-c)}.keel-cb .k{color:var(--cb-k)}.keel-cb .s{color:var(--cb-s)}.keel-cb .n{color:var(--cb-n)}.keel-cb .t{color:var(--cb-t)}.keel-cb .f{color:var(--cb-f)}
+
+  /* ---- GitHubStars ---- */
+  .keel-ghb{font-family:var(--font-sans);font-weight:var(--fw-semibold);display:inline-flex;align-items:center;text-decoration:none;color:var(--text-primary);letter-spacing:-.01em;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+  .keel-ghb:focus-visible{outline:none;box-shadow:var(--ring);border-radius:var(--radius-md)}
+  .keel-ghb__ico{flex:none;display:inline-flex}
+  .keel-ghb__count{font-variant-numeric:tabular-nums}
+  .keel-ghb--md{font-size:14px}
+  .keel-ghb--minimal{gap:7px;color:var(--text-secondary);transition:color var(--dur-fast) var(--ease-out)}
+  .keel-ghb--minimal:hover{color:var(--text-primary)}
+
+  /* ---- Badge ---- */
+  .keel-badge{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-sans);font-weight:var(--fw-semibold);font-size:12px;line-height:1;padding:6px 11px;border-radius:980px;letter-spacing:.01em}
+  .keel-badge__dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+  .keel-badge--accent{background:var(--accent-subtle);color:var(--accent)}
+  .keel-badge--success{background:var(--success-subtle);color:var(--success)}
+  .keel-badge--signal{background:var(--signal-subtle);color:var(--signal-text)}
+
+  /* ---- Button ---- */
+  .keel-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-sans);font-weight:var(--fw-semibold);text-decoration:none;cursor:pointer;border:none;
+    transition:background var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out)}
+  .keel-btn:active{transform:scale(.97)}
+  .keel-btn--lg{height:48px;padding:0 22px;font-size:16px}
+  .keel-btn--pill{border-radius:980px}
+  .keel-btn--primary{background:var(--accent);color:#fff}
+  .keel-btn--primary:hover{background:var(--accent-hover)}
+  .keel-btn--outline{background:transparent;color:var(--text-primary);box-shadow:inset 0 0 0 1px var(--border-default)}
+  .keel-btn--outline:hover{background:var(--surface-sunken)}
+
+  /* ---- Callout ---- */
+  .keel-callout{border-radius:var(--radius-md);padding:16px 18px;font-size:15px;line-height:1.55;color:var(--text-secondary);background:var(--accent-subtle);box-shadow:inset 0 0 0 1px rgba(11,95,255,.14)}
+  .keel-callout__title{font-weight:700;color:var(--text-primary);margin-bottom:5px}
+
+  /* ---- Card ---- */
+  .keel-card{background:var(--surface-card);border-radius:var(--radius-xl);padding:20px;transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}
+  .keel-card--outlined{box-shadow:inset 0 0 0 1px var(--border-subtle)}
+  .keel-card--flat{box-shadow:none}
+  .keel-card--lg{padding:24px}
+  .keel-card--interactive:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+  .keel-card--outlined.keel-card--interactive:hover{box-shadow:inset 0 0 0 1px var(--border-default),var(--shadow-md)}
+
+  /* ---- Tooltip ---- */
+  .keel-tip{position:relative;display:inline-flex}
+  .keel-tip__pop{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px);
+    background:var(--surface-midnight);color:#fff;font-family:var(--font-sans);font-size:12px;font-weight:500;line-height:1.4;
+    padding:7px 10px;border-radius:8px;box-shadow:var(--shadow-md);opacity:0;pointer-events:none;
+    transition:opacity var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out);
+    white-space:normal;width:max-content;max-width:215px;text-align:center;z-index:50}
+  .keel-tip:hover .keel-tip__pop,.keel-tip:focus-within .keel-tip__pop{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---- Hero stat accordion (4-up grid on desktop; horizontal accordion on narrow) ---- */
+  .stat-accordion{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border-subtle);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;margin:40px 0 0}
+  .stat-radio{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .stat-item{display:flex;flex-direction:column;gap:7px;padding:18px 20px;background:var(--surface-card);min-width:0;cursor:default}
+  .stat-k{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-tertiary)}
+  .stat-v{font-size:15px;font-weight:600;color:var(--text-primary);line-height:1.35}
+
+  /* ---- Schema walkthrough: whole figure scrolls naturally; detents on each group ---- */
+  .schema-figure{position:relative;max-width:720px}
+  .schema-figure__code{position:relative}
+  .schema-band{position:absolute;left:0;right:0;z-index:4;background:rgba(59,120,255,.18);border-radius:2px;opacity:0;pointer-events:none}
+  .walk-panel{position:absolute;left:10px;right:10px;top:0;z-index:5;opacity:0;pointer-events:none;
+    background:var(--surface-card);border:1px solid var(--border-default);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-md)}
+  .walk-panel::before{content:"";position:absolute;top:-7px;left:24px;width:12px;height:12px;
+    background:var(--surface-card);border-top:1px solid var(--border-default);border-left:1px solid var(--border-default);transform:rotate(45deg)}
+  /* non-narrow: float each tooltip into a rail to the RIGHT of the code so it never covers lines below */
+  @media (min-width:881px){
+    .schema-figure{max-width:1064px}
+    .schema-figure__code{max-width:calc(100% - 344px)}
+    .walk-panel{left:auto;right:0;width:320px}
+    .walk-panel::before{top:16px;left:-7px;border:none;
+      border-bottom:1px solid var(--border-default);border-left:1px solid var(--border-default)}
   }
-  .cta { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-  .btn {
-    display: inline-block; padding: 10px 20px; border-radius: 8px; font-weight: 600;
-    border: 1px solid var(--border); background: var(--panel); color: var(--fg);
-  }
-  .btn.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); }
-  .btn:hover { text-decoration: none; border-color: var(--accent); }
-  section { padding: 48px 0; border-bottom: 1px solid var(--border); }
-  section h2 { font-size: 1.6rem; margin: 0 0 16px; letter-spacing: -0.01em; }
-  section h3 { font-size: 1.15rem; margin: 28px 0 8px; }
-  p { color: #c9d4e0; }
-  .muted { color: var(--muted); }
-  pre {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-    padding: 16px 18px; overflow-x: auto; font-family: var(--mono); font-size: 0.86rem; line-height: 1.5;
-  }
-  code { font-family: var(--mono); font-size: 0.88em; }
-  p code, li code { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
-  .card h3 { margin-top: 0; }
-  .steps { counter-reset: step; list-style: none; padding: 0; }
-  .steps li { position: relative; padding: 8px 0 8px 44px; }
-  .steps li::before {
-    counter-increment: step; content: counter(step);
-    position: absolute; left: 0; top: 8px; width: 28px; height: 28px;
-    display: grid; place-items: center; border-radius: 50%;
-    background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid var(--accent);
-    font-weight: 700; font-size: 0.85rem;
-  }
-  .add { color: var(--accent-2); }
-  .del { color: #f85149; }
-  .base { color: var(--warn); }
-  footer { padding: 40px 0 64px; color: var(--muted); }
-  footer a { color: var(--accent); }
-  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } .hero h1 { font-size: 2rem; } }
+
+.hv0:hover{color:var(--text-primary)}
+.hv1:hover{background:var(--surface-sunken);color:var(--text-primary)}
+.hv2:hover{background:var(--surface-subtle)}
+.hv3:hover{color:#fff}
 </style>
 </head>
 <body>
-<header class="hero">
-  <div class="wrap">
-    <h1>Meridian</h1>
-    <p class="tagline">Language-aware structural merge tooling for source formats that Git can only see as text.</p>
-    <div class="badges">
-      <span class="badge">.NET 11</span>
-      <span class="badge">Apache-2.0</span>
-      <span class="badge">XML · JSON · JSON5 · YAML · HTML</span>
-      <span class="badge">Git merge &amp; diff driver</span>
-    </div>
-    <div class="cta">
-      <a class="btn primary" href="https://github.com/AdamCoulterOz/Meridian">View on GitHub</a>
-      <a class="btn" href="#how">How it works</a>
-      <a class="btn" href="#start">Quick start</a>
-    </div>
-  </div>
+
+
+
+<nav style="position:sticky;top:0;z-index:40;background:var(--surface-overlay);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--border-subtle)">
+<div style="max-width:1200px;margin:0 auto;padding:0 32px;height:64px;display:flex;align-items:center;gap:28px">
+<a href="#top" style="display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--text-primary)">
+<svg aria-hidden="true" fill="none" height="38" style="display:block" viewBox="0 0 24 24" width="38">
+<circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="1.3"></circle>
+<ellipse cx="12" cy="12" rx="3.6" ry="9" stroke="var(--accent)" stroke-width="1.3"></ellipse>
+<path d="M12 3v18M3 12h18" stroke="var(--accent)" stroke-linecap="round" stroke-width="1.3"></path>
+<circle cx="12" cy="12" fill="var(--accent)" r="1.9"></circle>
+</svg>
+<span style="font-weight:700;font-size:18px;letter-spacing:-.01em">Meridian</span>
+</a>
+<div class="nav-links" style="display:flex;gap:26px;margin-left:6px;align-items:center">
+<a class="hv0" href="#problem" style="font-size:15px;font-weight:500;color:var(--text-secondary);text-decoration:none;transition:color .14s">Problem</a>
+<a class="hv0" href="#model" style="font-size:15px;font-weight:500;color:var(--text-secondary);text-decoration:none;transition:color .14s">Merge model</a>
+<a class="hv0" href="#schema" style="font-size:15px;font-weight:500;color:var(--text-secondary);text-decoration:none;transition:color .14s">Schema</a>
+<a class="hv0" href="#formats" style="font-size:15px;font-weight:500;color:var(--text-secondary);text-decoration:none;transition:color .14s">Formats</a>
+<a class="hv0" href="#nested" style="font-size:15px;font-weight:500;color:var(--text-secondary);text-decoration:none;transition:color .14s">Nesting</a>
+<a class="hv0" href="#constraints" style="font-size:15px;font-weight:500;color:var(--text-secondary);text-decoration:none;transition:color .14s">Constraints</a>
+<a class="hv0" href="#start" style="font-size:15px;font-weight:500;color:var(--text-secondary);text-decoration:none;transition:color .14s">Quick start</a>
+<div class="nav-docs"><button aria-haspopup="true" class="nav-docs__btn">Docs<svg aria-hidden="true" fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="m6 9 6 6 6-6"></path></svg></button><div class="nav-docs__menu"><a href="https://github.com/AdamCoulterOz/Meridian#readme" rel="noopener" target="_blank">README</a><a href="https://github.com/AdamCoulterOz/Meridian/blob/main/docs/architecture.md" rel="noopener" target="_blank">Architecture</a><a href="https://github.com/AdamCoulterOz/Meridian/blob/main/schemas/meridian.schema.json" rel="noopener" target="_blank">Schema</a></div></div></div>
+<div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+<button aria-label="Toggle light or dark theme" class="hv1" onclick="toggleTheme()" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;transition:background .14s,color .14s">
+<span class="theme-icon theme-icon--light"><svg aria-hidden="true" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" viewBox="0 0 24 24" width="18"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></span><span class="theme-icon theme-icon--dark"><svg aria-hidden="true" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" viewBox="0 0 24 24" width="18"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg></span>
+</button>
+<a aria-label="AdamCoulterOz/Meridian on GitHub — 0 stars" class="keel-ghb keel-ghb--minimal keel-ghb--md" href="https://github.com/AdamCoulterOz/Meridian"><span class="keel-ghb__ico"><svg aria-hidden="true" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24" width="18"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3-.3 6.2-1.5 6.2-6.7a5.2 5.2 0 0 0-1.5-3.6 4.9 4.9 0 0 0-.1-3.6s-1.2-.4-3.9 1.5a13.4 13.4 0 0 0-7 0C5.6 1.7 4.4 2.1 4.4 2.1a4.9 4.9 0 0 0-.1 3.6A5.2 5.2 0 0 0 2.8 9.3c0 5.2 3.2 6.4 6.2 6.7a3.4 3.4 0 0 0-.9 2.5V22"></path></svg></span><span class="keel-ghb__count">0</span></a>
+<button aria-controls="nav-drawer" aria-expanded="false" aria-label="Open navigation menu" class="nav-burger" id="nav-burger" onclick="toggleNav()"><svg aria-hidden="true" fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M3 6h18M3 12h18M3 18h18"></path></svg></button></div>
+</div>
+</nav>
+<header id="top" style="max-width:1200px;margin:0 auto;padding:80px 32px 56px">
+<div style="margin-bottom:26px"><span class="keel-badge keel-badge--accent" style="font-size:13px"><span class="keel-badge__dot"></span>Structural merge &amp; semantic diff · Git-native</span></div>
+<h1 style="font-size:clamp(40px,5.6vw,66px);line-height:1.02;letter-spacing:-.03em;font-weight:800;margin:0 0 22px;max-width:14ch">Merge by structure, not by line order.</h1>
+<p style="font-size:20px;line-height:1.5;color:var(--text-secondary);margin:0 0 18px;max-width:40ch">Meridian is a domain-neutral structural merge and semantic diff toolkit for source files whose intent is richer than the order of their lines.</p>
+<p style="font-size:16px;line-height:1.6;color:var(--text-secondary);margin:0 0 32px;max-width:62ch">It parses XML, JSON, YAML, HTML, JavaScript, CSS, Liquid, binary payloads, and nested content into mergeable structure. Repositories supply the schema rules; Meridian supplies the Git-facing merge and diff behavior without absorbing product-specific knowledge.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:30px">
+<a class="keel-btn keel-btn--primary keel-btn--lg keel-btn--pill" href="https://github.com/AdamCoulterOz/Meridian">View on GitHub</a>
+<a class="keel-btn keel-btn--outline keel-btn--lg keel-btn--pill" href="#problem">See the merge case →</a>
+<div class="keel-cb keel-cb--auto" style="flex:0 0 100%;max-width:520px;margin-top:2px"><div class="keel-cb__bar"><span class="keel-cb__lead"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="m4 17 6-6-6-6"></path><path d="M12 19h8"></path></svg></span><span class="keel-cb__title">install</span></div><div class="keel-cb__scroll"><pre class="keel-cb__pre"><code><span style="display:block"><span style="color:var(--code-keyword)">dotnet</span> tool install --global MeridianGit</span></code></pre></div></div>
+</div>
+<div class="stat-accordion"><input checked="" class="stat-radio" id="stat0" name="stat" type="radio"/><label class="stat-item" for="stat0"><span class="stat-k">State</span><span class="stat-v">Early, usable source-first tooling</span></label><input class="stat-radio" id="stat1" name="stat" type="radio"/><label class="stat-item" for="stat1"><span class="stat-k">Interface</span><span class="stat-v">One meridian CLI, wired as a Git driver</span></label><input class="stat-radio" id="stat2" name="stat" type="radio"/><label class="stat-item" for="stat2"><span class="stat-k">Semantics</span><span class="stat-v">Schema-owned identity, order &amp; nesting</span></label><input class="stat-radio" id="stat3" name="stat" type="radio"/><label class="stat-item" for="stat3"><span class="stat-k">Boundary</span><span class="stat-v">Domain-neutral core, consumer-owned rules</span></label></div>
+<div class="hero-ex" style="margin-top:40px;border:1px solid var(--border-subtle);border-radius:18px;background:var(--surface-subtle);box-shadow:0 12px 32px rgba(11,11,12,.08),0 4px 10px rgba(11,11,12,.04);overflow:hidden">
+<div class="hero-ex__head" style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 22px;border-bottom:1px solid var(--border-subtle);background:var(--surface-card);flex-wrap:wrap">
+<div style="max-width:70ch">
+<strong style="display:block;font-size:16px;font-weight:700;letter-spacing:-.01em">A merge driver that reads structure before it writes markers.</strong>
+<span style="font-size:14px;line-height:1.5;color:var(--text-secondary)">Git reports this as one nearby-line conflict. Meridian reads the three file versions first, matches nodes by schema identity, and only writes markers when the <em style="font-style:normal;color:var(--text-primary);font-weight:600">same</em> semantic node was changed incompatibly.</span>
+</div>
+<span class="keel-badge keel-badge--success" style="white-space:nowrap"><span class="keel-badge__dot"></span>Clean merge</span>
+</div>
+<div class="carousel hero-ex__media" style="display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:18px;padding:22px">
+<div class="keel-cb keel-cb--auto"><div class="keel-cb__tabs"><span class="keel-cb__lead"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="m16 18 6-6-6-6"></path><path d="m8 6-6 6 6 6"></path></svg></span><span class="keel-cb__tab keel-cb__tab--active"><span class="keel-cb__dot" style="background:#e37933"></span>catalog.xml</span><span class="keel-cb__lang">XML</span></div><div class="keel-cb__scroll"><pre class="keel-cb__pre"><code><span style="display:block;background:rgba(255,59,48,.12);color:#ff8b80;font-weight:600">&lt;&lt;&lt;&lt;&lt;&lt;&lt; ours</span><span style="display:block;background:rgba(11,95,255,.14)">&lt;<span style="color:var(--code-keyword)">Product</span> <span style="color:var(--code-type)">sku</span>=<span style="color:var(--code-string)">"atlas"</span> <span style="color:var(--code-type)">status</span>=<span style="color:var(--code-string)">"preview"</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">  &lt;<span style="color:var(--code-keyword)">Name</span>&gt;Atlas Sensor Pro&lt;/<span style="color:var(--code-keyword)">Name</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">  &lt;<span style="color:var(--code-keyword)">Labels</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">    &lt;<span style="color:var(--code-keyword)">Label</span> <span style="color:var(--code-type)">languagecode</span>=<span style="color:var(--code-string)">"en"</span>&gt;Atlas Sensor Pro&lt;/<span style="color:var(--code-keyword)">Label</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">    &lt;<span style="color:var(--code-keyword)">Label</span> <span style="color:var(--code-type)">languagecode</span>=<span style="color:var(--code-string)">"fr"</span>&gt;Capteur Atlas&lt;/<span style="color:var(--code-keyword)">Label</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">  &lt;/<span style="color:var(--code-keyword)">Labels</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">&lt;/<span style="color:var(--code-keyword)">Product</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">&lt;<span style="color:var(--code-keyword)">Product</span> <span style="color:var(--code-type)">sku</span>=<span style="color:var(--code-string)">"beacon"</span> <span style="color:var(--code-type)">status</span>=<span style="color:var(--code-string)">"active"</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">  &lt;<span style="color:var(--code-keyword)">Name</span>&gt;Beacon Hub&lt;/<span style="color:var(--code-keyword)">Name</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">  &lt;<span style="color:var(--code-keyword)">Labels</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">    &lt;<span style="color:var(--code-keyword)">Label</span> <span style="color:var(--code-type)">languagecode</span>=<span style="color:var(--code-string)">"en"</span>&gt;Beacon Hub&lt;/<span style="color:var(--code-keyword)">Label</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">  &lt;/<span style="color:var(--code-keyword)">Labels</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.14)">&lt;/<span style="color:var(--code-keyword)">Product</span>&gt;</span><span style="display:block;color:#ff8b80;font-weight:600">||||||| base</span><span style="display:block;color:#8c8c98">&lt;Product sku="atlas" status="active"&gt;</span><span style="display:block;color:#8c8c98">  &lt;Name&gt;Atlas Sensor&lt;/Name&gt;</span><span style="display:block;color:#8c8c98">  ...</span><span style="display:block;color:#8c8c98">&lt;/Product&gt;</span><span style="display:block;color:#8c8c98">&lt;Product sku="beacon" status="active"&gt;</span><span style="display:block;color:#8c8c98">  &lt;Name&gt;Beacon Hub&lt;/Name&gt;</span><span style="display:block;color:#8c8c98">  ...</span><span style="display:block;color:#8c8c98">&lt;/Product&gt;</span><span style="display:block;color:#ff8b80;font-weight:600">=======</span><span style="display:block;color:#8c8c98">&lt;Product sku="atlas" status="active"&gt;</span><span style="display:block;color:#8c8c98">  &lt;Name&gt;Atlas Sensor&lt;/Name&gt;</span><span style="display:block;color:#8c8c98">  ...</span><span style="display:block;color:#8c8c98">&lt;/Product&gt;</span><span style="display:block;background:rgba(31,168,85,.15)">&lt;<span style="color:var(--code-keyword)">Product</span> <span style="color:var(--code-type)">sku</span>=<span style="color:var(--code-string)">"beacon"</span> <span style="color:var(--code-type)">status</span>=<span style="color:var(--code-string)">"active"</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.15)">  &lt;<span style="color:var(--code-keyword)">Labels</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.15)">    &lt;<span style="color:var(--code-keyword)">Label</span> <span style="color:var(--code-type)">languagecode</span>=<span style="color:var(--code-string)">"en"</span>&gt;Beacon Control Hub&lt;/<span style="color:var(--code-keyword)">Label</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.15)">    &lt;<span style="color:var(--code-keyword)">Label</span> <span style="color:var(--code-type)">languagecode</span>=<span style="color:var(--code-string)">"fr"</span>&gt;Hub Beacon&lt;/<span style="color:var(--code-keyword)">Label</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.15)">  &lt;/<span style="color:var(--code-keyword)">Labels</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.15)">&lt;/<span style="color:var(--code-keyword)">Product</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.15)">&lt;<span style="color:var(--code-keyword)">Product</span> <span style="color:var(--code-type)">sku</span>=<span style="color:var(--code-string)">"caldera"</span> <span style="color:var(--code-type)">status</span>=<span style="color:var(--code-string)">"active"</span>&gt;...&lt;/<span style="color:var(--code-keyword)">Product</span>&gt;</span><span style="display:block;color:#ff8b80;font-weight:600">&gt;&gt;&gt;&gt;&gt;&gt;&gt; theirs</span></code></pre></div></div>
+<div class="hero-ex__arrow" style="display:flex;flex-direction:column;align-items:center;gap:10px;min-width:64px;align-self:center">
+<span style="width:46px;height:46px;border-radius:50%;background:var(--accent);display:grid;place-items:center;box-shadow:0 8px 20px rgba(11,95,255,.32)">
+<svg aria-hidden="true" fill="none" height="22" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="22"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+</span>
+<span style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-align:center;letter-spacing:.02em">resolves to</span>
+</div>
+<div style="display:flex;flex-direction:column"><div class="keel-cb keel-cb--auto"><div class="keel-cb__tabs"><span class="keel-cb__lead"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="m16 18 6-6-6-6"></path><path d="m8 6-6 6 6 6"></path></svg></span><span class="keel-cb__tab keel-cb__tab--active"><span class="keel-cb__dot" style="background:#e37933"></span>catalog.xml</span><span class="keel-cb__lang">XML</span></div><div class="keel-cb__scroll"><pre class="keel-cb__pre"><code><span style="display:block;background:rgba(11,95,255,.09);border-radius:4px;padding:0 4px">&lt;<span style="color:var(--accent-hover)">Product</span> <span style="color:var(--text-secondary)">sku</span>=<span style="color:var(--success)">"atlas"</span> <span style="color:var(--text-secondary)">status</span>=<span style="color:var(--accent-hover)">"preview"</span>&gt;...&lt;/<span style="color:var(--accent-hover)">Product</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.10);border-radius:4px;padding:0 4px">&lt;<span style="color:var(--accent-hover)">Product</span> <span style="color:var(--text-secondary)">sku</span>=<span style="color:var(--success)">"beacon"</span> <span style="color:var(--text-secondary)">status</span>=<span style="color:var(--success)">"active"</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.10);border-radius:4px;padding:0 4px">  &lt;<span style="color:var(--accent-hover)">Labels</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.10);border-radius:4px;padding:0 4px">    &lt;<span style="color:var(--accent-hover)">Label</span> <span style="color:var(--text-secondary)">languagecode</span>=<span style="color:var(--success)">"en"</span>&gt;Beacon Control Hub&lt;/<span style="color:var(--accent-hover)">Label</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.10);border-radius:4px;padding:0 4px">    &lt;<span style="color:var(--accent-hover)">Label</span> <span style="color:var(--text-secondary)">languagecode</span>=<span style="color:var(--success)">"fr"</span>&gt;Hub Beacon&lt;/<span style="color:var(--accent-hover)">Label</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.10);border-radius:4px;padding:0 4px">  &lt;/<span style="color:var(--accent-hover)">Labels</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.10);border-radius:4px;padding:0 4px">&lt;/<span style="color:var(--accent-hover)">Product</span>&gt;</span><span style="display:block;background:rgba(198,242,60,.22);border-radius:4px;padding:0 4px">&lt;<span style="color:var(--accent-hover)">Product</span> <span style="color:var(--text-secondary)">sku</span>=<span style="color:var(--success)">"caldera"</span> <span style="color:var(--text-secondary)">status</span>=<span style="color:var(--success)">"active"</span>&gt;...&lt;/<span style="color:var(--accent-hover)">Product</span>&gt;</span><span style="display:block"> </span><span style="display:block">&lt;<span style="color:var(--accent-hover)">DisplayOrder</span>&gt;</span><span style="display:block">  &lt;<span style="color:var(--accent-hover)">ProductRef</span> <span style="color:var(--text-secondary)">sku</span>=<span style="color:var(--success)">"atlas"</span> /&gt;</span><span style="display:block">  &lt;<span style="color:var(--accent-hover)">ProductRef</span> <span style="color:var(--text-secondary)">sku</span>=<span style="color:var(--success)">"beacon"</span> /&gt;</span><span style="display:block;background:rgba(198,242,60,.22);border-radius:4px;padding:0 4px">  &lt;<span style="color:var(--accent-hover)">ProductRef</span> <span style="color:var(--text-secondary)">sku</span>=<span style="color:var(--success)">"caldera"</span> /&gt;</span><span style="display:block">&lt;/<span style="color:var(--accent-hover)">DisplayOrder</span>&gt;</span></code></pre></div></div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;padding:12px 2px 0">
+<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--accent-hover);background:var(--accent-subtle);border-radius:980px;padding:3px 9px">ours · atlas → preview</span>
+<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--success);background:var(--success-subtle);border-radius:980px;padding:3px 9px">theirs · beacon labels</span>
+<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--signal-text);background:rgba(198,242,60,.3);border-radius:980px;padding:3px 9px">theirs · +caldera, appended</span>
+</div>
+</div>
+</div>
+</div>
 </header>
-
-<section id="what">
-  <div class="wrap">
-    <h2>What it is</h2>
-    <p>
-      Meridian is for repositories where normal line-based merging is too fragile: unpacked
-      solution XML, JSON config, YAML manifests, generated-ish metadata, templated files, and
-      nested formats such as JSON inside XML.
-    </p>
-    <p>
-      Instead of asking Git to guess from lines, Meridian parses each side of a three-way merge
-      into a document tree, matches nodes by schema-defined identity, merges the structure, and
-      writes normal Git conflict markers only where the structural merge cannot be resolved
-      safely. It is domain-neutral: repositories teach it their formats through schema files
-      rather than baking product knowledge into the tool.
-    </p>
-  </div>
+<main>
+<section id="problem" style="border-top:1px solid var(--border-subtle);padding:96px 0">
+<div style="max-width:1200px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:start">
+<div>
+<span style="font:700 13px/1 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">The problem</span>
+<h2 style="font-size:clamp(28px,3.2vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:14px 0 18px;max-width:18ch">The conflict is not always where the disagreement is.</h2>
+<p style="font-size:17px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px">A plain text merge can treat two safe edits as a collision because both edits happened near the same lines. That is painful in generated-ish metadata, unpacked solution files, YAML manifests, templated files, and other source formats where order, identity, and nesting carry meaning.</p>
+<p style="font-size:17px;line-height:1.6;color:var(--text-secondary);margin:0 0 24px">Meridian changes the question. Instead of asking whether nearby lines changed, it asks which tree node changed, how that node is identified, and whether sibling order is actually semantic for that parent.</p>
+<div class="keel-callout keel-callout--info"><div class="keel-callout__title">Not a sorter</div><div class="keel-callout__body">Sorting the entries would dodge this one example. Meridian keeps order meaningful only where the schema says it is, because real files mix unordered settings and lookups with ordered pipelines, UI layout, and fallback precedence.</div></div>
+</div>
+<div style="display:flex;flex-direction:column"><div class="keel-cb keel-cb--auto"><div class="keel-cb__tabs"><span class="keel-cb__lead"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="m16 18 6-6-6-6"></path><path d="m8 6-6 6 6 6"></path></svg></span><span class="keel-cb__tab keel-cb__tab--active"><span class="keel-cb__dot" style="background:#e37933"></span>catalog.xml</span><span class="keel-cb__lang">XML</span></div><div class="keel-cb__scroll"><pre class="keel-cb__pre"><code><span style="display:block;background:rgba(11,95,255,.18);color:#ff8b80;font-weight:600">&lt;&lt;&lt;&lt;&lt;&lt;&lt; ours (current change)</span><span style="display:block;background:rgba(11,95,255,.18)">&lt;<span style="color:var(--code-keyword)">Product</span> sku=<span style="color:var(--code-string)">"atlas"</span> status=<span style="color:var(--code-string)">"preview"</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.18)">  &lt;<span style="color:var(--code-keyword)">Name</span>&gt;Atlas Sensor Pro&lt;/<span style="color:var(--code-keyword)">Name</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.18)">&lt;/<span style="color:var(--code-keyword)">Product</span>&gt;</span><span style="display:block;background:rgba(11,95,255,.18)">&lt;<span style="color:var(--code-keyword)">Product</span> sku=<span style="color:var(--code-string)">"beacon"</span> status=<span style="color:var(--code-string)">"active"</span>&gt; ...</span><span style="display:block;color:#ff8b80;font-weight:600">||||||| base</span><span style="display:block;color:#8c8c98">&lt;Product sku="atlas" status="active"&gt; ...</span><span style="display:block;color:#8c8c98">&lt;Product sku="beacon" status="active"&gt; ...</span><span style="display:block;color:#ff8b80;font-weight:600">=======</span><span style="display:block;background:rgba(31,168,85,.18)">&lt;<span style="color:var(--code-keyword)">Product</span> sku=<span style="color:var(--code-string)">"atlas"</span> status=<span style="color:var(--code-string)">"active"</span>&gt; ...</span><span style="display:block;background:rgba(31,168,85,.18)">&lt;<span style="color:var(--code-keyword)">Product</span> sku=<span style="color:var(--code-string)">"beacon"</span> status=<span style="color:var(--code-string)">"active"</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.18)">  &lt;<span style="color:var(--code-keyword)">Label</span> languagecode=<span style="color:var(--code-string)">"en"</span>&gt;Beacon Control Hub&lt;/<span style="color:var(--code-keyword)">Label</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.18)">&lt;/<span style="color:var(--code-keyword)">Product</span>&gt;</span><span style="display:block;background:rgba(31,168,85,.18)">&lt;<span style="color:var(--code-keyword)">Product</span> sku=<span style="color:var(--code-string)">"caldera"</span> status=<span style="color:var(--code-string)">"active"</span>&gt; ...</span><span style="display:block;color:#ff8b80;font-weight:600">&gt;&gt;&gt;&gt;&gt;&gt;&gt; theirs (incoming change)</span></code></pre></div></div>
+<div style="padding:14px 2px 0;font-size:12px;color:var(--text-tertiary);font-style:italic">One conflict block — yet <span style="color:var(--accent);font-style:normal">atlas</span> and <span style="color:var(--accent);font-style:normal">beacon</span> were edited by different people, and <span style="color:var(--accent);font-style:normal">caldera</span> is brand new.</div>
+</div>
+</div>
 </section>
+<section id="model" style="border-top:1px solid var(--border-subtle);padding:96px 0;background:var(--surface-subtle)">
+<div style="max-width:1200px;margin:0 auto;padding:0 32px">
+<span style="font:700 13px/1 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">The merge model</span>
+<h2 style="font-size:clamp(28px,3.2vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:14px 0 14px;max-width:22ch">Small at the center, semantic at the edges.</h2>
+<p style="font-size:18px;line-height:1.55;color:var(--text-secondary);margin:0 0 40px;max-width:64ch">Format adapters own physical syntax. Schemas own merge-relevant semantics. The merge engine works over trees and refuses to invent identity when the repository has not supplied enough information.</p>
 
-<section id="why">
-  <div class="wrap">
-    <h2>The problem</h2>
-    <p>A plain text merge turns two independent, non-competing edits into a conflict:</p>
-<pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; ours
-&lt;label description="Near Miss" languagecode="1033" /&gt;
-&lt;label description="Incident"  languagecode="3081" /&gt;
-<span class="base">||||||| base</span>
-&lt;label description="Near Miss" languagecode="1033" /&gt;
-&lt;label description="Near Miss" languagecode="3081" /&gt;
-=======
-&lt;label description="Safety Event" languagecode="1033" /&gt;
-&lt;label description="Near Miss"    languagecode="3081" /&gt;
-&gt;&gt;&gt;&gt;&gt;&gt;&gt; theirs</pre>
-    <p>
-      Those edits are not really competing — each side changed a <em>different</em> label. With a
-      schema that says <code>languagecode</code> identifies sibling labels, Meridian merges the
-      structure instead and produces the obvious result:
-    </p>
-<pre>&lt;label description="Safety Event" languagecode="1033" /&gt;
-&lt;label description="Incident"     languagecode="3081" /&gt;</pre>
-    <p class="muted">
-      Sorting siblings would also dodge this one case, but many structured files mix unordered
-      lookup collections with ordered UI layout, execution steps, and fallback precedence —
-      sorting everything corrupts those. Meridian keeps order meaningful only where the schema
-      says it is.
-    </p>
-  </div>
+<div class="wide-only" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:44px">
+<article style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(11,11,12,.05)">
+<header style="padding:12px 14px;border-bottom:1px solid var(--surface-sunken)"><span style="font:700 11px/1 'Hanken Grotesk';letter-spacing:.07em;text-transform:uppercase;color:var(--text-tertiary)">01 · Parse</span><div style="margin-top:5px;font-size:14px;font-weight:600;color:var(--text-primary)">Three Git inputs</div></header>
+<div style="padding:14px;display:grid;gap:10px">
+<div><div style="font-family:'Fira Code',monospace;font-size:10px;color:var(--text-tertiary);margin-bottom:5px">base</div><div style="display:grid;gap:5px"><span style="height:7px;border-radius:9px;background:var(--border-subtle);width:100%"></span><span style="height:7px;border-radius:9px;background:var(--border-subtle);width:72%"></span></div></div>
+<div><div style="font-family:'Fira Code',monospace;font-size:10px;color:var(--accent);margin-bottom:5px">ours</div><div style="display:grid;gap:5px"><span style="height:7px;border-radius:9px;background:var(--border-subtle);width:100%"></span><span style="height:7px;border-radius:9px;background:var(--accent);width:60%"></span></div></div>
+<div><div style="font-family:'Fira Code',monospace;font-size:10px;color:var(--green-600);margin-bottom:5px">theirs</div><div style="display:grid;gap:5px"><span style="height:7px;border-radius:9px;background:var(--green-600);width:80%"></span><span style="height:7px;border-radius:9px;background:var(--border-subtle);width:72%"></span></div></div>
+</div>
+</article>
+<article style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(11,11,12,.05)">
+<header style="padding:12px 14px;border-bottom:1px solid var(--surface-sunken)"><span style="font:700 11px/1 'Hanken Grotesk';letter-spacing:.07em;text-transform:uppercase;color:var(--text-tertiary)">02 · Identify</span><div style="margin-top:5px;font-size:14px;font-weight:600;color:var(--text-primary)">Semantic trees</div></header>
+<div style="padding:14px;display:grid;gap:8px;font-family:'Fira Code',monospace;font-size:11px;color:var(--text-secondary)">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--text-primary);background:var(--surface-card)"></span>Catalog</div>
+<div style="display:flex;align-items:center;gap:8px;padding-left:14px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--border-default);background:var(--surface-card)"></span>Product[atlas]</div>
+<div style="display:flex;align-items:center;gap:8px;padding-left:14px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--border-default);background:var(--surface-card)"></span>Product[beacon]</div>
+<div style="display:flex;align-items:center;gap:8px;padding-left:28px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--border-default);background:var(--surface-card)"></span>Label[en]</div>
+<div style="display:flex;align-items:center;gap:8px;padding-left:14px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--border-default);background:var(--surface-card)"></span>ProductRef[caldera]</div>
+<div style="margin-top:2px;font-size:10px;color:var(--text-tertiary)">matched by sku · languagecode</div>
+</div>
+</article>
+<article style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(11,11,12,.05)">
+<header style="padding:12px 14px;border-bottom:1px solid var(--surface-sunken)"><span style="font:700 11px/1 'Hanken Grotesk';letter-spacing:.07em;text-transform:uppercase;color:var(--text-tertiary)">03 · Diff</span><div style="margin-top:5px;font-size:14px;font-weight:600;color:var(--text-primary)">Change vs base</div></header>
+<div style="padding:14px;display:grid;gap:8px;font-family:'Fira Code',monospace;font-size:11px">
+<div style="padding:8px 10px;border:1px solid rgba(11,95,255,.3);background:var(--accent-subtle);border-radius:9px;color:var(--accent-hover)">ours · atlas → preview</div>
+<div style="padding:8px 10px;border:1px solid rgba(31,168,85,.32);background:var(--success-subtle);border-radius:9px;color:var(--success)">theirs · beacon → +labels</div>
+<div style="padding:8px 10px;border:1px solid rgba(132,160,30,.4);background:rgba(198,242,60,.22);border-radius:9px;color:var(--signal-text)">theirs · +caldera, appended</div>
+<div style="font-size:10px;color:var(--text-tertiary)">different slots, no overlap</div>
+</div>
+</article>
+<article style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;box-shadow:0 4px 12px rgba(11,11,12,.07)">
+<header style="padding:12px 14px;border-bottom:1px solid var(--surface-sunken);background:linear-gradient(90deg,rgba(11,95,255,.06),rgba(31,168,85,.06))"><span style="font:700 11px/1 'Hanken Grotesk';letter-spacing:.07em;text-transform:uppercase;color:var(--text-tertiary)">04 · Merge</span><div style="margin-top:5px;font-size:14px;font-weight:600;color:var(--text-primary)">Identity slots</div></header>
+<div style="padding:14px;display:grid;gap:8px;font-family:'Fira Code',monospace;font-size:11px">
+<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;background:var(--accent-subtle);color:var(--accent-hover)"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--accent);background:var(--surface-card)"></span>atlas = preview</div>
+<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;background:var(--success-subtle);color:var(--success)"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--green-600);background:var(--surface-card)"></span>beacon + labels</div>
+<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;background:rgba(198,242,60,.22);color:var(--signal-text)"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #8aa61f;background:var(--surface-card)"></span>DisplayOrder += caldera</div>
+<div style="display:inline-flex;align-items:center;gap:6px;margin-top:2px;font-size:10px;color:var(--success);font-weight:600"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="12"><path d="M20 6 9 17l-5-5"></path></svg>all applied, clean</div>
+</div>
+</article>
+</div>
+
+<div class="wide-only" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border-subtle);border:1px solid var(--border-subtle);border-radius:16px;overflow:hidden">
+<article style="background:var(--surface-card);padding:28px 26px;display:grid;grid-template-columns:48px 1fr;gap:18px;align-items:start">
+<div class="step-num" style="width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-family:'Fira Code',monospace;font-weight:700;font-size:16px">01</div>
+<div><h3 style="margin:2px 0 7px;font-size:18px;font-weight:700;letter-spacing:-.01em">Parse base, ours, and theirs as files</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">The XML adapter turns each of the three <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">catalog.xml</code> versions into a document tree of node kind, fields, scalar value, children, and identity metadata — three structures, not three blobs of text.</p></div>
+</article>
+<article style="background:var(--surface-card);padding:28px 26px;display:grid;grid-template-columns:48px 1fr;gap:18px;align-items:start">
+<div class="step-num" style="width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-family:'Fira Code',monospace;font-weight:700;font-size:16px">02</div>
+<div><h3 style="margin:2px 0 7px;font-size:18px;font-weight:700;letter-spacing:-.01em">Extract semantic trees by identity</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Schema discriminators name each node: <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">Product[sku=atlas]</code>, <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">Product[sku=beacon]</code>, <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">Label[languagecode=en]</code>, <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">ProductRef[sku=caldera]</code>. Ambiguous repeated nodes fail loudly rather than fall back to positional guesses.</p></div>
+</article>
+<article style="background:var(--surface-card);padding:28px 26px;display:grid;grid-template-columns:48px 1fr;gap:18px;align-items:start">
+<div class="step-num" style="width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-family:'Fira Code',monospace;font-weight:700;font-size:16px">03</div>
+<div><h3 style="margin:2px 0 7px;font-size:18px;font-weight:700;letter-spacing:-.01em">Compare each side against base</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Ours changed <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">atlas</code>; theirs changed <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">beacon</code>, added <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">caldera</code>, and appended it to display order. Each diff is taken against base, so unrelated edits never look like a collision.</p></div>
+</article>
+<article style="background:var(--surface-card);padding:28px 26px;display:grid;grid-template-columns:48px 1fr;gap:18px;align-items:start">
+<div class="step-num" style="width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-family:'Fira Code',monospace;font-weight:700;font-size:16px">04</div>
+<div><h3 style="margin:2px 0 7px;font-size:18px;font-weight:700;letter-spacing:-.01em">Merge by identity slots</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Different nodes combine cleanly, and the ordered <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">DisplayOrder</code> accepts the one-sided append. The result is rendered back through the XML adapter; only a genuine same-node clash would ever write a marker.</p></div>
+</article>
+</div><div class="carousel model-steps" style="gap:18px"><div class="model-slide"><article style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(11,11,12,.05)">
+<header style="display:flex;align-items:center;gap:13px;padding:16px 16px 8px;border-bottom:0"><div class="step-num" style="width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-family:'Fira Code',monospace;font-weight:700;font-size:16px">01</div><div><span style="font:700 11px/1 'Hanken Grotesk';letter-spacing:.07em;text-transform:uppercase;color:var(--text-tertiary)">Parse</span><div style="margin-top:5px;font-size:14px;font-weight:600;color:var(--text-primary)">Three Git inputs</div></div></header>
+<div style="padding:14px;display:grid;gap:10px">
+<div><div style="font-family:'Fira Code',monospace;font-size:10px;color:var(--text-tertiary);margin-bottom:5px">base</div><div style="display:grid;gap:5px"><span style="height:7px;border-radius:9px;background:var(--border-subtle);width:100%"></span><span style="height:7px;border-radius:9px;background:var(--border-subtle);width:72%"></span></div></div>
+<div><div style="font-family:'Fira Code',monospace;font-size:10px;color:var(--accent);margin-bottom:5px">ours</div><div style="display:grid;gap:5px"><span style="height:7px;border-radius:9px;background:var(--border-subtle);width:100%"></span><span style="height:7px;border-radius:9px;background:var(--accent);width:60%"></span></div></div>
+<div><div style="font-family:'Fira Code',monospace;font-size:10px;color:var(--green-600);margin-bottom:5px">theirs</div><div style="display:grid;gap:5px"><span style="height:7px;border-radius:9px;background:var(--green-600);width:80%"></span><span style="height:7px;border-radius:9px;background:var(--border-subtle);width:72%"></span></div></div>
+</div>
+</article><article style="padding:20px 24px 24px">
+
+<div><h3 style="margin:2px 0 7px;font-size:18px;font-weight:700;letter-spacing:-.01em">Parse base, ours, and theirs as files</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">The XML adapter turns each of the three <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">catalog.xml</code> versions into a document tree of node kind, fields, scalar value, children, and identity metadata — three structures, not three blobs of text.</p></div>
+</article></div><div class="model-slide"><article style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(11,11,12,.05)">
+<header style="display:flex;align-items:center;gap:13px;padding:16px 16px 8px;border-bottom:0"><div class="step-num" style="width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-family:'Fira Code',monospace;font-weight:700;font-size:16px">02</div><div><span style="font:700 11px/1 'Hanken Grotesk';letter-spacing:.07em;text-transform:uppercase;color:var(--text-tertiary)">Identify</span><div style="margin-top:5px;font-size:14px;font-weight:600;color:var(--text-primary)">Semantic trees</div></div></header>
+<div style="padding:14px;display:grid;gap:8px;font-family:'Fira Code',monospace;font-size:11px;color:var(--text-secondary)">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--text-primary);background:var(--surface-card)"></span>Catalog</div>
+<div style="display:flex;align-items:center;gap:8px;padding-left:14px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--border-default);background:var(--surface-card)"></span>Product[atlas]</div>
+<div style="display:flex;align-items:center;gap:8px;padding-left:14px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--border-default);background:var(--surface-card)"></span>Product[beacon]</div>
+<div style="display:flex;align-items:center;gap:8px;padding-left:28px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--border-default);background:var(--surface-card)"></span>Label[en]</div>
+<div style="display:flex;align-items:center;gap:8px;padding-left:14px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--border-default);background:var(--surface-card)"></span>ProductRef[caldera]</div>
+<div style="margin-top:2px;font-size:10px;color:var(--text-tertiary)">matched by sku · languagecode</div>
+</div>
+</article><article style="padding:20px 24px 24px">
+
+<div><h3 style="margin:2px 0 7px;font-size:18px;font-weight:700;letter-spacing:-.01em">Extract semantic trees by identity</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Schema discriminators name each node: <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">Product[sku=atlas]</code>, <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">Product[sku=beacon]</code>, <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">Label[languagecode=en]</code>, <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">ProductRef[sku=caldera]</code>. Ambiguous repeated nodes fail loudly rather than fall back to positional guesses.</p></div>
+</article></div><div class="model-slide"><article style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(11,11,12,.05)">
+<header style="display:flex;align-items:center;gap:13px;padding:16px 16px 8px;border-bottom:0"><div class="step-num" style="width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-family:'Fira Code',monospace;font-weight:700;font-size:16px">03</div><div><span style="font:700 11px/1 'Hanken Grotesk';letter-spacing:.07em;text-transform:uppercase;color:var(--text-tertiary)">Diff</span><div style="margin-top:5px;font-size:14px;font-weight:600;color:var(--text-primary)">Change vs base</div></div></header>
+<div style="padding:14px;display:grid;gap:8px;font-family:'Fira Code',monospace;font-size:11px">
+<div style="padding:8px 10px;border:1px solid rgba(11,95,255,.3);background:var(--accent-subtle);border-radius:9px;color:var(--accent-hover)">ours · atlas → preview</div>
+<div style="padding:8px 10px;border:1px solid rgba(31,168,85,.32);background:var(--success-subtle);border-radius:9px;color:var(--success)">theirs · beacon → +labels</div>
+<div style="padding:8px 10px;border:1px solid rgba(132,160,30,.4);background:rgba(198,242,60,.22);border-radius:9px;color:var(--signal-text)">theirs · +caldera, appended</div>
+<div style="font-size:10px;color:var(--text-tertiary)">different slots, no overlap</div>
+</div>
+</article><article style="padding:20px 24px 24px">
+
+<div><h3 style="margin:2px 0 7px;font-size:18px;font-weight:700;letter-spacing:-.01em">Compare each side against base</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Ours changed <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">atlas</code>; theirs changed <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">beacon</code>, added <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">caldera</code>, and appended it to display order. Each diff is taken against base, so unrelated edits never look like a collision.</p></div>
+</article></div><div class="model-slide"><article style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;box-shadow:0 4px 12px rgba(11,11,12,.07)">
+<header style="display:flex;align-items:center;gap:13px;padding:16px 16px 8px;border-bottom:0"><div class="step-num" style="width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-family:'Fira Code',monospace;font-weight:700;font-size:16px">04</div><div><span style="font:700 11px/1 'Hanken Grotesk';letter-spacing:.07em;text-transform:uppercase;color:var(--text-tertiary)">Merge</span><div style="margin-top:5px;font-size:14px;font-weight:600;color:var(--text-primary)">Identity slots</div></div></header>
+<div style="padding:14px;display:grid;gap:8px;font-family:'Fira Code',monospace;font-size:11px">
+<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;background:var(--accent-subtle);color:var(--accent-hover)"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--accent);background:var(--surface-card)"></span>atlas = preview</div>
+<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;background:var(--success-subtle);color:var(--success)"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--green-600);background:var(--surface-card)"></span>beacon + labels</div>
+<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;background:rgba(198,242,60,.22);color:var(--signal-text)"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #8aa61f;background:var(--surface-card)"></span>DisplayOrder += caldera</div>
+<div style="display:inline-flex;align-items:center;gap:6px;margin-top:2px;font-size:10px;color:var(--success);font-weight:600"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="12"><path d="M20 6 9 17l-5-5"></path></svg>all applied, clean</div>
+</div>
+</article><article style="padding:20px 24px 24px">
+
+<div><h3 style="margin:2px 0 7px;font-size:18px;font-weight:700;letter-spacing:-.01em">Merge by identity slots</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Different nodes combine cleanly, and the ordered <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">DisplayOrder</code> accepts the one-sided append. The result is rendered back through the XML adapter; only a genuine same-node clash would ever write a marker.</p></div>
+</article></div></div>
+</div>
 </section>
-
-<section id="how">
-  <div class="wrap">
-    <h2>How it works</h2>
-    <ol class="steps">
-      <li><strong>Parse.</strong> A format adapter turns each of base, ours, and theirs into a document tree of nodes (kind, fields, value, children).</li>
-      <li><strong>Identify.</strong> Schema rules assign each node a stable identity that is local to its parent — a discriminator attribute, an element value, a composite key, or an explicit ordered slot.</li>
-      <li><strong>Merge structurally.</strong> Nodes are matched by identity, not by line position. Independent edits to different nodes both apply.</li>
-      <li><strong>Respect order only where it matters.</strong> Sibling order participates in the merge only for parent paths the schema lists as <code>orderedChildren</code>.</li>
-      <li><strong>Fail loud, never guess.</strong> If repeated siblings cannot be given unique identities, or both sides change an ordered collection differently, Meridian emits a conflict instead of silently aligning the wrong nodes.</li>
-    </ol>
-<pre>base source   ─▶ adapter ─▶ base tree   ┐
-ours source   ─▶ adapter ─▶ ours tree   ├─▶ identity assignment
-theirs source ─▶ adapter ─▶ theirs tree ┘   ─▶ three-way structural merge
-                                            ─▶ adapter render (markers only where needed)</pre>
-  </div>
+<section id="schema" style="border-top:1px solid var(--border-subtle);padding:96px 0">
+<div style="max-width:1200px;margin:0 auto;padding:0 32px">
+<span style="font:700 13px/1 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">Meridian schema</span>
+<h2 style="font-size:clamp(28px,3.2vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:14px 0 14px;max-width:24ch">The merge above was made possible by this schema.</h2>
+<p style="font-size:18px;line-height:1.55;color:var(--text-secondary);margin:0 0 40px;max-width:64ch">No model guesses what <code style="font-family:'Fira Code',monospace;font-size:.82em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">sku</code> means. A repository commits one small, readable schema next to <code style="font-family:'Fira Code',monospace;font-size:.82em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">catalog.xml</code>, and every merge and diff reads it.</p>
+<div class="schema-figure"><div class="schema-figure__code"><div class="keel-cb keel-cb--auto"><div class="keel-cb__tabs"><span class="keel-cb__lead"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="m16 18 6-6-6-6"></path><path d="m8 6-6 6 6 6"></path></svg></span><span class="keel-cb__tab keel-cb__tab--active"><span class="keel-cb__dot" style="background:#cb4b16"></span>catalog.meridian.yaml</span><span class="keel-cb__lang">YAML</span></div><div class="keel-cb__scroll"><pre class="keel-cb__pre"><code><span style="display:block;color:#6e7686">$schema: …/schemas/meridian.schema.json</span><span style="display:block"><span style="color:var(--code-type)">schemaVersion</span>: <span style="color:var(--code-string)">0.1</span></span><span style="display:block"><span style="color:var(--code-type)">name</span>: <span style="color:var(--code-string)">catalog</span></span><span style="display:block"> </span><span style="display:block"><span style="color:var(--code-type)">defaults</span>:</span><span class="anno-line" data-anno="0" style="display:block">  <span style="color:var(--code-type)">globalDiscriminatorFields</span>:</span><span class="anno-line" data-anno="0" style="display:block">    - <span style="color:var(--code-string)">id</span></span><span class="anno-line" data-anno="0" style="display:block">    - <span style="color:var(--code-string)">languagecode</span></span><span style="display:block"> </span><span style="display:block"><span style="color:var(--code-type)">files</span>:</span><span style="display:block">  - <span style="color:var(--code-type)">match</span>: <span style="color:var(--code-string)">catalog.xml</span></span><span style="display:block">    <span style="color:var(--code-type)">root</span>: <span style="color:var(--code-string)">Catalog</span></span><span style="display:block">    <span style="color:var(--code-type)">discriminators</span>:</span><span class="anno-line" data-anno="1" style="display:block">      - <span style="color:var(--code-type)">path</span>: <span style="color:var(--code-string)">Catalog/Products/Product</span></span><span class="anno-line" data-anno="1" style="display:block">        <span style="color:var(--code-type)">key</span>:</span><span class="anno-line" data-anno="1" style="display:block">          <span style="color:var(--code-type)">attribute</span>: <span style="color:var(--code-string)">sku</span></span><span class="anno-line" data-anno="2" style="display:block">      - <span style="color:var(--code-type)">path</span>: <span style="color:var(--code-string)">Catalog/DisplayOrder/ProductRef</span></span><span class="anno-line" data-anno="2" style="display:block">        <span style="color:var(--code-type)">key</span>:</span><span class="anno-line" data-anno="2" style="display:block">          <span style="color:var(--code-type)">attribute</span>: <span style="color:var(--code-string)">sku</span></span><span class="anno-line" data-anno="3" style="display:block">    <span style="color:var(--code-type)">orderedChildren</span>:</span><span class="anno-line" data-anno="3" style="display:block">      - <span style="color:var(--code-string)">Catalog/DisplayOrder</span></span></code></pre></div></div><div class="schema-band" data-anno="0"></div><div class="schema-band" data-anno="1"></div><div class="schema-band" data-anno="2"></div><div class="schema-band" data-anno="3"></div></div><article class="walk-panel" data-anno="0" style="">
+<div style="font-family:'Fira Code',monospace;font-size:12px;font-weight:700;color:var(--accent);margin-bottom:5px">globalDiscriminatorFields</div>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:var(--text-secondary)">Sibling <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">Label</code> nodes are told apart by <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">languagecode</code>, so the <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">en</code> and <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">fr</code> labels merge as separate slots.</p>
+</article><article class="walk-panel" data-anno="1" style="">
+<div style="font-family:'Fira Code',monospace;font-size:12px;font-weight:700;color:var(--accent);margin-bottom:5px">Product · key: sku</div>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:var(--text-secondary)"><code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">atlas</code>, <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">beacon</code>, and <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">caldera</code> are matched by <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">sku</code> — one side's edit to <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">atlas</code> can never collide with the other's edit to <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">beacon</code>.</p>
+</article><article class="walk-panel" data-anno="2" style="">
+<div style="font-family:'Fira Code',monospace;font-size:12px;font-weight:700;color:var(--accent);margin-bottom:5px">ProductRef · key: sku</div>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:var(--text-secondary)">Display references are aligned by the product they point at, not by their position in the list.</p>
+</article><article class="walk-panel" data-anno="3" style="">
+<div style="font-family:'Fira Code',monospace;font-size:12px;font-weight:700;color:var(--accent);margin-bottom:5px">orderedChildren: Catalog/DisplayOrder</div>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:var(--text-secondary)">Order matters <em style="font-style:normal;font-weight:600;color:var(--text-primary)">here only</em>. The one-sided append of <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">caldera</code> is accepted; two sides reordering it differently would be reported as a conflict, never silently sorted.</p>
+</article></div>
+</div>
 </section>
-
-<section id="concepts">
-  <div class="wrap">
-    <h2>Core concepts</h2>
-    <div class="cols">
-      <div class="card">
-        <h3>Identity is local</h3>
-        <p>Identity means "inside this parent, siblings with this node name are matched by this value" — not global uniqueness. Ambiguous identity is an error, not a guess.</p>
-      </div>
-      <div class="card">
-        <h3>Order is opt-in</h3>
-        <p>Once nodes have identities, sibling order is ignored by default. Declare <code>orderedChildren</code> only where sequence is genuinely semantic.</p>
-      </div>
-      <div class="card">
-        <h3>Nested content</h3>
-        <p>A scalar that contains another format — JSON inside XML, HTML inside JSON — can be parsed, merged as its own tree, and re-embedded with correct escaping.</p>
-      </div>
-      <div class="card">
-        <h3>Schema-owned semantics</h3>
-        <p>Discriminators, ordered children, content formats, companion files, and format aliases live in <code>*.meridian.yaml</code> — composable, discoverable, and consumer-owned.</p>
-      </div>
-    </div>
-  </div>
+<section id="formats" style="border-top:1px solid var(--border-subtle);padding:96px 0;background:var(--surface-subtle)">
+<div style="max-width:1200px;margin:0 auto;padding:0 32px">
+<div style="display:grid;grid-template-columns:.95fr 1.05fr;gap:56px;align-items:start">
+<div>
+<span style="font:700 13px/1 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">Format support</span>
+<h2 style="font-size:clamp(28px,3.2vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:14px 0 18px;max-width:16ch">Every format is a plugin.</h2>
+<p style="font-size:17px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px">The core knows nothing about syntax. Each format is an adapter that implements one small contract — recognise a file, parse its text into a structural tree, and render a tree back to text, preserving the original formatting wherever it can.</p>
+<p style="font-size:17px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px">Adapters are discovered at runtime, so support is additive. Drop in an adapter for a proprietary or in-house format and it takes part in structural merge, semantic diff, and recursive nesting exactly like the formats that ship in the box — no changes to the engine.</p>
+<p style="font-size:17px;line-height:1.6;color:var(--text-secondary);margin:0">Built-in adapters ship as grouped provider packages — <code style="font-family:'Fira Code',monospace;font-size:.82em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">MeridianGit.Formats.Markup</code>, <code style="font-family:'Fira Code',monospace;font-size:.82em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">.Web</code>, <code style="font-family:'Fira Code',monospace;font-size:.82em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">.Images</code>, <code style="font-family:'Fira Code',monospace;font-size:.82em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">.PowerPlatform</code>, and <code style="font-family:'Fira Code',monospace;font-size:.82em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">.Binary</code>. Your own adapter just implements <code style="font-family:'Fira Code',monospace;font-size:.82em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">MeridianGit.Abstractions</code>.</p>
+</div>
+<div style="border:1px solid var(--border-default);border-radius:14px;background:var(--surface-card);box-shadow:0 12px 32px rgba(11,11,12,.08),0 4px 10px rgba(11,11,12,.04);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-subtle)">
+<span style="font-size:13px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)">The adapter contract</span>
+<span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--text-tertiary)">discovered at runtime</span>
+</div>
+<div style="padding:22px 20px;display:flex;flex-direction:column;align-items:stretch;gap:0">
+<div style="border:1px solid var(--border-subtle);border-radius:10px;background:var(--surface-card);padding:12px 14px">
+<div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px">Source text</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--text-secondary);background:var(--surface-subtle);border-radius:6px;padding:2px 8px">.xml</span>
+<span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--text-secondary);background:var(--surface-subtle);border-radius:6px;padding:2px 8px">.json</span>
+<span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--text-secondary);background:var(--surface-subtle);border-radius:6px;padding:2px 8px">.yaml</span>
+<span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--text-secondary);background:var(--surface-subtle);border-radius:6px;padding:2px 8px">…</span>
+</div>
+</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:22px;padding:9px 0;color:var(--text-tertiary);font-family:'Fira Code',monospace;font-size:11px">
+<span style="display:inline-flex;align-items:center;gap:5px"><svg fill="none" height="14" stroke="var(--accent)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="M12 5v14M6 13l6 6 6-6"></path></svg>parse</span>
+<span style="display:inline-flex;align-items:center;gap:5px">render<svg fill="none" height="14" stroke="var(--accent)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="M12 19V5M6 11l6-6 6 6"></path></svg></span>
+</div>
+<div style="border:1px solid rgba(11,95,255,.28);border-radius:10px;background:var(--accent-subtle);padding:13px 14px">
+<div style="font-size:13px;font-weight:700;color:var(--accent-hover);margin-bottom:9px">Format adapter</div>
+<div style="display:flex;flex-wrap:wrap;gap:7px">
+<span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--accent);background:var(--surface-card);border-radius:6px;padding:3px 9px;box-shadow:inset 0 0 0 1px rgba(11,95,255,.22)">detect</span>
+<span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--accent);background:var(--surface-card);border-radius:6px;padding:3px 9px;box-shadow:inset 0 0 0 1px rgba(11,95,255,.22)">parse</span>
+<span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--accent);background:var(--surface-card);border-radius:6px;padding:3px 9px;box-shadow:inset 0 0 0 1px rgba(11,95,255,.22)">render</span>
+</div>
+</div>
+<div style="display:flex;align-items:center;justify-content:center;padding:9px 0"><svg fill="none" height="14" stroke="var(--border-default)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></div>
+<div style="border:1px solid var(--border-subtle);border-radius:10px;background:var(--surface-card);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+<span style="font-size:13px;font-weight:600;color:var(--text-primary)">Structural tree</span>
+<span style="display:inline-flex;align-items:center;gap:6px;font-family:'Fira Code',monospace;font-size:11px;color:var(--text-secondary)"><svg fill="none" height="13" stroke="var(--accent)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="13"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>merge engine</span>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:48px 0 18px;flex-wrap:wrap">
+<h3 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)">Shipped as provider bundles</h3>
+<span style="font-size:14px;color:var(--text-secondary)">Grouped <code style="font-family:'Fira Code',monospace;font-size:.9em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">MeridianGit.Formats.*</code> packages — install only what a repo needs.</span>
+</div>
+<div class="carousel" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+<div class="keel-card keel-card--outlined keel-card--interactive">
+<h4 style="margin:0 0 11px;font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)">Markup</h4>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px"><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.xml</span><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.json</span><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.yaml</span></div>
+<p style="margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)">Structured config and data, matched by element id, member name, or a schema discriminator.</p>
+</div>
+<div class="keel-card keel-card--outlined keel-card--interactive">
+<h4 style="margin:0 0 11px;font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)">Web</h4>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px"><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.html</span><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.css</span><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.js</span></div>
+<p style="margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)">Front-end source merged by element, by selector and property, and by top-level declaration.</p>
+</div>
+<div class="keel-card keel-card--outlined keel-card--interactive">
+<div style="display:flex;align-items:center;gap:9px;margin-bottom:11px"><h4 style="margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)">Power Platform</h4><span style="display:inline-flex;align-items:center;font-family:'Hanken Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--signal-on);background:var(--signal-500);border-radius:980px;padding:3px 9px">Pro</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px"><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.liquid</span><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.xap</span><span class="keel-tip"><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--signal-700);background:var(--signal-subtle);border-radius:7px;padding:3px 7px;box-shadow:inset 0 0 0 1px var(--signal-300);cursor:help">+ solution schema</span><span class="keel-tip__pop">A ready-made Meridian schema for Power Platform solution XML</span></span></div>
+<p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:var(--text-secondary)">Power Platform solution formats, and ready-made Meridian schemas for the platform. A paid provider bundle.</p>
+<a href="mailto:adam.coulter@me.com" style="display:inline-flex;align-items:center;gap:7px;padding-top:12px;border-top:1px solid var(--border-subtle);width:100%;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none">
+<svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="15"><rect height="14" rx="2" width="18" x="3" y="5"></rect><path d="m3 7 9 6 9-6"></path></svg>
+            Contact for access &amp; pricing
+          </a>
+</div>
+<div class="keel-card keel-card--outlined keel-card--interactive">
+<h4 style="margin:0 0 11px;font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)">Binary</h4>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px"><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.png</span><span style="display:inline-flex;align-items:center;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px">.bin</span></div>
+<p style="margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)">Byte-safe whole-file providers. Compared by exact content — a both-sides change is a conflict, never a structural merge.</p>
+</div>
+<div class="keel-card keel-card--flat keel-card--interactive" style="box-shadow:inset 0 0 0 1.5px var(--blue-300)">
+<span style="display:inline-flex;align-items:center;gap:5px;font-family:'Fira Code',monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-subtle);border-radius:7px;padding:3px 7px;margin-bottom:13px"><svg fill="none" height="13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="13"><path d="M12 5v14M5 12h14"></path></svg>.your</span>
+<h4 style="margin:0 0 6px;font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)">Bring your own</h4>
+<p style="margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)">Implement the adapter contract and your format merges like everything else.</p>
+</div>
+</div>
+</div>
 </section>
-
-<section id="start">
-  <div class="wrap">
-    <h2>Quick start</h2>
-    <p>Build from source (requires the .NET 11 SDK) and run a structural three-way merge:</p>
-<pre>git clone https://github.com/AdamCoulterOz/Meridian.git
-cd Meridian
-dotnet build Meridian.slnx
-dotnet test Meridian.slnx
-
-dotnet run --project source/Tools/GitMerge/GitMerge.csproj -- \
-  merge-file --base base.xml --ours ours.xml --theirs theirs.xml --path catalog.xml</pre>
-    <p>Wire it into a repository as a Git merge driver, then opt files in with <code>.gitattributes</code>:</p>
-<pre># .git/config (or repo config)
-[merge "meridian"]
-    name = Meridian structural merge
-    driver = dotnet run --project ../Meridian/source/Tools/GitMerge/GitMerge.csproj -- \
-             merge-file --base %O --ours %A --theirs %B --path %P
-
-# .gitattributes
-*.xml  merge=meridian diff=meridian
-*.json merge=meridian diff=meridian
-*.yaml merge=meridian diff=meridian</pre>
-    <p>A minimal schema describes only merge-relevant facts:</p>
-<pre>schemaVersion: 0.1
-name: catalog
-
-defaults:
-  globalDiscriminatorFields: [id, Id, languagecode]
-
-files:
-  - match: catalog.xml
-    discriminators:
-      - path: Catalog/Products/Product
-        key: { attribute: sku }
-    orderedChildren:
-      - Catalog/DisplayOrder</pre>
-    <p class="muted">Full documentation, schema reference, and library usage live in the <a href="https://github.com/AdamCoulterOz/Meridian#readme">project README</a> and <a href="https://github.com/AdamCoulterOz/Meridian/blob/main/docs/architecture.md">architecture notes</a>.</p>
-  </div>
+<section id="nested" style="border-top:1px solid var(--border-subtle);padding:96px 0">
+<div style="max-width:1200px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:start">
+<div>
+<span style="font:700 13px/1 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">Recursive formats</span>
+<h2 style="font-size:clamp(28px,3.2vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:14px 0 18px;max-width:18ch">A value can be a whole document.</h2>
+<p style="font-size:17px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px">Real source files smuggle one format inside another — a JSON payload in an XML attribute, an HTML fragment in JSON, an escaped JSON string nested inside <em>that</em>. To a line merge it is one opaque blob. To Meridian it is a tree with more trees inside it.</p>
+<p style="font-size:17px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px">When an adapter recognises a scalar as another format, it parses that payload as its own document — under <em>its own</em> schema — and merges it at that depth. The clean result is re-embedded through the parent adapter, which owns the quoting and escaping, so encoding stays correct all the way back up.</p>
+<p style="font-size:17px;line-height:1.6;color:var(--text-secondary);margin:0 0 24px">Schemas compose the same way. An outer schema points an inner payload at the schema that governs it, and Meridian traverses that chain — each level keeping its own identity and ordering rules.</p>
+<div class="keel-callout keel-callout--info"><div class="keel-callout__body">The XML adapter never has to know what the JSON inside means. Each format stays responsible for exactly one layer — and only the layer that actually changed is touched.</div></div>
+</div>
+<div>
+<div style="border:1px solid var(--border-default);border-radius:14px;background:var(--surface-card);box-shadow:0 12px 32px rgba(11,11,12,.08),0 4px 10px rgba(11,11,12,.04);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border-subtle)">
+<span style="display:inline-flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;background:var(--accent-subtle);color:var(--accent);font:600 11px/1.4 'Fira Code',monospace">XML</span><span style="font-family:'Fira Code',monospace;font-size:12px;color:var(--text-secondary)">web.config</span></span>
+<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:6px;background:var(--surface-subtle);color:var(--text-secondary);font-family:'Fira Code',monospace;font-size:11px">
+<svg fill="none" height="11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="11"><path d="M7 4H6a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h1M17 4h1a2 2 0 0 1 2 2v3a2 2 0 0 1 2 2 2 2 0 0 1-2 2v3a2 2 0 0 1-2 2h-1"></path></svg>
+              dotnet-config
+            </span>
+</div>
+<div style="padding:14px">
+<pre style="margin:0 0 6px;font-family:'Fira Code',monospace;font-size:12.5px;line-height:1.7;color:var(--text-primary);white-space:pre-wrap;word-break:break-word"><code>&lt;<span style="color:var(--accent-hover)">add</span> <span style="color:var(--text-secondary)">key</span>=<span style="color:var(--success)">"FeatureFlags"</span> <span style="color:var(--text-secondary)">value</span>=<span style="color:var(--success)">"{<span style="color:var(--warning)">&amp;quot;</span>enabled<span style="color:var(--warning)">&amp;quot;</span>:true,<span style="color:var(--warning)">&amp;quot;</span>ru…"</span> /&gt;</code></pre>
+<div style="font-family:'Fira Code',monospace;font-size:11px;color:var(--accent);margin:0 0 12px">↳ the value scalar parses as JSON</div>
+<div style="border:1px solid var(--border-default);border-radius:11px;background:var(--surface-sunken);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;border-bottom:1px solid var(--border-subtle)">
+<span style="display:inline-flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;background:var(--accent-subtle);color:var(--accent);font:600 11px/1.4 'Fira Code',monospace">JSON</span><span style="font-family:'Fira Code',monospace;font-size:12px;color:var(--text-secondary)">value</span></span>
+<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:6px;background:var(--surface-card);color:var(--text-secondary);font-family:'Fira Code',monospace;font-size:11px;box-shadow:inset 0 0 0 1px var(--border-subtle)">
+<svg fill="none" height="11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="11"><path d="M7 4H6a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h1M17 4h1a2 2 0 0 1 2 2v3a2 2 0 0 1 2 2 2 2 0 0 1-2 2v3a2 2 0 0 1-2 2h-1"></path></svg>
+                  feature-flags
+                </span>
+</div>
+<div style="padding:13px">
+<pre style="margin:0 0 6px;font-family:'Fira Code',monospace;font-size:12.5px;line-height:1.7;color:var(--text-primary);white-space:pre-wrap;word-break:break-word"><code>{ <span style="color:var(--text-secondary)">"enabled"</span>: <span style="color:var(--accent-hover)">true</span>, <span style="color:var(--text-secondary)">"rules"</span>: <span style="color:var(--success)">"{<span style="color:var(--warning)">\"</span>minVersion<span style="color:var(--warning)">\"</span>:<span style="color:var(--warning)">\"</span>3…"</span> }</code></pre>
+<div style="font-family:'Fira Code',monospace;font-size:11px;color:var(--accent);margin:0 0 11px">↳ the rules string is escaped JSON</div>
+<div style="border:1px solid var(--border-default);border-radius:9px;background:var(--surface-card);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border-subtle)">
+<span style="display:inline-flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;background:var(--accent-subtle);color:var(--accent);font:600 11px/1.4 'Fira Code',monospace">JSON</span><span style="font-family:'Fira Code',monospace;font-size:12px;color:var(--text-secondary)">rules · escaped</span></span>
+<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:6px;background:var(--surface-card);color:var(--text-secondary);font-family:'Fira Code',monospace;font-size:11px;box-shadow:inset 0 0 0 1px var(--border-subtle)">
+<svg fill="none" height="11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="11"><path d="M7 4H6a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h1M17 4h1a2 2 0 0 1 2 2v3a2 2 0 0 1 2 2 2 2 0 0 1-2 2v3a2 2 0 0 1-2 2h-1"></path></svg>
+                      release
+                    </span>
+</div>
+<div style="padding:12px 13px">
+<pre style="margin:0;font-family:'Fira Code',monospace;font-size:12.5px;line-height:1.7;color:var(--text-primary);white-space:pre-wrap;word-break:break-word"><code>{ <span style="color:var(--text-secondary)">"minVersion"</span>: <span style="color:var(--success)">"3.1"</span>, <span style="color:var(--text-secondary)">"stage"</span>: <span style="color:var(--success)">"beta"</span> }</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:9px;margin-top:14px;padding:0 4px;font-size:13px;color:var(--text-secondary)">
+<svg aria-hidden="true" fill="none" height="16" stroke="var(--accent)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="16"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>
+          Parsed down through every layer, merged at depth, then re-embedded back up with escaping intact.
+        </div>
+</div>
+</div>
 </section>
+<section id="constraints" style="border-top:1px solid var(--border-subtle);padding:96px 0">
+<div style="max-width:1200px;margin:0 auto;padding:0 32px">
+<span style="font:700 13px/1 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">Design constraints</span>
+<h2 style="font-size:clamp(28px,3.2vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:14px 0 14px;max-width:24ch">Constraints that keep the merge honest.</h2>
+<p style="font-size:18px;line-height:1.55;color:var(--text-secondary);margin:0 0 40px;max-width:62ch">The tool is intentionally conservative. It exists to preserve semantic intent across source-controlled files, not to smooth over uncertainty by guessing.</p>
+<div class="carousel" style="display:grid;grid-template-columns:repeat(2,1fr);gap:18px">
+<div class="keel-card keel-card--outlined keel-card--interactive keel-card--lg"><div style="display:grid;grid-template-columns:46px 1fr;gap:18px;align-items:start">
+<div style="width:46px;height:46px;border-radius:10px;display:grid;place-items:center;background:var(--accent-subtle);color:var(--accent)">
+<svg aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24" width="24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path><circle cx="16.5" cy="7.5" fill="currentColor" r=".5"></circle></svg>
+</div>
+<div><h3 style="margin:2px 0 8px;font-size:18px;font-weight:700;letter-spacing:-.01em">Identity is local</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Identity means "inside this parent, siblings with this node name are matched by this value." It is not global uniqueness, and ambiguity is a configuration error.</p></div>
+</div></div>
+<div class="keel-card keel-card--outlined keel-card--interactive keel-card--lg"><div style="display:grid;grid-template-columns:46px 1fr;gap:18px;align-items:start">
+<div style="width:46px;height:46px;border-radius:10px;display:grid;place-items:center;background:var(--accent-subtle);color:var(--accent)">
+<svg aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24" width="24"><path d="m3 16 4 4 4-4"></path><path d="M7 20V4"></path><path d="M20 8h-5"></path><path d="M15 10V6.5a2.5 2.5 0 0 1 5 0V10"></path><path d="M15 14h5l-5 6h5"></path></svg>
+</div>
+<div><h3 style="margin:2px 0 8px;font-size:18px;font-weight:700;letter-spacing:-.01em">Order is opt-in</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Sibling order is ignored by default once nodes have identities. Declare <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">orderedChildren</code> only where sequence changes meaning.</p></div>
+</div></div>
+<div class="keel-card keel-card--outlined keel-card--interactive keel-card--lg"><div style="display:grid;grid-template-columns:46px 1fr;gap:18px;align-items:start">
+<div style="width:46px;height:46px;border-radius:10px;display:grid;place-items:center;background:var(--accent-subtle);color:var(--accent)">
+<svg aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24" width="24"><rect height="6" rx="1" width="6" x="16" y="16"></rect><rect height="6" rx="1" width="6" x="2" y="16"></rect><rect height="6" rx="1" width="6" x="9" y="2"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></svg>
+</div>
+<div><h3 style="margin:2px 0 8px;font-size:18px;font-weight:700;letter-spacing:-.01em">Nested content stays nested</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">JSON inside XML, HTML inside JSON, and similar scalar payloads can be parsed as their own tree and re-embedded with the parent adapter handling escaping.</p></div>
+</div></div>
+<div class="keel-card keel-card--outlined keel-card--interactive keel-card--lg"><div style="display:grid;grid-template-columns:46px 1fr;gap:18px;align-items:start">
+<div style="width:46px;height:46px;border-radius:10px;display:grid;place-items:center;background:var(--accent-subtle);color:var(--accent)">
+<svg aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24" width="24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="m9 13-2 2 2 2"></path><path d="m13 13 2 2-2 2"></path></svg>
+</div>
+<div><h3 style="margin:2px 0 8px;font-size:18px;font-weight:700;letter-spacing:-.01em">Consumers own domain semantics</h3><p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Power Platform, product metadata, and repository-specific rules belong in <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">*.meridian.yaml</code> files or wrapper tooling, not in Meridian core.</p></div>
+</div></div>
+</div>
+</div>
+</section>
+<section id="start" style="border-top:1px solid var(--border-subtle);padding:96px 0;background:var(--surface-subtle)">
+<div style="max-width:1200px;margin:0 auto;padding:0 32px">
+<span style="font:700 13px/1 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">Quick start</span>
+<h2 style="font-size:clamp(28px,3.2vw,40px);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:14px 0 14px;max-width:20ch">Install it and wire it into Git.</h2>
+<p style="font-size:18px;line-height:1.55;color:var(--text-secondary);margin:0 0 40px;max-width:64ch">Install the <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">meridian</code> CLI, register it as a Git merge and diff driver, and commit your schema files alongside the source they describe.</p>
+<div style="display:block">
+<div style="display:grid;gap:36px">
+<div><div style="margin:0 0 11px"><h3 style="margin:0 0 3px;font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)"><span style="color:var(--accent)">1</span> · Install the CLI</h3><p style="margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)">Add Meridian as a global .NET tool — the <code style="font-family:'Fira Code',monospace;font-size:.86em;background:var(--surface-sunken);padding:1px 6px;border-radius:6px;color:var(--text-primary)">meridian</code> command lands on your PATH.</p></div><div class="keel-cb keel-cb--auto"><div class="keel-cb__bar"><span class="keel-cb__lead"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="m4 17 6-6-6-6"></path><path d="M12 19h8"></path></svg></span><span class="keel-cb__title">install · global tool</span></div><div class="keel-cb__scroll"><pre class="keel-cb__pre"><code><span style="display:block"><span style="color:var(--code-keyword)">dotnet</span> tool install --global MeridianGit</span><span style="display:block"><span style="color:var(--code-keyword)">meridian</span> --version</span></code></pre></div></div></div>
+<div><div style="margin:0 0 11px"><h3 style="margin:0 0 3px;font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)"><span style="color:var(--accent)">2</span> · Run a merge by hand</h3><p style="margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)">Invoke a three-way structural merge directly — handy for trying a schema before wiring it into Git.</p></div><div class="keel-cb keel-cb--auto"><div class="keel-cb__bar"><span class="keel-cb__lead"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="m4 17 6-6-6-6"></path><path d="M12 19h8"></path></svg></span><span class="keel-cb__title">meridian merge · three-way</span></div><div class="keel-cb__scroll"><pre class="keel-cb__pre"><code><span style="display:block"><span style="color:var(--code-keyword)">meridian</span> merge \</span><span style="display:block">  --base base.xml \</span><span style="display:block">  --ours ours.xml \</span><span style="display:block">  --theirs theirs.xml \</span><span style="display:block">  --path catalog.xml</span></code></pre></div></div></div>
+<div><div style="margin:0 0 11px"><h3 style="margin:0 0 3px;font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)"><span style="color:var(--accent)">3</span> · Wire it into Git</h3><p style="margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)">Register the merge and diff driver, then opt files in so every clone merges and diffs structurally.</p></div><div class="keel-cb keel-cb--auto"><div class="keel-cb__tabs"><span class="keel-cb__lead"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="m16 18 6-6-6-6"></path><path d="m8 6-6 6 6 6"></path></svg></span><span class="keel-cb__tab keel-cb__tab--active"><span class="keel-cb__dot" style="background:var(--accent)"></span>.gitattributes</span><span class="keel-cb__lang">INI</span></div><div class="keel-cb__scroll"><pre class="keel-cb__pre"><code><span style="display:block"><span style="color:var(--code-type)">[merge "meridian"]</span></span><span style="display:block">    name = <span style="color:var(--code-string)">Meridian structural merge</span></span><span style="display:block">    driver = meridian merge \</span><span style="display:block">      --base %O --ours %A --theirs %B --path %P</span><span style="display:block"> </span><span style="display:block"><span style="color:var(--code-keyword)">*.config</span> merge=meridian diff=meridian</span><span style="display:block"><span style="color:var(--code-keyword)">*.xml</span>    merge=meridian diff=meridian</span><span style="display:block"><span style="color:var(--code-keyword)">*.json</span>   merge=meridian diff=meridian</span></code></pre></div></div></div>
+<div>
+<div style="margin:0 0 11px"><h3 style="margin:0 0 3px;font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text-primary)"><span style="color:var(--accent)">4</span> · Minimal schema shape</h3><p style="margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)">Schemas describe merge-relevant facts: identity, ordering, nested content, companion payloads, and aliases.</p></div>
 
-<footer>
-  <div class="wrap">
-    <p>
-      Meridian is licensed under the <a href="https://github.com/AdamCoulterOz/Meridian/blob/main/LICENSE">Apache License 2.0</a>.
-      Contact: <a href="mailto:adam.coulter@me.com">adam.coulter@me.com</a>.
-    </p>
-    <p class="muted">Copyright 2026 Adam Coulter.</p>
-  </div>
+<div class="keel-cb keel-cb--auto"><div class="keel-cb__tabs"><span class="keel-cb__lead"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="m16 18 6-6-6-6"></path><path d="m8 6-6 6 6 6"></path></svg></span><span class="keel-cb__tab keel-cb__tab--active"><span class="keel-cb__dot" style="background:#cb4b16"></span>config.meridian.yaml</span><span class="keel-cb__lang">YAML</span></div><div class="keel-cb__scroll"><pre class="keel-cb__pre"><code><span style="display:block"><span style="color:var(--text-secondary)">schemaVersion</span>: <span style="color:var(--success)">0.1</span></span><span style="display:block"><span style="color:var(--text-secondary)">name</span>: <span style="color:var(--success)">dotnet-config</span></span><span style="display:block"> </span><span style="display:block"><span style="color:var(--text-secondary)">defaults</span>:</span><span style="display:block">  <span style="color:var(--text-secondary)">globalDiscriminatorFields</span>:</span><span style="display:block">    - <span style="color:var(--success)">key</span></span><span style="display:block">    - <span style="color:var(--success)">name</span></span><span style="display:block"> </span><span style="display:block"><span style="color:var(--text-secondary)">files</span>:</span><span style="display:block">  - <span style="color:var(--text-secondary)">match</span>: <span style="color:var(--success)">"*.config"</span></span><span style="display:block">    <span style="color:var(--text-secondary)">discriminators</span>:</span><span style="display:block">      - <span style="color:var(--text-secondary)">path</span>: <span style="color:var(--success)">configuration/appSettings/add</span></span><span style="display:block">        <span style="color:var(--text-secondary)">key</span>: {<span style="color:var(--text-secondary)">attribute</span>: <span style="color:var(--success)">key</span>}</span><span style="display:block">    <span style="color:var(--text-secondary)">orderedChildren</span>:</span><span style="display:block">      - <span style="color:var(--success)">configuration/system.webServer/handlers</span></span></code></pre></div></div>
+</div></div>
+
+
+
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:32px">
+<a class="hv2" href="https://github.com/AdamCoulterOz/Meridian#readme" style="display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px;border-radius:10px;background:var(--surface-card);color:var(--text-primary);font-size:15px;font-weight:600;text-decoration:none;box-shadow:inset 0 0 0 1px var(--border-default);transition:background .14s">Read the README</a>
+<a class="hv2" href="https://github.com/AdamCoulterOz/Meridian/blob/main/docs/architecture.md" style="display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px;border-radius:10px;background:var(--surface-card);color:var(--text-primary);font-size:15px;font-weight:600;text-decoration:none;box-shadow:inset 0 0 0 1px var(--border-default);transition:background .14s">Architecture notes</a>
+<a class="hv2" href="https://github.com/AdamCoulterOz/Meridian/blob/main/schemas/meridian.schema.json" style="display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px;border-radius:10px;background:var(--surface-card);color:var(--text-primary);font-size:15px;font-weight:600;text-decoration:none;box-shadow:inset 0 0 0 1px var(--border-default);transition:background .14s">Schema contract</a>
+</div>
+</div>
+</section>
+</main>
+<footer style="background:var(--surface-footer);color:rgba(255,255,255,.7);padding:56px 0 64px">
+<div style="max-width:1200px;margin:0 auto;padding:0 32px;display:flex;flex-wrap:wrap;gap:32px;justify-content:space-between;align-items:flex-start">
+<div style="max-width:42ch">
+<div style="display:flex;align-items:center;gap:11px;margin-bottom:14px">
+<svg aria-hidden="true" fill="none" height="34" style="display:block" viewBox="0 0 24 24" width="34"><circle cx="12" cy="12" r="9" stroke="var(--blue-400)" stroke-width="1.3"></circle><ellipse cx="12" cy="12" rx="3.6" ry="9" stroke="var(--blue-400)" stroke-width="1.3"></ellipse><path d="M12 3v18M3 12h18" stroke="var(--blue-400)" stroke-linecap="round" stroke-width="1.3"></path><circle cx="12" cy="12" fill="var(--blue-400)" r="1.9"></circle></svg>
+<span style="font-weight:700;font-size:17px;color:#fff">Meridian</span>
+</div>
+<p style="margin:0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.6)">Structural merge and semantic diff for source formats Git can only see as text. Licensed under the Apache License 2.0.</p>
+</div>
+<div style="display:flex;gap:48px;flex-wrap:wrap">
+<div>
+<h4 style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.45)">Project</h4>
+<a class="hv3" href="https://github.com/AdamCoulterOz/Meridian" style="display:block;font-size:14px;color:rgba(255,255,255,.72);text-decoration:none;margin-bottom:9px;transition:color .14s">GitHub</a>
+<a class="hv3" href="https://github.com/AdamCoulterOz/Meridian#readme" style="display:block;font-size:14px;color:rgba(255,255,255,.72);text-decoration:none;margin-bottom:9px;transition:color .14s">README</a>
+<a class="hv3" href="https://github.com/AdamCoulterOz/Meridian/blob/main/LICENSE" style="display:block;font-size:14px;color:rgba(255,255,255,.72);text-decoration:none;transition:color .14s">License</a>
+</div>
+<div>
+<h4 style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.45)">Docs</h4>
+<a class="hv3" href="https://github.com/AdamCoulterOz/Meridian/blob/main/docs/architecture.md" style="display:block;font-size:14px;color:rgba(255,255,255,.72);text-decoration:none;margin-bottom:9px;transition:color .14s">Architecture</a>
+<a class="hv3" href="https://github.com/AdamCoulterOz/Meridian/blob/main/schemas/meridian.schema.json" style="display:block;font-size:14px;color:rgba(255,255,255,.72);text-decoration:none;margin-bottom:9px;transition:color .14s">Schema contract</a>
+<a class="hv3" href="mailto:adam.coulter@me.com" style="display:block;font-size:14px;color:rgba(255,255,255,.72);text-decoration:none;transition:color .14s">Contact</a>
+</div>
+</div>
+</div>
+<div style="max-width:1200px;margin:40px auto 0;padding:20px 32px 0;border-top:1px solid rgba(255,255,255,.1);font-size:13px;color:rgba(255,255,255,.45)">Copyright 2026 Adam Coulter · adam.coulter@me.com</div>
 </footer>
+<div aria-hidden="true" class="nav-scrim" id="nav-scrim" onclick="closeNav()"></div><aside aria-hidden="true" aria-label="Site navigation" class="nav-drawer" id="nav-drawer"><div class="nav-drawer__head"><span style="font-weight:700;font-size:16px;letter-spacing:-.01em">Meridian</span><button aria-label="Close navigation menu" class="nav-close" onclick="closeNav()"><svg aria-hidden="true" fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></div><a href="#problem">Problem</a><a href="#model">Merge model</a><a href="#schema">Schema</a><a href="#formats">Formats</a><a href="#nested">Nesting</a><a href="#constraints">Constraints</a><a href="#start">Quick start</a><div class="nav-drawer__sep"></div><a href="https://github.com/AdamCoulterOz/Meridian#readme" rel="noopener" target="_blank">README</a><a href="https://github.com/AdamCoulterOz/Meridian/blob/main/docs/architecture.md" rel="noopener" target="_blank">Architecture</a><a href="https://github.com/AdamCoulterOz/Meridian/blob/main/schemas/meridian.schema.json" rel="noopener" target="_blank">Schema</a></aside>
+<script>
+function toggleTheme(){
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var cur = document.documentElement.getAttribute('data-theme');
+  var eff = cur || (prefersDark ? 'dark' : 'light');
+  var next = eff === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('meridian-theme', next); }catch(e){}
+}
+function openNav(){
+  document.documentElement.setAttribute('data-nav-open','');
+  document.body.style.overflow='hidden';
+  var b=document.getElementById('nav-burger'); if(b)b.setAttribute('aria-expanded','true');
+  var d=document.getElementById('nav-drawer'); if(d)d.setAttribute('aria-hidden','false');
+}
+function closeNav(){
+  document.documentElement.removeAttribute('data-nav-open');
+  document.body.style.overflow='';
+  var b=document.getElementById('nav-burger'); if(b)b.setAttribute('aria-expanded','false');
+  var d=document.getElementById('nav-drawer'); if(d)d.setAttribute('aria-hidden','true');
+}
+function toggleNav(){ document.documentElement.hasAttribute('data-nav-open') ? closeNav() : openNav(); }
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeNav(); });
+if(window.matchMedia){ window.matchMedia('(min-width:881px)').addEventListener('change', function(e){ if(e.matches) closeNav(); }); }
+// in-page links: close the drawer first, then scroll on the next frame so the
+// scroll-lock release and drawer transition can't cancel the smooth scroll.
+document.addEventListener('click', function(e){
+  var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+  if(!a) return;
+  var id = a.getAttribute('href');
+  if(!id || id.length < 2) return;
+  var el = document.querySelector(id);
+  if(!el) return;
+  e.preventDefault();
+  closeNav();
+  requestAnimationFrame(function(){
+    el.scrollIntoView({behavior:'smooth', block:'start'});
+    try{ history.pushState(null, '', id); }catch(_){}
+  });
+});
+// schema walkthrough: the whole figure scrolls naturally; each group's band + tooltip
+// fade in as it nears the focal line, and the page detents (scroll-snaps) on each one.
+(function(){
+  var wrap, fig, bands = [], panels = [], groups = [], ready = false, snapping = false, snapT;
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function wide(){ return window.matchMedia('(min-width:881px)').matches; }
+  function init(){
+    wrap = document.querySelector('.schema-figure__code');
+    if(!wrap) return false;
+    fig = wrap.parentNode;
+    bands = [].slice.call(wrap.querySelectorAll('.schema-band'));
+    panels = [].slice.call(fig.querySelectorAll('.walk-panel'));
+    var lines = [].slice.call(wrap.querySelectorAll('.anno-line'));
+    if(!bands.length || !panels.length || !lines.length) return false;
+    var wrapTop = wrap.getBoundingClientRect().top;
+    var by = {};
+    lines.forEach(function(l){ var g=l.getAttribute('data-anno'); (by[g]=by[g]||[]).push(l); });
+    groups = Object.keys(by).sort(function(a,b){return a-b;}).map(function(g){
+      var ls=by[g];
+      var top=ls[0].getBoundingClientRect().top - wrapTop;
+      var bot=ls[ls.length-1].getBoundingClientRect().bottom - wrapTop;
+      return {top:top, height:bot-top, first:ls[0]};
+    });
+    var w = wide();
+    groups.forEach(function(g,i){
+      if(bands[i]){ bands[i].style.top=g.top+'px'; bands[i].style.height=g.height+'px'; }
+      if(panels[i]){ panels[i].style.top=(w ? g.top : (g.top+g.height+10))+'px'; }
+    });
+    ready = groups.length > 0;
+    return ready;
+  }
+  function sync(){
+    if(!ready && !init()) return;
+    var focal = window.innerHeight*0.38;
+    var fade = 34;
+    for(var i=0;i<groups.length;i++){
+      var top = groups[i].first.getBoundingClientRect().top;
+      var prox = clamp(1 - Math.abs(top - focal)/fade, 0, 1);
+      if(bands[i]) bands[i].style.opacity = prox;
+      if(panels[i]) panels[i].style.opacity = prox;
+    }
+  }
+  function maybeSnap(){
+    if(snapping || !ready) return;
+    var f = window.innerHeight*0.38, bi=-1, bd=1e9;
+    for(var i=0;i<groups.length;i++){ var d=groups[i].first.getBoundingClientRect().top - f; if(Math.abs(d)<Math.abs(bd)){ bd=d; bi=i; } }
+    if(bi>=0 && Math.abs(bd) > 1.5 && Math.abs(bd) <= 34){
+      snapping = true;
+      window.scrollTo({top: Math.round(window.scrollY + bd), behavior:'smooth'});
+      setTimeout(function(){ snapping = false; }, 450);
+    }
+  }
+  var tick=false;
+  function onScroll(){
+    if(!tick){ tick=true; requestAnimationFrame(function(){ sync(); tick=false; }); }
+    if(!snapping){ clearTimeout(snapT); snapT = setTimeout(maybeSnap, 110); }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', function(){ ready=false; sync(); });
+  window.addEventListener('load', function(){ ready=false; sync(); });
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(function(){ ready=false; sync(); }); }
+  sync();
+})();
+// live GitHub star count: swap the static fallback for the repo's real count
+(function(){
+  function fmt(n){ if(typeof n!=='number'||!isFinite(n)) return null;
+    if(n>=1e6) return +(n/1e6).toFixed(1)+'M'; if(n>=1e3) return +(n/1e3).toFixed(1)+'k'; return String(n); }
+  function apply(n){ var t=fmt(n); if(t===null) return;
+    var c=document.querySelectorAll('.keel-ghb__count'); for(var i=0;i<c.length;i++) c[i].textContent=t;
+    var a=document.querySelectorAll('a.keel-ghb'); for(var j=0;j<a.length;j++){ var l=a[j].getAttribute('aria-label');
+      if(l) a[j].setAttribute('aria-label', l.replace(/[0-9.,kM]+ stars/, t+' stars')); } }
+  try{ fetch('https://api.github.com/repos/AdamCoulterOz/Meridian',{headers:{'Accept':'application/vnd.github+json'}})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){ if(d && typeof d.stargazers_count==='number') apply(d.stargazers_count); })
+    .catch(function(){}); }catch(e){}
+})();
+</script>
 </body>
 </html>
