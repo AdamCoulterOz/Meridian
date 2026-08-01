@@ -11,6 +11,7 @@ Current state:
 - The repository targets .NET 11.
 - The core document tree merge model and schema loader are implemented.
 - Consumer usage is documented in `README.md`; deeper extension notes live in `docs/architecture.md`.
+- The static `docs/` GitHub Pages site exposes the same public positioning without JavaScript, with canonical/social/structured metadata, crawler files, and a footer route to the parent Adam Coulter project index.
 - Repository cognition is split across `CONTEXT.md` for current operational state, `HISTORY.md` for architectural and operational change history, and `INTERFACE.md` for the stable public boundary.
 - The Meridian schema authoring contract is documented as JSON Schema in `schemas/meridian.schema.json`, including descriptions for editor and LLM-assisted generation.
 - XML, JSON, JSON5, YAML, HTML fragment, JavaScript, CSS, and Liquid adapters parse their formats structurally. JavaScript is structural by top-level declaration (Esprima boundaries, verbatim slices) and CSS is structural by selector and declaration property; both are source-preserving on a clean round-trip. The mapped-text and raw adapters share an `OpaqueTextAdapter` base for genuinely unstructured text. PNG, JPEG, GIF, ICO, and `xap` adapters share a byte-safe `BinaryFormatAdapter` base (lossless base64 scalar, conflict on divergence) and implement `IBinaryFormatAdapter`.

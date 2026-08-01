@@ -55,6 +55,7 @@ Responsibilities Meridian should not own:
   - `meridian diff --old <PATH> --new <PATH> --path <REPO_PATH> [--schema <SCHEMA_YAML>]`
   - `meridian diff <repo-path> <old-file> <old-hex> <old-mode> <new-file> <new-hex> <new-mode>`
 - `schemas/meridian.schema.json` is the public authoring contract for Meridian schema YAML.
+- `https://adamcoulteroz.github.io/Meridian/` is the public static documentation landing page. It remains readable without JavaScript and links back to `https://adamcoulteroz.github.io/`; its `robots.txt` and `sitemap.xml` are crawler-facing discovery contracts.
 - `*.meridian.yaml` files are discovered by the Git command from repository root to target file directory when `--schema` is omitted.
 
 ## Invariants

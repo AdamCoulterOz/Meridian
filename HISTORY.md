@@ -1,5 +1,10 @@
 # History
 
+## 2026-08-02
+
+- Added canonical keyword, social, crawler, and Schema.org metadata to the static Meridian site while preserving its complete JavaScript-independent documentation content.
+- Added a footer route back to the parent Adam Coulter project index and published repository-local crawler files.
+
 ## 2026-06-24
 
 - Adjusted the distributable provider package boundary from one package per concrete adapter to cohesive bundles:
