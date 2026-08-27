@@ -86,6 +86,12 @@ jobs:
       - name: Build the site
         run: python3 docs/redesigned/build.py
 
+      # keel ships no aliases, so a renamed class does not error anywhere — it just stops
+      # being styled. Blazor consumers get that break at compile time; a CSS-only consumer
+      # like this page gets nothing. This is the missing half of that signal.
+      - name: Verify every keel class the page uses still exists
+        run: python3 docs/redesigned/check-keel-classes.py
+
       # Fail rather than publish a page whose stylesheet is missing: the link is relative,
       # so a missing bundle deploys an unstyled site instead of erroring.
       - name: Verify the built page

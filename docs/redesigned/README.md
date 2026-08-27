@@ -331,6 +331,11 @@ equivalents): **Button** (primary/secondary/outline/ghost, `pill`), **Badge**
 ## Files
 - `build.py` — generates `docs/index.html` from `Meridian.dc.html`. **`index.html`
   is generated: never hand-edit it**, or the next build silently drops the change.
+- `check-keel-classes.py` — fails the build if the page uses a keel class the resolved
+  keel version no longer defines. keel ships no aliases, so a rename is otherwise silent:
+  nothing errors, the page just renders unstyled. Runs in the deploy workflow; run it
+  yourself after any keel bump. Prefers keel's `dist/classes.json` when present and falls
+  back to parsing the bundle.
 - `update-keel.sh` — installs keel at the version locked in `docs/package-lock.json`
   and stages `docs/keel.bundle.css`. Pass a version to move the pin; commit the
   lockfile change, never the stylesheet.
