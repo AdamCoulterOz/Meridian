@@ -16,3 +16,7 @@ docs/keel.bundle.css
 
 # npm tooling for the docs build; keel is resolved here, never committed.
 docs/node_modules/
+
+# Python bytecode from the docs build scripts.
+__pycache__/
+*.pyc
