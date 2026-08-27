@@ -201,6 +201,36 @@ Everything else is static content + CSS hover/focus states.
 
 ## Design Tokens (Keel)
 
+> **The token layer now comes from keel itself.** `docs/keel.bundle.css` is a
+> vendored copy of `AdamCoulterOz/keel`, refreshed with `./update-keel.sh` (which
+> resolves the latest tag, fetches at that tag, and stamps the version into the
+> file). **Do not hand-edit the vendored file** — the next refresh overwrites it.
+> It is linked *before* the page's own `<style>` block so page rules win where the
+> two overlap.
+>
+> The tables below describe the palette Meridian was designed at, which keel was
+> extracted from and still matches. The page holds exactly one token override, in
+> `LIGHT_VARS` in `build.py`: `--radius-lg: 12px`, a placeholder for a change keel
+> has agreed to and not yet shipped. Drop it when keel does.
+>
+> **The page does not invent values.** A consumer expresses intent; keel owns the
+> behaviour. If a keel value looks wrong here, that is a bug report against keel,
+> not licence for a local override — the question is which vocabulary keel failed
+> to offer.
+>
+> **Never read a keel ramp** (`--blue-400`, `--gray-400`, `--signal-700`, …). A ramp
+> is a rung on a scale and keel promises nothing about its value; it moves when the
+> scale is retuned, and nothing fails at the moment you write it. Name the semantic
+> token instead — `--success`, `--signal-text`, `--accent-border`,
+> `--accent-on-midnight` — and pick it by **meaning, not appearance**: `--success`
+> because the state is good, not because the green was the right green. This page
+> reads zero ramps; keep it that way.
+>
+> Code blocks colour syntax through the block-scoped `--cb-*`, never `--code-*`,
+> which describe a window that is dark in both themes and are unreadable on the
+> light chrome.
+
+
 **Typography**
 - Sans / UI + display: **Hanken Grotesk** (400/500/600/700/800).
 - Mono / code: **Fira Code** (ligatures on). Inline code, flags, package names,
@@ -298,6 +328,10 @@ equivalents): **Button** (primary/secondary/outline/ghost, `pill`), **Badge**
 - No raster images.
 
 ## Files
+- `build.py` — generates `docs/index.html` from `Meridian.dc.html`. **`index.html`
+  is generated: never hand-edit it**, or the next build silently drops the change.
+- `update-keel.sh` — refreshes the vendored `docs/keel.bundle.css` from keel.
+  Run it to take a new keel version; commit the result.
 - `Meridian.dc.html` — the full design (all sections, inline styles, theme logic).
   Open it to read exact markup, copy, and per-element styles. **Reference only** —
   the `.dc.html`/`<x-import>`/`support.js` runtime is prototyping scaffolding, not

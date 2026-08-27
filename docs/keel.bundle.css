@@ -1,0 +1,1738 @@
+/* vendored from AdamCoulterOz/keel v0.2.1. Refresh with ./update-keel.sh, do not edit. */
+/* keel - generated bundle. Do not edit.
+ *
+ * keel.css and everything it imports, flattened into one file so a site
+ * that cannot reference the NuGet package can still use keel from a
+ * single <link>.
+ *
+ * Regenerate with:
+ *     dotnet run --project tools/Keel.Bundler
+ *
+ * Edits made here are lost on the next run, and Keel.Tests fails if this
+ * file has fallen behind the sources it is built from.
+ */
+/* keel - design system entry point.
+ *
+ * Consumers reference THIS file and nothing else:
+ *   <link rel="stylesheet" href="_content/Keel/keel.css" />
+ *
+ * An import manifest. Every declaration lives in one of the files below, so
+ * there is exactly one copy of each rule and no per-component token forks.
+ * The imports resolve in parallel once this file is parsed; a consumer that
+ * wants a single request can point a bundler at this entry point.
+ */
+
+/* Tokens */
+
+/* ==== fonts.css ==== */
+/* keel - Webfonts
+ * Brand sans: Hanken Grotesk, a neutral humanist grotesk in the SF Pro family
+ *   of proportions, chosen because SF Pro is not licensable.
+ * Brand mono: Fira Code, with programming ligatures enabled in base.css.
+ *
+ * Imported here so a consumer gets the faces by referencing keel.css alone. An
+ * @import costs one extra round trip before the fonts start loading; a host
+ * that cares can add the same <link> to its own document head, where it is
+ * discovered by the preload scanner, and this file becomes a no-op duplicate
+ * the browser drops.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Fira+Code:wght@400;500;600;700&display=swap');
+
+
+/* ==== colors.css ==== */
+/* keel - Colour system, light
+ * ---------------------------------------------------------------------------
+ * A cool neutral grayscale, near-black ink on bright surfaces, paired with one
+ * confident cobalt. One brand hue does the heavy lifting; semantic colours
+ * appear only to signal state. Signal citron is for small pops only, never
+ * body or link colour.
+ *
+ * Product code reads the SEMANTIC ALIASES at the bottom, never the raw ramps.
+ * The ramps exist so the aliases have something to point at, and so the two
+ * themes cannot drift apart into duplicate literals.
+ *
+ * The dark theme overrides the aliases in theme-dark.css. Nothing here is
+ * theme-conditional, so a token defined only here resolves in both themes.
+ */
+:root {
+  color-scheme: light;
+
+  /* ---- Neutrals: cool gray ramp ---- */
+  --gray-0:   #ffffff;
+  --gray-50:  #f5f5f7;
+  --gray-100: #ebebef;
+  --gray-200: #dededf;
+  --gray-300: #c8c8ce;
+  --gray-400: #a1a1aa;
+  --gray-500: #86868b;
+  --gray-600: #6e6e73;
+  --gray-700: #48484a;
+  --gray-800: #2c2c2e;
+  --gray-900: #1d1d1f;
+  --gray-950: #0b0b0c;
+
+  /* ---- Brand cobalt ---- */
+  --blue-50:  #ecf2ff;
+  --blue-100: #d8e4ff;
+  --blue-200: #b3caff;
+  --blue-300: #84a9ff;
+  --blue-400: #5183ff;
+  --blue-500: #2563ff;
+  --blue-600: #0b5fff;  /* primary */
+  --blue-700: #094ad1;
+  --blue-800: #0a3ea3;
+  --blue-900: #0c3580;
+
+  /* ---- Midnight: cobalt's deep, blue-tinted companion ---- */
+  --midnight-950: #060b1a;
+  --midnight-900: #0a1430;
+  --midnight-800: #122046;
+  --midnight-700: #1b2d5c;
+  --midnight-600: #28407e;
+
+  /* ---- Signal: sharp citron, small accents only ---- */
+  --signal-700: #7fae00;
+  --signal-600: #a8d81f;
+  --signal-500: #c6f23c;
+  --signal-300: #def98a;
+  --signal-50:  #f3fbd6;
+
+  /* ---- Semantic hues ---- */
+  --green-500: #34c759;
+  --green-600: #1fa855;
+  --green-700: #157f40;
+  --green-50:  #e9f9ee;
+
+  --amber-500: #ff9f0a;
+  --amber-600: #e08600;
+  --amber-700: #b45309;  /* 5.02:1 on white. #ad6800 was 4.41 and failed AA as --cb-n. */
+  --amber-50:  #fff4e0;
+
+  --red-500: #ff3b30;
+  --red-600: #e5322a;
+  --red-700: #b8261f;
+  --red-50:  #ffece9;
+
+  --teal-500:   #00b3c4;
+  --purple-500: #6a5cff;
+
+  /* =====================================================================
+     SEMANTIC ALIASES - reference these, not the ramps above
+     ===================================================================== */
+
+  /* Text */
+  --text-primary:     var(--gray-900);
+  --text-secondary:   var(--gray-600);
+  --text-tertiary:    var(--gray-500);
+  --text-disabled:    var(--gray-400);
+  --text-inverse:     var(--gray-0);
+  --text-on-midnight: rgba(255, 255, 255, 0.92);
+  --text-on-accent:   var(--gray-0);
+  --text-link:        var(--blue-600);
+
+  /* Surfaces */
+  --surface-base:            var(--gray-0);
+  --surface-subtle:          var(--gray-50);
+  --surface-sunken:          var(--gray-100);
+  --surface-card:            var(--gray-0);
+  --surface-overlay:         rgba(255, 255, 255, 0.72);
+  --surface-inverse:         var(--gray-900);
+  --scrim:                   rgba(6, 11, 26, 0.55);
+
+  /* ---- Midnight ----
+     A ROLE, not a description of a colour, and the name is shorthand for a rule
+     the same way --signal is:
+
+       A surface that deliberately opts out of theming. It is the same in light
+       and dark, on purpose, and it is for moments the page chooses to go dark:
+       a footer band, a stats band, a hero. Rare by design. If a surface should
+       follow the theme, it is not this one.
+
+     That fixed quality is the whole reason it needs its own ink, borders and
+     accent below. Everything on a ground that never moves must never move
+     either, and a semantic token that re-themes would slide out from under it.
+
+     There is no --surface-footer. A token named for one place it is used cannot
+     be used anywhere else without lying, and a footer is simply the most common
+     midnight moment rather than a different thing. */
+  --surface-midnight:        var(--midnight-900);
+  --surface-midnight-raised: var(--midnight-800);
+
+  /* Borders */
+  --border-subtle:      var(--gray-200);
+  --border-default:     var(--gray-300);
+  --border-strong:      var(--gray-400);
+  --border-inverse:     rgba(255, 255, 255, 0.16);
+  --border-on-midnight: rgba(255, 255, 255, 0.12);
+
+  /* Accent */
+  --accent:         var(--blue-600);
+  --accent-hover:   var(--blue-700);
+  --accent-pressed: var(--blue-800);
+  --accent-subtle:  var(--blue-50);
+  --accent-ring:    rgba(11, 95, 255, 0.32);
+
+  /* Accent marks on a midnight ground. Completes the on-midnight family, which
+     exists so ink on a ground that never shifts does not shift either, without
+     anyone reaching for a ramp to get that.
+
+     blue-300 rather than blue-400: 7.87:1 on midnight against 5.23:1. The
+     siblings are chosen FOR this ground rather than borrowed from a scale, and
+     this should be too. A token that means "legible on midnight" pointing at
+     the rung hardest to see there had inherited the wrong default. */
+  --accent-on-midnight: var(--blue-300);
+
+  /* Signal. Pair the fill with midnight ink; never body or link colour. */
+  --signal:        var(--signal-500);
+  --signal-text:   var(--signal-700);
+  --signal-on:     var(--midnight-900);
+  --signal-subtle: var(--signal-50);
+
+  /* Tinted borders, each matching its -subtle fill.
+     A subtle fill on a card has almost no edge of its own, and the border is
+     what makes it read as a chip rather than as tinted text. Alpha rather than
+     opaque, so they hold over any ground and not only over a card. */
+  --accent-border:  rgba(11, 95, 255, 0.28);
+  --signal-border:  rgba(198, 242, 60, 0.55);
+  --success-border: rgba(31, 168, 85, 0.28);
+  --warning-border: rgba(224, 134, 0, 0.30);
+  --danger-border:  rgba(229, 50, 42, 0.28);
+
+  /* Fills and control tracks */
+  --fill-secondary:       var(--gray-100);
+  --fill-secondary-hover: var(--gray-200);
+  --track-off:            var(--gray-300);
+
+  /* State */
+  --success:        var(--green-600);
+  --success-subtle: var(--green-50);
+  --warning:        var(--amber-600);
+  --warning-subtle: var(--amber-50);
+  --danger:         var(--red-600);
+  --danger-subtle:  var(--red-50);
+  --danger-hover:   var(--red-700);
+
+  /* ---- Code windows ----
+     These describe a code surface that is DARK in both themes, which is what a
+     terminal or snippet window is. A code block rendered on the page ground
+     instead (keel's light chrome) reads the ramps directly, because its colours
+     have to work against white; see CodeBlock.razor.css. Only --code-bg and
+     --code-fg shift with the theme, so the window sits on the page rather than
+     punching a hole in it. */
+  --code-bg:      var(--gray-950);
+  --code-fg:      #e6e6ea;
+  --code-comment: #6e7781;
+  --code-keyword: #84a9ff;
+  --code-string:  #5fd49a;
+  --code-type:    #6fd4e0;
+  --code-number:  #e5a66a;
+  --code-function:#d2a8ff;
+}
+
+
+/* ==== typography.css ==== */
+/* keel - Typography
+ * One family does almost everything, following Apple's single-typeface
+ * discipline. The size vocabulary follows Apple HIG text styles so intent is
+ * legible at a glance: caption, footnote, subhead, body, title, display.
+ */
+:root {
+  --font-sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+
+  /* ---- Size scale ---- */
+  --fs-caption-2:   11px;
+  --fs-caption:     12px;
+  --fs-footnote:    13px;
+  --fs-subhead:     15px;
+  --fs-body:        17px;
+  --fs-title-3:     20px;
+  --fs-title-2:     24px;
+  --fs-title-1:     28px;
+  --fs-large-title: 34px;
+  --fs-display-3:   40px;
+  --fs-display-2:   52px;
+  --fs-display-1:   68px;
+  --fs-hero:        88px;
+
+  /* ---- Weights ---- */
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+  --fw-heavy:    800;
+
+  /* ---- Line heights ---- */
+  --lh-none:    1;
+  --lh-tight:   1.08;
+  --lh-snug:    1.2;
+  --lh-normal:  1.35;
+  --lh-relaxed: 1.5;
+
+  /* ---- Letter spacing: large type tightens, caps open up ---- */
+  --tracking-hero:   -0.03em;
+  --tracking-tight:  -0.02em;
+  --tracking-snug:   -0.01em;
+  --tracking-normal: 0em;
+  --tracking-wide:   0.02em;
+  --tracking-caps:   0.06em;
+
+  /* ---- Text-style aliases, as font shorthands ---- */
+  --text-display:  var(--fw-heavy)    var(--fs-display-1)/var(--lh-tight) var(--font-sans);
+  --text-h1:       var(--fw-bold)     var(--fs-large-title)/var(--lh-tight) var(--font-sans);
+  --text-h2:       var(--fw-bold)     var(--fs-title-1)/var(--lh-snug) var(--font-sans);
+  --text-h3:       var(--fw-semibold) var(--fs-title-2)/var(--lh-snug) var(--font-sans);
+  --text-headline: var(--fw-semibold) var(--fs-body)/var(--lh-normal) var(--font-sans);
+  --text-body:     var(--fw-regular)  var(--fs-body)/var(--lh-relaxed) var(--font-sans);
+  --text-subhead:  var(--fw-regular)  var(--fs-subhead)/var(--lh-normal) var(--font-sans);
+  --text-footnote: var(--fw-regular)  var(--fs-footnote)/var(--lh-normal) var(--font-sans);
+  --text-caption:  var(--fw-medium)   var(--fs-caption)/var(--lh-normal) var(--font-sans);
+  --text-code:     var(--fw-regular)  var(--fs-footnote)/var(--lh-relaxed) var(--font-mono);
+}
+
+
+/* ==== spacing.css ==== */
+/* keel - Spacing and layout
+ * 4px base grid. Tight at the small end for dense product UI, generous at the
+ * top for marketing breathing room.
+ */
+:root {
+  --space-0:  0;
+  --space-1:  2px;
+  --space-2:  4px;
+  --space-3:  8px;
+  --space-4:  12px;
+  --space-5:  16px;
+  --space-6:  20px;
+  --space-7:  24px;
+  --space-8:  32px;
+  --space-9:  40px;
+  --space-10: 48px;
+  --space-11: 64px;
+  --space-12: 80px;
+  --space-13: 96px;
+  --space-14: 128px;
+  --space-15: 160px;
+
+  /* Layout */
+  --container-sm:  640px;
+  --container-md:  840px;
+  --container-lg:  1080px;
+  --container-xl:  1280px;
+  --gutter:        24px;
+  --section-pad-y: var(--space-13);
+}
+
+
+/* ==== radius.css ==== */
+/* keel - Radius
+ * Soft corners that scale with element size. Controls take the small end,
+ * cards and sheets the large, pills for chips and marketing calls to action.
+ */
+:root {
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   12px;   /* 12, not the export's 14. md and xl agree with the
+                            page that was tuned against real content; only lg
+                            differed, which made 14 the outlier. The code block
+                            is the main consumer and was designed at 12. */
+  --radius-xl:   18px;
+  --radius-2xl:  24px;
+  --radius-3xl:  32px;
+  --radius-pill: 980px;
+  --radius-full: 50%;
+}
+
+
+/* ==== elevation.css ==== */
+/* keel - Elevation and motion
+ * Shadows are quiet and two-layered, ambient plus key, the way macOS surfaces
+ * float. Most separation in product UI comes from hairline borders instead.
+ * The dark values live in theme-dark.css.
+ */
+:root {
+  /* ---- Shadows ---- */
+  --shadow-xs:  0 1px 1px rgba(11, 11, 12, 0.04);
+  --shadow-sm:  0 1px 2px rgba(11, 11, 12, 0.06), 0 1px 1px rgba(11, 11, 12, 0.04);
+  --shadow-md:  0 4px 12px rgba(11, 11, 12, 0.07), 0 1px 3px rgba(11, 11, 12, 0.05);
+  --shadow-lg:  0 12px 32px rgba(11, 11, 12, 0.10), 0 4px 10px rgba(11, 11, 12, 0.05);
+  --shadow-xl:  0 28px 60px rgba(11, 11, 12, 0.16), 0 10px 22px rgba(11, 11, 12, 0.08);
+  --shadow-pop: 0 18px 44px rgba(11, 11, 12, 0.18);
+
+  /* Focus ring. A dedicated ring colour rather than the subtle fill, so it
+     reads on both grounds; destructive controls get the red one. */
+  --ring:        0 0 0 4px var(--accent-ring);
+  --ring-danger: 0 0 0 4px rgba(229, 50, 42, 0.28);
+
+  /* Inner top-edge highlight, for crispness on dark surfaces */
+  --hairline-top: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* ---- Motion ---- */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --dur-instant: 80ms;
+  --dur-fast:    140ms;
+  --dur-base:    220ms;
+  --dur-slow:    360ms;
+
+  /* Frosted material, for floating chrome only */
+  --blur-material: saturate(180%) blur(20px);
+}
+
+
+/* ==== base.css ==== */
+/* keel - Base
+ * Enables Fira Code's programming ligatures wherever the mono face is used.
+ * calt and liga inherit, so any code or terminal surface downstream of a page
+ * that links keel.css gets => -> != >= === </> for free.
+ */
+:root {
+  font-feature-settings: 'liga' 1, 'calt' 1;
+}
+
+code, pre, kbd, samp {
+  font-variant-ligatures: contextual;
+  font-feature-settings: 'liga' 1, 'calt' 1;
+}
+
+/* Nothing below sets a colour or a layout: keel styles its own components and
+   leaves the host's document alone. A consuming app opts into the page ground
+   itself, which is one line - see docs/consuming.md. */
+@media (prefers-reduced-motion: reduce) {
+  .keel-card,
+  .keel-btn,
+  .keel-icon-btn,
+  .keel-switch__thumb,
+  .keel-seg__thumb,
+  .keel-tip__pop,
+  .keel-drawer,
+  .keel-scrim {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+
+/* ==== theme-dark.css ==== */
+/* keel - Dark theme
+ * ---------------------------------------------------------------------------
+ * The PAGE theme follows the OS setting and nothing else. There is no
+ * data-theme attribute and no toggle: a persisted explicit choice overrides the
+ * OS and never gives it back, which is the bug that took the toggle off the
+ * Meridian site. One page-level mechanism, so there is only one thing that can
+ * be wrong.
+ *
+ * Separately from that, .keel-dark and .keel-light re-theme a SUBTREE. That is
+ * not a page override in disguise - it is the same idea as .keel-cb--dark, for
+ * a dark hero band, a dark footer over a light page, or a preview pane showing
+ * the other scheme. They set no page state and persist nothing.
+ *
+ * WARM, NOT BLUE. The palette this system was born with tinted its darks blue
+ * to harmonise with midnight. In practice that put blue on blue: a midnight
+ * tooltip over a midnight page has no edge. The darks here are neutral in the
+ * surfaces and warm in the ink - #d5d1cc over #181a1b, secondary #a2998d, code
+ * comments #7e776b - which separates cleanly and reads softer at night.
+ *
+ * The dark values are written ONCE, in the --kd-* block, and both triggers map
+ * from there. Two triggers repeating literals is how a theme drifts.
+ */
+
+:root {
+  /* ---- Dark source of truth. Inert until a trigger maps it. ---- */
+
+  /* Surfaces. Lightness order mirrors light (sunken < subtle < base < card) so
+     a raised surface is lighter than the canvas, which is how elevation reads
+     in the dark. */
+  --kd-surface-base:            #181a1b;
+  --kd-surface-subtle:          #1c1e1f;
+  --kd-surface-sunken:          #232628;
+  --kd-surface-card:            #1e2021;
+  --kd-surface-overlay:         rgba(24, 26, 27, 0.72);
+  --kd-surface-inverse:         #d5d1cc;
+  --kd-scrim:                   rgba(10, 10, 9, 0.6);
+
+  /* Text. The warm ink is the signature of this scheme. */
+  --kd-text-primary:   #d5d1cc;
+  --kd-text-secondary: #a2998d;
+  --kd-text-tertiary:  #7e776c;
+  --kd-text-disabled:  #5e574e;
+  --kd-text-inverse:   #181a1b;
+  --kd-text-link:      #3b78ff;
+
+  /* Borders. Solid warm-neutral rather than white-alpha, so a hairline holds
+     its weight over the card surface as well as the page. */
+  --kd-border-subtle:  #393e40;
+  --kd-border-default: #4a4f51;
+  --kd-border-strong:  #5c6164;
+
+  /* Accent. Lifted for vibrance on dark, and hover LIGHTENS rather than
+     darkening, because a darker hover disappears into the ground. */
+  --kd-accent:         #3b78ff;
+  --kd-accent-hover:   #5e92ff;
+  --kd-accent-pressed: #2563ff;
+  --kd-accent-subtle:  rgba(59, 120, 255, 0.18);
+  --kd-accent-ring:    rgba(91, 146, 255, 0.42);
+
+  /* Signal citron. Legible enough on dark to be its own text colour. */
+  --kd-signal-text:   #c6f23c;
+  --kd-signal-subtle: rgba(198, 242, 60, 0.16);
+
+  /* Tinted borders. Lower alpha than light: the fills they edge are themselves
+     translucent here, so the same value reads louder. */
+  --kd-accent-border:  rgba(91, 146, 255, 0.42);
+  --kd-signal-border:  rgba(198, 242, 60, 0.40);
+  --kd-success-border: rgba(48, 209, 88, 0.38);
+  --kd-warning-border: rgba(224, 163, 74, 0.38);
+  --kd-danger-border:  rgba(255, 129, 120, 0.38);
+
+  /* State. Vivid hues, and the subtle fills become translucent tints so they
+     pick up whatever surface they land on. */
+  --kd-success:        #30d158;
+  --kd-success-subtle: rgba(48, 209, 88, 0.16);
+  --kd-warning:        #e0a34a;
+  --kd-warning-subtle: rgba(224, 163, 74, 0.16);
+  --kd-danger:         #ff8178;
+  --kd-danger-hover:   #ff9a93;
+  --kd-danger-subtle:  rgba(255, 129, 120, 0.16);
+  --kd-ring-danger:    0 0 0 4px rgba(255, 129, 120, 0.32);
+
+  /* Fills and tracks. White-alpha on purpose: a fill sits on several different
+     surfaces and a solid value can only match one of them. */
+  --kd-fill-secondary:       rgba(255, 255, 255, 0.08);
+  --kd-fill-secondary-hover: rgba(255, 255, 255, 0.13);
+  --kd-track-off:            rgba(255, 255, 255, 0.22);
+
+  /* Code window. Lifted off pure black so it reads as a surface sitting on the
+     page, and the foreground warms to match the body ink. */
+  --kd-code-bg:      #121415;
+  --kd-code-fg:      #e3dfd9;
+  --kd-code-comment: #7e776b;
+
+  /* Shadows. Deeper and blacker so they register against a dark ground; dark
+     elevation also leans on the lighter raised surface above. */
+  --kd-shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.50);
+  --kd-shadow-sm:  0 2px 4px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --kd-shadow-md:  0 6px 16px rgba(0, 0, 0, 0.55), 0 2px 5px rgba(0, 0, 0, 0.45);
+  --kd-shadow-lg:  0 16px 36px rgba(0, 0, 0, 0.60), 0 6px 14px rgba(0, 0, 0, 0.45);
+  --kd-shadow-xl:  0 32px 64px rgba(0, 0, 0, 0.68), 0 12px 26px rgba(0, 0, 0, 0.50);
+  --kd-shadow-pop: 0 22px 50px rgba(0, 0, 0, 0.66);
+}
+
+/* ---- Trigger 1: the OS is dark. This is the page theme. ---- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface-base: var(--kd-surface-base); --surface-subtle: var(--kd-surface-subtle);
+    --surface-sunken: var(--kd-surface-sunken); --surface-card: var(--kd-surface-card);
+    --surface-overlay: var(--kd-surface-overlay); --surface-inverse: var(--kd-surface-inverse);
+    --scrim: var(--kd-scrim);
+    --text-primary: var(--kd-text-primary); --text-secondary: var(--kd-text-secondary);
+    --text-tertiary: var(--kd-text-tertiary); --text-disabled: var(--kd-text-disabled);
+    --text-inverse: var(--kd-text-inverse); --text-link: var(--kd-text-link);
+    --border-subtle: var(--kd-border-subtle); --border-default: var(--kd-border-default);
+    --border-strong: var(--kd-border-strong);
+    --accent: var(--kd-accent); --accent-hover: var(--kd-accent-hover);
+    --accent-pressed: var(--kd-accent-pressed); --accent-subtle: var(--kd-accent-subtle);
+    --accent-ring: var(--kd-accent-ring);
+    --signal-text: var(--kd-signal-text); --signal-subtle: var(--kd-signal-subtle);
+  --accent-border: var(--kd-accent-border); --signal-border: var(--kd-signal-border);
+  --success-border: var(--kd-success-border); --warning-border: var(--kd-warning-border);
+  --danger-border: var(--kd-danger-border);
+    --accent-border: var(--kd-accent-border); --signal-border: var(--kd-signal-border);
+    --success-border: var(--kd-success-border); --warning-border: var(--kd-warning-border);
+    --danger-border: var(--kd-danger-border);
+    --success: var(--kd-success); --success-subtle: var(--kd-success-subtle);
+    --warning: var(--kd-warning); --warning-subtle: var(--kd-warning-subtle);
+    --danger: var(--kd-danger); --danger-hover: var(--kd-danger-hover);
+    --danger-subtle: var(--kd-danger-subtle); --ring-danger: var(--kd-ring-danger);
+    --fill-secondary: var(--kd-fill-secondary); --fill-secondary-hover: var(--kd-fill-secondary-hover);
+    --track-off: var(--kd-track-off);
+    --code-bg: var(--kd-code-bg); --code-fg: var(--kd-code-fg); --code-comment: var(--kd-code-comment);
+    --shadow-xs: var(--kd-shadow-xs); --shadow-sm: var(--kd-shadow-sm); --shadow-md: var(--kd-shadow-md);
+    --shadow-lg: var(--kd-shadow-lg); --shadow-xl: var(--kd-shadow-xl); --shadow-pop: var(--kd-shadow-pop);
+  }
+}
+
+/* ---- Trigger 2: a subtree asked for dark. Same map, scoped. ---- */
+.keel-dark {
+  color-scheme: dark;
+  --surface-base: var(--kd-surface-base); --surface-subtle: var(--kd-surface-subtle);
+  --surface-sunken: var(--kd-surface-sunken); --surface-card: var(--kd-surface-card);
+  --surface-overlay: var(--kd-surface-overlay); --surface-inverse: var(--kd-surface-inverse);
+  --scrim: var(--kd-scrim);
+  --text-primary: var(--kd-text-primary); --text-secondary: var(--kd-text-secondary);
+  --text-tertiary: var(--kd-text-tertiary); --text-disabled: var(--kd-text-disabled);
+  --text-inverse: var(--kd-text-inverse); --text-link: var(--kd-text-link);
+  --border-subtle: var(--kd-border-subtle); --border-default: var(--kd-border-default);
+  --border-strong: var(--kd-border-strong);
+  --accent: var(--kd-accent); --accent-hover: var(--kd-accent-hover);
+  --accent-pressed: var(--kd-accent-pressed); --accent-subtle: var(--kd-accent-subtle);
+  --accent-ring: var(--kd-accent-ring);
+  --signal-text: var(--kd-signal-text); --signal-subtle: var(--kd-signal-subtle);
+  --success: var(--kd-success); --success-subtle: var(--kd-success-subtle);
+  --warning: var(--kd-warning); --warning-subtle: var(--kd-warning-subtle);
+  --danger: var(--kd-danger); --danger-hover: var(--kd-danger-hover);
+  --danger-subtle: var(--kd-danger-subtle); --ring-danger: var(--kd-ring-danger);
+  --fill-secondary: var(--kd-fill-secondary); --fill-secondary-hover: var(--kd-fill-secondary-hover);
+  --track-off: var(--kd-track-off);
+  --code-bg: var(--kd-code-bg); --code-fg: var(--kd-code-fg); --code-comment: var(--kd-code-comment);
+  --shadow-xs: var(--kd-shadow-xs); --shadow-sm: var(--kd-shadow-sm); --shadow-md: var(--kd-shadow-md);
+  --shadow-lg: var(--kd-shadow-lg); --shadow-xl: var(--kd-shadow-xl); --shadow-pop: var(--kd-shadow-pop);
+}
+
+/* ---- Trigger 3: a subtree asked for light, inside a dark page or band.
+        The values reference the ramps, so there are no literals to drift. ---- */
+.keel-light {
+  color-scheme: light;
+  --surface-base: var(--gray-0); --surface-subtle: var(--gray-50);
+  --surface-sunken: var(--gray-100); --surface-card: var(--gray-0);
+  --surface-overlay: rgba(255, 255, 255, 0.72); --surface-inverse: var(--gray-900);
+  --scrim: rgba(6, 11, 26, 0.55);
+  --text-primary: var(--gray-900); --text-secondary: var(--gray-600);
+  --text-tertiary: var(--gray-500); --text-disabled: var(--gray-400);
+  --text-inverse: var(--gray-0); --text-link: var(--blue-600);
+  --border-subtle: var(--gray-200); --border-default: var(--gray-300);
+  --border-strong: var(--gray-400);
+  --accent: var(--blue-600); --accent-hover: var(--blue-700);
+  --accent-pressed: var(--blue-800); --accent-subtle: var(--blue-50);
+  --accent-ring: rgba(11, 95, 255, 0.32);
+  --signal-text: var(--signal-700); --signal-subtle: var(--signal-50);
+  --accent-border: rgba(11, 95, 255, 0.28); --signal-border: rgba(198, 242, 60, 0.55);
+  --success-border: rgba(31, 168, 85, 0.28); --warning-border: rgba(224, 134, 0, 0.30);
+  --danger-border: rgba(229, 50, 42, 0.28);
+  --success: var(--green-600); --success-subtle: var(--green-50);
+  --warning: var(--amber-600); --warning-subtle: var(--amber-50);
+  --danger: var(--red-600); --danger-hover: var(--red-700); --danger-subtle: var(--red-50);
+  --ring-danger: 0 0 0 4px rgba(229, 50, 42, 0.28);
+  --fill-secondary: var(--gray-100); --fill-secondary-hover: var(--gray-200);
+  --track-off: var(--gray-300);
+  --code-bg: var(--gray-950); --code-fg: #e6e6ea; --code-comment: #6e7781;
+  --shadow-xs:  0 1px 1px rgba(11, 11, 12, 0.04);
+  --shadow-sm:  0 1px 2px rgba(11, 11, 12, 0.06), 0 1px 1px rgba(11, 11, 12, 0.04);
+  --shadow-md:  0 4px 12px rgba(11, 11, 12, 0.07), 0 1px 3px rgba(11, 11, 12, 0.05);
+  --shadow-lg:  0 12px 32px rgba(11, 11, 12, 0.10), 0 4px 10px rgba(11, 11, 12, 0.05);
+  --shadow-xl:  0 28px 60px rgba(11, 11, 12, 0.16), 0 10px 22px rgba(11, 11, 12, 0.08);
+  --shadow-pop: 0 18px 44px rgba(11, 11, 12, 0.18);
+}
+
+/* A themed subtree has to paint its own ground, or it shows the page's. */
+.keel-dark, .keel-light { background: var(--surface-base); color: var(--text-primary); }
+
+
+/* Components */
+
+/* ==== core.css ==== */
+/* keel - Core controls: Button, IconButton, Badge, Tag, Avatar, Spinner */
+
+/* ---------------------------------------------------------------- Button -- */
+.keel-btn {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-md);
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  user-select: none;
+  letter-spacing: var(--tracking-snug);
+  transition: transform var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+.keel-btn:active { transform: scale(0.97); }
+.keel-btn:focus-visible { outline: none; box-shadow: var(--ring); }
+
+.keel-btn--sm { height: 32px; padding: 0 14px; font-size: 13px; }
+.keel-btn--md { height: 40px; padding: 0 18px; font-size: 15px; }
+.keel-btn--lg { height: 48px; padding: 0 24px; font-size: 17px; }
+
+.keel-btn--primary { background: var(--accent); color: var(--text-on-accent); box-shadow: var(--shadow-xs); }
+.keel-btn--primary:hover { background: var(--accent-hover); }
+.keel-btn--secondary { background: var(--fill-secondary); color: var(--text-primary); }
+.keel-btn--secondary:hover { background: var(--fill-secondary-hover); }
+.keel-btn--ghost { background: transparent; color: var(--text-primary); }
+.keel-btn--ghost:hover { background: var(--surface-sunken); }
+.keel-btn--outline { background: var(--surface-base); color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--border-default); }
+.keel-btn--outline:hover { background: var(--surface-subtle); }
+.keel-btn--destructive { background: var(--danger); color: var(--text-on-accent); }
+.keel-btn--destructive:hover { background: var(--danger-hover); }
+.keel-btn--destructive:focus-visible { box-shadow: var(--ring-danger); }
+
+.keel-btn--pill { border-radius: var(--radius-pill); }
+.keel-btn--block { width: 100%; }
+.keel-btn:disabled,
+.keel-btn[aria-disabled="true"] { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ------------------------------------------------------------ IconButton -- */
+.keel-iconbtn {
+  font-family: var(--font-sans);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: transparent;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+.keel-iconbtn:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.keel-iconbtn:active { transform: scale(0.94); }
+.keel-iconbtn:focus-visible { outline: none; box-shadow: var(--ring); }
+.keel-iconbtn--sm { width: 32px; height: 32px; }
+.keel-iconbtn--md { width: 40px; height: 40px; }
+.keel-iconbtn--lg { width: 48px; height: 48px; }
+.keel-iconbtn--solid { background: var(--accent); color: var(--text-on-accent); }
+.keel-iconbtn--solid:hover { background: var(--accent-hover); color: var(--text-on-accent); }
+.keel-iconbtn--outline { box-shadow: inset 0 0 0 1px var(--border-default); color: var(--text-primary); }
+.keel-iconbtn--outline:hover { background: var(--surface-subtle); }
+.keel-iconbtn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* ----------------------------------------------------------------- Badge -- */
+.keel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+/* A child element rather than ::before, so the dot survives in hand-written
+   markup that sets its own content, and so it can be given a tone of its own. */
+.keel-badge__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+
+.keel-badge--neutral { background: var(--surface-sunken); color: var(--text-secondary); }
+.keel-badge--accent  { background: var(--accent-subtle); color: var(--accent-hover); }
+.keel-badge--success { background: var(--success-subtle); color: var(--success); }
+.keel-badge--warning { background: var(--warning-subtle); color: var(--warning); }
+.keel-badge--danger  { background: var(--danger-subtle); color: var(--danger); }
+.keel-badge--signal  { background: var(--signal); color: var(--signal-on); }
+.keel-badge--solid   { background: var(--accent); color: var(--text-on-accent); }
+
+/* ------------------------------------------------------------------- Tag -- */
+.keel-tag {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-medium);
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-base);
+  color: var(--text-secondary);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.keel-tag--mono { font-family: var(--font-mono); font-size: 12px; }
+.keel-tag__x {
+  cursor: pointer;
+  display: inline-flex;
+  color: var(--text-tertiary);
+  border: none;
+  background: none;
+  padding: 0;
+  margin: -1px -2px -1px 0;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.keel-tag__x:hover { color: var(--text-primary); }
+.keel-tag__x:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--radius-xs); }
+
+/* ---------------------------------------------------------------- Avatar -- */
+.keel-avatar {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  box-shadow: inset 0 0 0 1px rgba(11, 11, 12, .06);
+  flex: none;
+  user-select: none;
+}
+.keel-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.keel-avatar--xs { width: 24px; height: 24px; font-size: 10px; }
+.keel-avatar--sm { width: 32px; height: 32px; font-size: 12px; }
+.keel-avatar--md { width: 40px; height: 40px; font-size: 15px; }
+.keel-avatar--lg { width: 56px; height: 56px; font-size: 20px; }
+.keel-avatar--square { border-radius: var(--radius-md); }
+
+/* --------------------------------------------------------------- Spinner -- */
+@keyframes keel-spin { to { transform: rotate(360deg); } }
+.keel-spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border-style: solid;
+  border-color: var(--border-default);
+  border-top-color: var(--accent);
+  animation: keel-spin .7s linear infinite;
+}
+.keel-spinner--onaccent { border-color: rgba(255, 255, 255, .35); border-top-color: #fff; }
+@media (prefers-reduced-motion: reduce) { .keel-spinner { animation-duration: 1.4s; } }
+
+
+/* ==== forms.css ==== */
+/* keel - Forms: Input, Textarea, Select, Checkbox, Radio, Switch, Field
+   Inputs carry their border as an inset box-shadow, so focus can thicken it to
+   1.5px and add the ring without any layout shift. */
+
+/* ----------------------------------------------------------------- Input -- */
+.keel-input {
+  font-family: var(--font-sans);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--surface-base);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  padding: 0 12px;
+  color: var(--text-primary);
+  transition: box-shadow var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+.keel-input:hover { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.keel-input:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), var(--ring); }
+.keel-input--sm { height: 32px; font-size: 13px; }
+.keel-input--md { height: 40px; font-size: 15px; }
+.keel-input--lg { height: 48px; font-size: 17px; }
+.keel-input--mono input { font-family: var(--font-mono); }
+.keel-input--invalid { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.keel-input--invalid:focus-within { box-shadow: inset 0 0 0 1.5px var(--danger), var(--ring-danger); }
+.keel-input--disabled { background: var(--surface-subtle); opacity: .6; cursor: not-allowed; }
+.keel-input input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+}
+.keel-input input::placeholder { color: var(--text-tertiary); }
+.keel-input__adorn { display: inline-flex; align-items: center; color: var(--text-tertiary); flex: none; }
+
+/* -------------------------------------------------------------- Textarea -- */
+.keel-textarea {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface-base);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  border: none;
+  outline: none;
+  resize: vertical;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+.keel-textarea::placeholder { color: var(--text-tertiary); }
+.keel-textarea:hover { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.keel-textarea:focus { box-shadow: inset 0 0 0 1.5px var(--accent), var(--ring); }
+.keel-textarea--invalid { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.keel-textarea--invalid:focus { box-shadow: inset 0 0 0 1.5px var(--danger), var(--ring-danger); }
+.keel-textarea--mono { font-family: var(--font-mono); font-size: 13px; }
+
+/* ---------------------------------------------------------------- Select -- */
+.keel-select { position: relative; display: inline-flex; align-items: center; width: 100%; font-family: var(--font-sans); }
+.keel-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--surface-base);
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  padding: 0 38px 0 12px;
+  cursor: pointer;
+  outline: none;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+.keel-select select:hover { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.keel-select select:focus-visible { box-shadow: inset 0 0 0 1.5px var(--accent), var(--ring); }
+.keel-select--sm select { height: 32px; font-size: 13px; }
+.keel-select--md select { height: 40px; font-size: 15px; }
+.keel-select--lg select { height: 48px; font-size: 17px; }
+.keel-select--invalid select { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.keel-select__chev { position: absolute; right: 12px; pointer-events: none; color: var(--text-tertiary); display: inline-flex; }
+
+/* -------------------------------------------------------------- Checkbox -- */
+.keel-check {
+  font-family: var(--font-sans);
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+.keel-check input { position: absolute; opacity: 0; width: 0; height: 0; }
+.keel-check__box {
+  flex: none;
+  width: 20px; height: 20px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-base);
+  box-shadow: inset 0 0 0 1.5px var(--border-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-on-accent);
+  margin-top: 1px;
+  transition: background var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+.keel-check__box svg {
+  opacity: 0;
+  transform: scale(.6);
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-spring);
+}
+.keel-check:hover .keel-check__box { box-shadow: inset 0 0 0 1.5px var(--text-secondary); }
+.keel-check input:checked + .keel-check__box { background: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.keel-check input:checked + .keel-check__box svg { opacity: 1; transform: scale(1); }
+.keel-check:hover input:checked + .keel-check__box { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.keel-check input:focus-visible + .keel-check__box { box-shadow: inset 0 0 0 1.5px var(--accent), var(--ring); }
+.keel-check--disabled { opacity: .45; cursor: not-allowed; }
+
+/* ----------------------------------------------------------------- Radio -- */
+.keel-radio {
+  font-family: var(--font-sans);
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+.keel-radio input { position: absolute; opacity: 0; width: 0; height: 0; }
+.keel-radio__dot {
+  flex: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--surface-base);
+  box-shadow: inset 0 0 0 1.5px var(--border-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+.keel-radio__dot::after {
+  content: "";
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-on-accent);
+  transform: scale(0);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.keel-radio:hover .keel-radio__dot { box-shadow: inset 0 0 0 1.5px var(--text-secondary); }
+.keel-radio input:checked + .keel-radio__dot { background: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.keel-radio input:checked + .keel-radio__dot::after { transform: scale(1); }
+.keel-radio input:focus-visible + .keel-radio__dot { box-shadow: inset 0 0 0 1.5px var(--accent), var(--ring); }
+.keel-radio--disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------------------------------------------------------------- Switch -- */
+.keel-switch {
+  font-family: var(--font-sans);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+.keel-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.keel-switch__track {
+  flex: none;
+  width: 44px; height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--track-off);
+  position: relative;
+  transition: background var(--dur-base) var(--ease-out);
+}
+.keel-switch__thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.keel-switch input:checked + .keel-switch__track { background: var(--accent); }
+.keel-switch input:checked + .keel-switch__track .keel-switch__thumb { transform: translateX(18px); }
+.keel-switch input:focus-visible + .keel-switch__track { box-shadow: var(--ring); }
+.keel-switch--disabled { opacity: .45; cursor: not-allowed; }
+
+/* ----------------------------------------------------------------- Field -- */
+.keel-formfield { font-family: var(--font-sans); display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.keel-formfield__label {
+  font-size: 13px;
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.keel-formfield__req { color: var(--danger); }
+.keel-formfield__hint { font-size: 12px; color: var(--text-tertiary); line-height: 1.4; }
+.keel-formfield__error { font-size: 12px; color: var(--danger); line-height: 1.4; font-weight: var(--fw-medium); }
+
+
+/* ==== layout.css ==== */
+/* keel - Layout: Card, Tabs, Segmented, Separator */
+
+/* ------------------------------------------------------------------ Card -- */
+.keel-card {
+  font-family: var(--font-sans);
+  background: var(--surface-card);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  position: relative;
+  transition: box-shadow var(--dur-base) var(--ease-out),
+              transform var(--dur-base) var(--ease-out);
+}
+.keel-card--elevated { box-shadow: var(--shadow-md); }
+.keel-card--outlined { box-shadow: inset 0 0 0 1px var(--border-subtle); }
+.keel-card--flat     { background: var(--surface-subtle); box-shadow: none; }
+
+.keel-card--pad-none { padding: 0; }
+.keel-card--pad-sm   { padding: 16px; }
+.keel-card--pad-md   { padding: 24px; }
+.keel-card--pad-lg   { padding: 32px; }
+
+.keel-card--interactive { cursor: pointer; }
+.keel-card--interactive:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.keel-card--interactive:active { transform: translateY(0); }
+/* An outlined card has to keep its hairline while it lifts, or it loses its
+   edge on hover and reads as a different component. */
+.keel-card--outlined.keel-card--interactive:hover {
+  box-shadow: inset 0 0 0 1px var(--border-default), var(--shadow-lg);
+}
+.keel-card--interactive:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* ------------------------------------------------------------------ Tabs -- */
+.keel-tabs {
+  font-family: var(--font-sans);
+  display: flex;
+  gap: 4px;
+  position: relative;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.keel-tabs::-webkit-scrollbar { display: none; }
+.keel-tab {
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  padding: 10px 14px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.keel-tab:hover { color: var(--text-primary); }
+.keel-tab--active { color: var(--text-primary); font-weight: var(--fw-semibold); }
+.keel-tab--active::after {
+  content: "";
+  position: absolute;
+  left: 10px; right: 10px; bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.keel-tab:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--radius-sm); }
+.keel-tab__count { font-size: 12px; color: var(--text-tertiary); font-family: var(--font-mono); }
+
+/* ------------------------------------------------------------- Segmented --
+   The thumb is positioned by CSS alone. Options share a grid of equal columns,
+   so the thumb is one column wide and slides by whole columns - no measuring,
+   no ResizeObserver, no interop. Equal segments are the platform convention
+   for this control anyway, so the constraint costs nothing. --keel-seg-count
+   and --keel-seg-index are set inline by the component. */
+.keel-seg {
+  font-family: var(--font-sans);
+  display: inline-grid;
+  grid-template-columns: repeat(var(--keel-seg-count, 2), minmax(0, 1fr));
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  position: relative;
+}
+.keel-seg__opt {
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  position: relative;
+  z-index: 1;
+  border-radius: calc(var(--radius-md) - 3px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: color var(--dur-base) var(--ease-out);
+}
+.keel-seg--sm .keel-seg__opt { height: 28px; padding: 0 12px; font-size: 13px; }
+.keel-seg--md .keel-seg__opt { height: 34px; padding: 0 16px; font-size: 14px; }
+.keel-seg__opt--active { color: var(--text-primary); font-weight: var(--fw-semibold); }
+.keel-seg__opt:focus-visible { outline: none; box-shadow: var(--ring); }
+.keel-seg__thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / var(--keel-seg-count, 2));
+  transform: translateX(calc(var(--keel-seg-index, 0) * 100%));
+  border-radius: calc(var(--radius-md) - 3px);
+  background: var(--surface-base);
+  box-shadow: var(--shadow-sm);
+  z-index: 0;
+  pointer-events: none;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+/* ------------------------------------------------------------- Separator -- */
+.keel-sep { border: none; background: var(--border-subtle); flex: none; }
+.keel-sep--h { height: 1px; width: 100%; margin: 0; }
+.keel-sep--v { width: 1px; align-self: stretch; min-height: 16px; margin: 0; }
+.keel-sep--label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+.keel-sep--label::before,
+.keel-sep--label::after { content: ""; flex: 1; height: 1px; background: var(--border-subtle); }
+
+
+/* ==== feedback.css ==== */
+/* keel - Feedback: Callout, Tooltip, ProgressBar */
+
+/* --------------------------------------------------------------- Callout -- */
+.keel-callout {
+  font-family: var(--font-sans);
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  align-items: flex-start;
+}
+.keel-callout__icon { flex: none; width: 20px; height: 20px; display: inline-flex; margin-top: 1px; }
+.keel-callout__body { flex: 1; min-width: 0; }
+.keel-callout__title { font-weight: var(--fw-semibold); margin-bottom: 2px; }
+
+.keel-callout--info    { background: var(--accent-subtle); }
+.keel-callout--info .keel-callout__icon { color: var(--accent); }
+.keel-callout--success { background: var(--success-subtle); }
+.keel-callout--success .keel-callout__icon { color: var(--success); }
+.keel-callout--warning { background: var(--warning-subtle); }
+.keel-callout--warning .keel-callout__icon { color: var(--warning); }
+.keel-callout--danger  { background: var(--danger-subtle); }
+.keel-callout--danger .keel-callout__icon { color: var(--danger); }
+
+/* --------------------------------------------------------------- Tooltip -- */
+.keel-tip { position: relative; display: inline-flex; }
+.keel-tip__pop {
+  position: absolute;
+  z-index: 50;
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  line-height: 1.3;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: var(--shadow-md);
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
+}
+.keel-tip__pop::after {
+  content: "";
+  position: absolute;
+  width: 7px; height: 7px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+/* A label longer than a few words needs to wrap, or it runs off the viewport. */
+.keel-tip__pop--wrap { white-space: normal; width: max-content; max-width: 220px; text-align: center; }
+
+.keel-tip--top .keel-tip__pop { bottom: calc(100% + 8px); left: 50%; transform: translate(-50%, 4px); }
+.keel-tip--top .keel-tip__pop::after { bottom: -3px; left: calc(50% - 3.5px); }
+.keel-tip--bottom .keel-tip__pop { top: calc(100% + 8px); left: 50%; transform: translate(-50%, -4px); }
+.keel-tip--bottom .keel-tip__pop::after { top: -3px; left: calc(50% - 3.5px); }
+.keel-tip:hover .keel-tip__pop,
+.keel-tip:focus-within .keel-tip__pop { opacity: 1; transform: translate(-50%, 0); }
+
+/* ----------------------------------------------------------- ProgressBar -- */
+.keel-progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.keel-progress--sm { height: 5px; }
+.keel-progress--lg { height: 11px; }
+.keel-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+.keel-progress__fill--success { background: var(--success); }
+.keel-progress__fill--warning { background: var(--warning); }
+.keel-progress__fill--danger  { background: var(--danger); }
+/* An indeterminate bar has no value to show, so it sweeps instead. */
+.keel-progress--indeterminate .keel-progress__fill {
+  width: 35%;
+  animation: keel-progress-sweep 1.4s var(--ease-in-out) infinite;
+}
+@keyframes keel-progress-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .keel-progress--indeterminate .keel-progress__fill { animation-duration: 3s; }
+}
+
+
+/* ==== code.css ==== */
+/* keel - CodeBlock
+ * ---------------------------------------------------------------------------
+ * One control, two chromes. Editor shows tabs and a language label, for files
+ * and payloads. Console shows a single title, for commands. Both open with a
+ * fixed lead cell carrying the glyph for the chrome - <> for editor, >_ for
+ * console - which is what keeps the first tab off the rounded corner.
+ *
+ * Every colour flows through the block-level --cb-* variables, so one class on
+ * the root re-skins the whole surface, chrome and syntax together:
+ *   .keel-cb--auto   follow the page theme
+ *   .keel-cb--dark   always the dark window, whatever the page is doing
+ *
+ * The light set reads the ramps directly rather than the --code-* tokens,
+ * because those describe a dark window and these colours have to work on white.
+ */
+.keel-cb {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.65;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  font-feature-settings: "liga" 1, "calt" 1;
+  font-variant-ligatures: contextual;
+
+  --cb-bg: var(--surface-base);
+  --cb-fg: var(--text-primary);
+  --cb-tabbar-bg: var(--surface-sunken);
+  --cb-line: var(--border-default);
+  --cb-tab-active-bg: var(--surface-base);
+  --cb-meta: var(--text-tertiary);
+  --cb-ln: var(--gray-400);
+  --cb-shadow: inset 0 0 0 1px var(--border-subtle), var(--shadow-sm);
+  --cb-c: #6e7781;
+  --cb-k: var(--blue-700);
+  --cb-s: var(--green-700);
+  --cb-n: var(--amber-700);
+  --cb-t: var(--blue-800);
+  --cb-f: #8250df;
+
+  background: var(--cb-bg);
+  color: var(--cb-fg);
+  box-shadow: var(--cb-shadow);
+  container-type: inline-size;
+}
+
+/* The dark window. Declared once and applied by both triggers below. */
+.keel-cb--dark {
+  --cb-bg: var(--code-bg);
+  --cb-fg: var(--code-fg);
+  --cb-tabbar-bg: rgba(255, 255, 255, .035);
+  --cb-line: rgba(255, 255, 255, .08);
+  --cb-tab-active-bg: var(--code-bg);
+  --cb-meta: #8a8279;
+  --cb-ln: var(--code-comment);
+  --cb-shadow: var(--hairline-top), var(--shadow-lg), inset 0 0 0 1px rgba(255, 255, 255, .07);
+  --cb-c: var(--code-comment);
+  --cb-k: var(--code-keyword);
+  --cb-s: var(--code-string);
+  --cb-n: var(--code-number);
+  --cb-t: var(--code-type);
+  --cb-f: var(--code-function);
+}
+/* An auto block follows whatever theme is in force where it sits: the page's,
+   or a .keel-dark / .keel-light subtree's. A subtree scope has to win over the
+   media query, which is why the light restore below is not optional. */
+@media (prefers-color-scheme: dark) {
+  .keel-cb--auto {
+  --cb-bg: var(--code-bg);
+  --cb-fg: var(--code-fg);
+  --cb-tabbar-bg: rgba(255, 255, 255, .035);
+  --cb-line: rgba(255, 255, 255, .08);
+  --cb-tab-active-bg: var(--code-bg);
+  --cb-meta: #8a8279;
+  --cb-ln: var(--code-comment);
+  --cb-shadow: var(--hairline-top), var(--shadow-lg), inset 0 0 0 1px rgba(255, 255, 255, .07);
+  --cb-c: var(--code-comment);
+  --cb-k: var(--code-keyword);
+  --cb-s: var(--code-string);
+  --cb-n: var(--code-number);
+  --cb-t: var(--code-type);
+  --cb-f: var(--code-function);
+  }
+}
+.keel-dark .keel-cb--auto {
+  --cb-bg: var(--code-bg);
+  --cb-fg: var(--code-fg);
+  --cb-tabbar-bg: rgba(255, 255, 255, .035);
+  --cb-line: rgba(255, 255, 255, .08);
+  --cb-tab-active-bg: var(--code-bg);
+  --cb-meta: #8a8279;
+  --cb-ln: var(--code-comment);
+  --cb-shadow: var(--hairline-top), var(--shadow-lg), inset 0 0 0 1px rgba(255, 255, 255, .07);
+  --cb-c: var(--code-comment);
+  --cb-k: var(--code-keyword);
+  --cb-s: var(--code-string);
+  --cb-n: var(--code-number);
+  --cb-t: var(--code-type);
+  --cb-f: var(--code-function);
+}
+.keel-light .keel-cb--auto {
+  --cb-bg: var(--surface-base);
+  --cb-fg: var(--text-primary);
+  --cb-tabbar-bg: var(--surface-sunken);
+  --cb-line: var(--border-default);
+  --cb-tab-active-bg: var(--surface-base);
+  --cb-meta: var(--text-tertiary);
+  --cb-ln: var(--gray-400);
+  --cb-shadow: inset 0 0 0 1px var(--border-subtle), var(--shadow-sm);
+  --cb-c: #6e7781;
+  --cb-k: var(--blue-700);
+  --cb-s: var(--green-700);
+  --cb-n: var(--amber-700);
+  --cb-t: var(--blue-800);
+  --cb-f: #8250df;
+}
+
+/* ---- Chrome ---- */
+.keel-cb__tabs,
+.keel-cb__bar {
+  display: flex;
+  align-items: stretch;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  background: var(--cb-tabbar-bg);
+  border-bottom: 1px solid var(--cb-line);
+}
+.keel-cb__lead {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  align-self: stretch;
+  color: var(--cb-meta);
+  border-right: 1px solid var(--cb-line);
+}
+.keel-cb__tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  border: none;
+  border-right: 1px solid var(--cb-line);
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  opacity: .55;
+  white-space: nowrap;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.keel-cb__tab:hover { opacity: .8; }
+.keel-cb__tab--active { opacity: 1; background: var(--cb-tab-active-bg); box-shadow: inset 0 2px 0 var(--accent); }
+.keel-cb__tab:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+.keel-cb__dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.keel-cb__title {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 15px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--cb-meta);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.keel-cb__lang {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--cb-meta);
+}
+.keel-cb__action {
+  margin-left: auto;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: none;
+  /* Divides the action from the label the way the lead cell divides the other
+     end, so the chrome reads as a row of cells rather than a floating icon. */
+  border-left: 1px solid var(--cb-line);
+  background: none;
+  color: var(--cb-meta);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.keel-cb__action:hover { color: var(--cb-fg); }
+/* When the language label is shown it takes the auto margin, so the action
+   sits tight against it rather than the two fighting for the same space. */
+.keel-cb__action--tight { margin-left: 0; }
+.keel-cb__action:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* ---- Body ---- */
+.keel-cb__scroll { overflow: auto; }
+.keel-cb__pre { margin: 0; padding: 16px 18px; white-space: pre; }
+.keel-cb__pre code { display: block; min-width: max-content; }
+
+/* Numbered body. A CSS table so the gutter is exactly as wide as its widest
+   number and the code column takes the rest, with no measuring. */
+.keel-cb__rows { display: table; width: 100%; padding: 14px 0; }
+.keel-cb__row { display: table-row; }
+.keel-cb__ln {
+  display: table-cell;
+  text-align: right;
+  width: 1px;
+  white-space: nowrap;
+  padding: 0 16px 0 18px;
+  user-select: none;
+  color: var(--cb-ln);
+  opacity: .8;
+  font-variant-numeric: tabular-nums;
+}
+.keel-cb__code { display: table-cell; white-space: pre; padding-right: 20px; width: 100%; }
+
+/* ---- Syntax tokens, emitted by Keel.Rendering.Highlighter ---- */
+.keel-cb .c { color: var(--cb-c); }
+.keel-cb .k { color: var(--cb-k); }
+.keel-cb .s { color: var(--cb-s); }
+.keel-cb .n { color: var(--cb-n); }
+.keel-cb .t { color: var(--cb-t); }
+.keel-cb .f { color: var(--cb-f); }
+
+/* Below roughly 30 characters of chrome there is no room for both a language
+   label and a filename, so the label goes and the title keeps the space. */
+@container (max-width: 340px) {
+  .keel-cb__lang { display: none; }
+  .keel-cb__action--tight { margin-left: auto; }
+}
+
+
+/* ==== social.css ==== */
+/* keel - GitHubStars */
+.keel-ghb {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--text-primary);
+  letter-spacing: var(--tracking-snug);
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.keel-ghb:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--radius-md); }
+.keel-ghb__ico { flex: none; display: inline-flex; }
+.keel-ghb__count { font-variant-numeric: tabular-nums; }
+
+.keel-ghb--sm { font-size: 13px; }
+.keel-ghb--sm .keel-ghb__seg { height: 30px; }
+.keel-ghb--md { font-size: 14px; }
+.keel-ghb--md .keel-ghb__seg { height: 36px; }
+
+/* minimal - icon and count only, for nav bars */
+.keel-ghb--minimal { gap: 7px; color: var(--text-secondary); transition: color var(--dur-fast) var(--ease-out); }
+.keel-ghb--minimal:hover { color: var(--text-primary); }
+
+/* outline - one bordered pill */
+.keel-ghb--outline {
+  gap: 8px;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  background: var(--surface-base);
+  transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.keel-ghb--outline.keel-ghb--sm { padding: 0 12px; height: 30px; }
+.keel-ghb--outline.keel-ghb--md { padding: 0 14px; height: 36px; }
+.keel-ghb--outline:hover { background: var(--surface-subtle); box-shadow: inset 0 0 0 1px var(--border-strong); }
+.keel-ghb--outline:active { transform: scale(0.98); }
+
+/* split - a label segment and a count segment */
+.keel-ghb--split {
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  overflow: hidden;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+.keel-ghb--split:hover { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.keel-ghb--split:active { transform: scale(0.98); }
+.keel-ghb__seg { display: inline-flex; align-items: center; gap: 7px; padding: 0 13px; }
+.keel-ghb__seg--label { background: var(--surface-subtle); transition: background var(--dur-fast) var(--ease-out); }
+.keel-ghb--split:hover .keel-ghb__seg--label { background: var(--surface-sunken); }
+.keel-ghb__seg--count { background: var(--surface-base); box-shadow: inset 1px 0 0 var(--border-default); color: var(--text-secondary); }
+
+
+/* ==== navigation.css ==== */
+/* keel - Navigation: NavBar, NavDrawer, NavMenu
+ * ---------------------------------------------------------------------------
+ * Written for keel rather than lifted from the export, which has no nav.
+ *
+ * The bar decides when to collapse by its OWN width, not the viewport's, so a
+ * nav placed in a sidebar or a split pane collapses when it actually runs out
+ * of room.
+ *
+ * The threshold is a modifier class rather than a custom property, because a
+ * container query cannot read one: @container (max-width: var(--x)) does not
+ * resolve. Three thresholds cover the cases; add another here if you need it.
+ *
+ * Open state is a class on the elements, set by the component. There is no
+ * document-level attribute, so two navs on one page cannot fight over it.
+ */
+.keel-nav {
+  container-type: inline-size;
+  font-family: var(--font-sans);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.keel-nav__links { display: flex; align-items: center; gap: 24px; }
+.keel-nav__link {
+  font-size: 15px;
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.keel-nav__link:hover { color: var(--text-primary); }
+
+.keel-nav__burger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.keel-nav__burger:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.keel-nav__burger:focus-visible { outline: none; box-shadow: var(--ring); }
+
+@container (max-width: 560px) {
+  .keel-nav--collapse-sm .keel-nav__links { display: none; }
+  .keel-nav--collapse-sm .keel-nav__burger { display: inline-flex; }
+}
+@container (max-width: 720px) {
+  .keel-nav--collapse-md .keel-nav__links { display: none; }
+  .keel-nav--collapse-md .keel-nav__burger { display: inline-flex; }
+}
+@container (max-width: 880px) {
+  .keel-nav--collapse-lg .keel-nav__links { display: none; }
+  .keel-nav--collapse-lg .keel-nav__burger { display: inline-flex; }
+}
+
+/* ---- Scrim ---- */
+.keel-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--scrim);
+  border: none;
+  padding: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--dur-base) var(--ease-out), visibility var(--dur-base) var(--ease-out);
+}
+.keel-scrim--open { opacity: 1; visibility: visible; }
+
+/* ---- Drawer ---- */
+.keel-drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  z-index: 51;
+  width: min(82vw, 300px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  font-family: var(--font-sans);
+  background: var(--surface-overlay);
+  backdrop-filter: var(--blur-material);
+  -webkit-backdrop-filter: var(--blur-material);
+  border-left: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-xl);
+  transform: translateX(100%);
+  transition: transform var(--dur-base) var(--ease-out);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.keel-drawer--open { transform: translateX(0); }
+.keel-drawer--left { right: auto; left: 0; border-left: none; border-right: 1px solid var(--border-subtle); transform: translateX(-100%); }
+.keel-drawer--left.keel-drawer--open { transform: translateX(0); }
+
+.keel-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.keel-drawer__link {
+  display: block;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.keel-drawer__link:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.keel-drawer__sep { height: 1px; background: var(--border-subtle); margin: 8px 6px; border: none; }
+.keel-drawer__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.keel-drawer__close:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.keel-drawer__close:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* ---- Hover menu, for the wide layout ---- */
+.keel-menu { position: relative; display: inline-flex; }
+.keel-menu__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--fw-medium) 15px/1 var(--font-sans);
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.keel-menu:hover .keel-menu__btn,
+.keel-menu:focus-within .keel-menu__btn { color: var(--text-primary); }
+.keel-menu__panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--surface-overlay);
+  backdrop-filter: var(--blur-material);
+  -webkit-backdrop-filter: var(--blur-material);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out),
+              visibility var(--dur-fast);
+}
+/* Bridges the gap between button and panel so the pointer can cross it without
+   the panel closing underneath. */
+.keel-menu__panel::before { content: ""; position: absolute; top: -12px; left: 0; right: 0; height: 12px; }
+.keel-menu:hover .keel-menu__panel,
+.keel-menu:focus-within .keel-menu__panel { opacity: 1; visibility: visible; transform: translateY(0); }
+.keel-menu__item {
+  display: block;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font: var(--fw-medium) 14px/1.3 var(--font-sans);
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.keel-menu__item:hover { background: var(--surface-sunken); color: var(--text-primary); }
