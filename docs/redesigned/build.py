@@ -481,8 +481,10 @@ def main():
                 art["style"] = ""
                 # make every annotation label the same accent colour (orderedChildren was signal/green)
                 for el in art.find_all(style=lambda v: v and ("signal" in v or "#8aa61f" in v)):
-                    el["style"] = (el["style"].replace("var(--signal-text)", "var(--accent)")
-                                   .replace("var(--signal-700)", "var(--accent)").replace("#8aa61f", "var(--accent)"))
+                    # --accent-text, not --accent: these are labels, and the fill token
+                    # measures 4.14:1 as ink on a card in dark.
+                    el["style"] = (el["style"].replace("var(--signal-text)", "var(--accent-text)")
+                                   .replace("var(--signal-700)", "var(--accent-text)").replace("#8aa61f", "var(--accent-text)"))
                 art["class"] = ["walk-panel"]
                 art["data-anno"] = str(i)
                 figure.append(art.extract())   # panels are figure children -> right rail on wide
