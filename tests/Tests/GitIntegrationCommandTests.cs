@@ -274,6 +274,57 @@ public sealed class GitIntegrationCommandTests : IDisposable
         Assert.Equal(theirsBytes, await File.ReadAllBytesAsync(oursPath));
     }
 
+    // Most structured adapters cannot round-trip CRLF, so a merged CRLF file used to come back
+    // LF throughout: every line rewritten in a file the user changed one line of. Windows-heavy
+    // consumers (Power Platform exports) feel this hardest.
+    [Theory]
+    [InlineData("catalog.json", "{\r\n  \"a\": 1,\r\n  \"b\": 1\r\n}\r\n", "{\r\n  \"a\": 2,\r\n  \"b\": 1\r\n}\r\n", "{\r\n  \"a\": 1,\r\n  \"b\": 2\r\n}\r\n")]
+    [InlineData("catalog.yaml", "a: 1\r\nb: 1\r\n", "a: 2\r\nb: 1\r\n", "a: 1\r\nb: 2\r\n")]
+    [InlineData("catalog.xml", "<r>\r\n  <a>1</a>\r\n  <b>1</b>\r\n</r>\r\n", "<r>\r\n  <a>2</a>\r\n  <b>1</b>\r\n</r>\r\n", "<r>\r\n  <a>1</a>\r\n  <b>2</b>\r\n</r>\r\n")]
+    public async Task MergeCommandPreservesCrlf(string fileName, string baseText, string oursText, string theirsText)
+    {
+        var repository = CreateTemporaryRepository();
+        WriteCatalogSchema(repository);
+        var extension = Path.GetExtension(fileName);
+        var basePath = Path.Combine(repository, "base" + extension);
+        var oursPath = Path.Combine(repository, "ours" + extension);
+        var theirsPath = Path.Combine(repository, "theirs" + extension);
+
+        await File.WriteAllTextAsync(basePath, baseText);
+        await File.WriteAllTextAsync(oursPath, oursText);
+        await File.WriteAllTextAsync(theirsPath, theirsText);
+
+        var result = await RunGitMergeAsync(
+            repository, "merge", "--base", basePath, "--ours", oursPath, "--theirs", theirsPath, "--path", fileName);
+
+        Assert.Equal(0, result.ExitCode);
+        var merged = await File.ReadAllTextAsync(oursPath);
+        Assert.Contains("\r\n", merged);
+        Assert.DoesNotMatch("(?<!\\r)\\n", merged);   // no bare LF: the file must not end up mixed
+        Assert.Contains("2", merged);
+    }
+
+    // The other direction matters just as much: an LF file must not acquire CRLF.
+    [Fact]
+    public async Task MergeCommandLeavesLfFilesAlone()
+    {
+        var repository = CreateTemporaryRepository();
+        WriteCatalogSchema(repository);
+        var basePath = Path.Combine(repository, "base.json");
+        var oursPath = Path.Combine(repository, "ours.json");
+        var theirsPath = Path.Combine(repository, "theirs.json");
+
+        await File.WriteAllTextAsync(basePath, "{\n  \"a\": 1,\n  \"b\": 1\n}\n");
+        await File.WriteAllTextAsync(oursPath, "{\n  \"a\": 2,\n  \"b\": 1\n}\n");
+        await File.WriteAllTextAsync(theirsPath, "{\n  \"a\": 1,\n  \"b\": 2\n}\n");
+
+        var result = await RunGitMergeAsync(
+            repository, "merge", "--base", basePath, "--ours", oursPath, "--theirs", theirsPath, "--path", "catalog.json");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.DoesNotContain("\r", await File.ReadAllTextAsync(oursPath));
+    }
+
     [Fact]
     public async Task MergeCommandLeavesBinaryConflictAsOurs()
     {

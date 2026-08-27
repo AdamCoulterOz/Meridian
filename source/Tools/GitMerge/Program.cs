@@ -2,6 +2,7 @@ using System.Text;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
+using Meridian.Core.Text;
 using Meridian.Tools.GitMerge;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -166,7 +167,8 @@ internal sealed class MergeCommand : AsyncCommand<MergeSettings>
             if (string.Equals(oursText, theirsText, StringComparison.Ordinal))
                 return 0;
 
-            await TextEncoding.WriteAsync(oursPath, ConflictMarkers.Create(oursText, baseText, theirsText) + Environment.NewLine, oursEncoding, cancellationToken);
+            var addConflict = ConflictMarkers.Create(oursText, baseText, theirsText) + Environment.NewLine;
+            await TextEncoding.WriteAsync(oursPath, LineEndings.MatchStyleOf(addConflict, oursText), oursEncoding, cancellationToken);
             Console.Error.WriteLine($"Conflict: {repoPath}: file added on both sides with differing content.");
             return 1;
         }
@@ -196,11 +198,16 @@ internal sealed class MergeCommand : AsyncCommand<MergeSettings>
             // than crash the driver and leave Git with a half-merged tree.
             Console.Error.WriteLine($"Warning: structural merge unavailable for '{repoPath}' ({error.Message}); using text merge.");
             var textMerge = TextMerge(baseText, oursText, theirsText);
-            await TextEncoding.WriteAsync(oursPath, textMerge.Text, oursEncoding, cancellationToken);
+            await TextEncoding.WriteAsync(oursPath, LineEndings.MatchStyleOf(textMerge.Text, oursText), oursEncoding, cancellationToken);
             if (textMerge.HasConflict)
                 Console.Error.WriteLine($"Conflict: {repoPath}: content changed on both sides.");
             return textMerge.HasConflict ? 1 : 0;
         }
+
+        // Most structured adapters cannot round-trip CRLF (XML normalises per spec; the JSON/
+        // YAML/HTML renderers emit their own layout), so restore the ours-side convention here
+        // rather than rewriting every line of a file the user changed one line of.
+        rendered = LineEndings.MatchStyleOf(rendered, oursText);
 
         await TextEncoding.WriteAsync(oursPath, rendered, oursEncoding, cancellationToken);
 
