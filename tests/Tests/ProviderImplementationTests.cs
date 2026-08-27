@@ -2,8 +2,10 @@ using System.Text;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
+using Meridian.Core.Tree;
 using MeridianGit.Formats.Binary;
 using MeridianGit.Formats.Css;
+using MeridianGit.Formats.Html;
 using MeridianGit.Formats.JavaScript;
 using MeridianGit.Formats.Png;
 using MeridianGit.Formats.Xap;
@@ -179,6 +181,135 @@ public sealed class ProviderImplementationTests
         var adapter = new JavaScriptAdapter();
 
         Assert.ThrowsAny<Exception>(() => adapter.Parse("function (", "broken.js", EmptySchema));
+    }
+
+    // ---- HTML documents -----------------------------------------------------
+
+    // A complete page (doctype + <html>/<head>/<body>) is parsed as a real document, so edits to
+    // disjoint subtrees merge. It used to be kept as one opaque blob, which conflicted the whole
+    // file on any two-sided edit.
+    private const string DocumentBase =
+        "<!doctype html>\n<html><head><title>Base</title></head><body><p id=\"x\">base</p><p id=\"y\">keep</p></body></html>\n";
+
+    [Fact]
+    public void HtmlFullDocumentParsesAsADocumentNotAnOpaqueBlob()
+    {
+        var adapter = new HtmlFragmentAdapter();
+
+        var document = adapter.Parse(DocumentBase, "page.html", EmptySchema);
+
+        Assert.Equal(HtmlDocumentAdapter.RootKind, document.Root.Kind);
+        var html = Assert.Single(document.Root.Children, child => child.GetMetadataName() == "html");
+        Assert.Contains(html.Children, child => child.GetMetadataName() == "head");
+        Assert.Contains(html.Children, child => child.GetMetadataName() == "body");
+    }
+
+    [Fact]
+    public void HtmlFullDocumentMergesDisjointHeadAndBodyEdits()
+    {
+        var adapter = new HtmlFragmentAdapter();
+
+        var result = Merge(
+            adapter,
+            DocumentBase,
+            DocumentBase.Replace("<title>Base</title>", "<title>OURS</title>", StringComparison.Ordinal),
+            DocumentBase.Replace("<p id=\"y\">keep</p>", "<p id=\"y\">THEIRS</p>", StringComparison.Ordinal));
+
+        Assert.False(result.HasConflicts);
+        var rendered = adapter.RenderDocument(result.Document);
+        Assert.Contains("<title>OURS</title>", rendered);
+        Assert.Contains("<p id=\"y\">THEIRS</p>", rendered);
+        // Both edits applied, and the wrappers the opaque blob used to protect are still there.
+        Assert.StartsWith("<!doctype html>\n<html>", rendered, StringComparison.Ordinal);
+        Assert.Contains("<head>", rendered);
+        Assert.Contains("<body>", rendered);
+        Assert.EndsWith("</body></html>\n", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFullDocumentPreservesTheDoctypeVerbatim()
+    {
+        var adapter = new HtmlFragmentAdapter();
+        // Lowercase, and a legacy doctype with identifiers: the parser exposes neither verbatim.
+        const string legacy = "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">";
+
+        Assert.Equal(
+            DocumentBase,
+            adapter.RenderDocument(adapter.Parse(DocumentBase, "page.html", EmptySchema)));
+
+        // A doctype changed on one side only survives the merge as written.
+        var result = Merge(
+            adapter,
+            DocumentBase,
+            DocumentBase.Replace("<!doctype html>", legacy, StringComparison.Ordinal),
+            DocumentBase.Replace("<title>Base</title>", "<title>THEIRS</title>", StringComparison.Ordinal));
+
+        Assert.False(result.HasConflicts);
+        var rendered = adapter.RenderDocument(result.Document);
+        Assert.StartsWith(legacy, rendered, StringComparison.Ordinal);
+        Assert.Contains("<title>THEIRS</title>", rendered);
+    }
+
+    [Fact]
+    public void HtmlFullDocumentMergesAnAttributeOnlyChangeOnTheHtmlElement()
+    {
+        var adapter = new HtmlFragmentAdapter();
+
+        var result = Merge(
+            adapter,
+            DocumentBase,
+            DocumentBase.Replace("<html>", "<html lang=\"en\">", StringComparison.Ordinal),
+            DocumentBase.Replace("<p id=\"y\">keep</p>", "<p id=\"y\">THEIRS</p>", StringComparison.Ordinal));
+
+        Assert.False(result.HasConflicts);
+        var rendered = adapter.RenderDocument(result.Document);
+        Assert.Contains("<html lang=\"en\">", rendered);
+        Assert.Contains("<p id=\"y\">THEIRS</p>", rendered);
+    }
+
+    [Fact]
+    public void HtmlFullDocumentConflictsWhenBothSidesChangeTheSameElementText()
+    {
+        var adapter = new HtmlFragmentAdapter();
+
+        var result = Merge(
+            adapter,
+            DocumentBase,
+            DocumentBase.Replace("<p id=\"x\">base</p>", "<p id=\"x\">OURS</p>", StringComparison.Ordinal),
+            DocumentBase.Replace("<p id=\"x\">base</p>", "<p id=\"x\">THEIRS</p>", StringComparison.Ordinal));
+
+        Assert.True(result.HasConflicts);
+        var conflict = Assert.Single(result.Conflicts);
+        Assert.Contains("body", conflict.Path, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFullDocumentKeepsScriptAndStyleBodiesVerbatim()
+    {
+        var adapter = new HtmlFragmentAdapter();
+        const string source =
+            "<!doctype html>\n<html><head><style>a > b {color:red}</style></head>" +
+            "<body><script>if (a < b && c) { go(); }</script></body></html>\n";
+
+        var rendered = adapter.RenderDocument(adapter.Parse(source, "page.html", EmptySchema));
+
+        Assert.Equal(source, rendered);
+    }
+
+    // Whitespace after </html> is folded into the body by the parser, while a comment there is
+    // attached to the document. Both have to come back out exactly once: dropping the comment loses
+    // content, and emitting the whitespace twice grows the file on every merge.
+    [Fact]
+    public void HtmlFullDocumentRoundTripsContentAfterTheHtmlElement()
+    {
+        var adapter = new HtmlFragmentAdapter();
+        const string source = "<!doctype html>\n<html><head></head><body><p>a</p></body></html>\n<!-- build: 1 -->\n";
+
+        var once = adapter.RenderDocument(adapter.Parse(source, "page.html", EmptySchema));
+        var twice = adapter.RenderDocument(adapter.Parse(once, "page.html", EmptySchema));
+
+        Assert.Equal(source, once);
+        Assert.Equal(source, twice);
     }
 
     // ---- Binary -------------------------------------------------------------

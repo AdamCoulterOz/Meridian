@@ -1,5 +1,13 @@
 # History
 
+## 2026-08-28
+
+- Made complete HTML documents structurally mergeable. `.html`/`.htm` content that is a full page (a doctype or an `<html>` root) was kept as a single opaque scalar, so any edit on both sides conflicted the whole file. It is now parsed by a new `html:document` adapter: the document element and everything below it are real tree nodes, so disjoint head and body edits merge and only genuine same-node edits conflict.
+  - `HtmlDocumentAdapter` parses the source unwrapped, which is what AngleSharp needs to build a correct document. The earlier body-context parse (`ParseDocument($"<body>{source}</body>")`) foster-parented the head and dropped the doctype and wrappers, and is still the right thing for fragments only.
+  - The doctype (with its exact casing and any legacy identifiers) and anything after `</html>` are recovered from the source text as `$prologue`/`$epilogue` nodes, because the tree-construction algorithm normalises the doctype and folds trailing whitespace into the body.
+  - `HtmlFragmentAdapter` stays the registered adapter for `.html`/`.htm` and routes full documents to the document adapter; node parsing and rendering are shared by both shapes in `HtmlNodes`.
+  - Known limitation, unchanged from the fragment adapter and now visible on whole pages: rendering re-serialises markup (attributes sorted, void elements unclosed, non-ASCII text as numeric entities) and the parser relocates whitespace across the head/body boundaries, so a merged pretty-printed page keeps its content exactly but not its layout.
+
 ## 2026-08-02
 
 - Added canonical keyword, social, crawler, and Schema.org metadata to the static Meridian site while preserving its complete JavaScript-independent documentation content.

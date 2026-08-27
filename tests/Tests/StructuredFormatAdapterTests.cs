@@ -278,6 +278,7 @@ actions:
             new Json5Adapter(),
             new YamlAdapter(),
             new HtmlFragmentAdapter(),
+            new HtmlDocumentAdapter(),
             new JavaScriptAdapter(),
             new LiquidAdapter(),
             new MappedFormatAdapter(new LiquidAdapter(), new XmlAdapter()),
@@ -297,7 +298,7 @@ actions:
             ["resx"] = "xml"
         });
 
-        foreach (var format in new[] { "json", "json5", "yaml", "html:fragment", "javascript", "liquid:multi", "liquid:xml", "mapped-text", "raw", "binary", "css", "image:png", "image:jpg", "image:gif", "image:ico", "svg", "xsl", "resx", "xap" })
+        foreach (var format in new[] { "json", "json5", "yaml", "html:fragment", "html:document", "javascript", "liquid:multi", "liquid:xml", "mapped-text", "raw", "binary", "css", "image:png", "image:jpg", "image:gif", "image:ico", "svg", "xsl", "resx", "xap" })
         {
             var source = format switch
             {
