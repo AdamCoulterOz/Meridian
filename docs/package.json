@@ -3,6 +3,6 @@
   "private": true,
   "description": "Build-time dependencies for the Meridian docs site. The keel stylesheet is resolved here, not committed.",
   "dependencies": {
-    "@adamcoulteroz/keel": "^0.4.1"
+    "@adamcoulteroz/keel": "^0.4.2"
   }
 }

@@ -45,7 +45,14 @@ def classes_in_bundle():
     # Strip comments so a class named only in prose does not count as defined. keel's
     # stylesheets explain why rules exist and name classes routinely while doing it.
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
-    return set(re.findall(r"\.(keel-[A-Za-z0-9_-]+)", css))
+    # Quoted strings and url() payloads contain dots that are not selectors: the @import of
+    # fonts.googleapis.com otherwise yields "com" and "googleapis" as phantom classes. This
+    # is why the local parse is the second opinion and not the authority.
+    css = re.sub(r"""(['"]).*?\1""", "", css, flags=re.S)
+    css = re.sub(r"url\([^)]*\)", "", css)
+    # Every class in this file is keel's, so do not pre-filter to the keel- prefix: that
+    # would drop the syntax token classes and make them look absent from the stylesheet.
+    return set(re.findall(r"\.([A-Za-z_][A-Za-z0-9_-]*)", css))
 
 
 def classes_in_inventory():
@@ -55,13 +62,30 @@ def classes_in_inventory():
         return set(json.load(handle))
 
 
-def used_classes():
+def used_classes(known):
+    """Classes the page uses that keel is expected to provide.
+
+    Not simply everything prefixed keel-: keel's namespace is not entirely prefixed. The
+    syntax token classes it emits inside a code block are `c`, `k`, `s`, `n`, `t` and `f`,
+    real selectors at `.keel-cb .c`. This page colours syntax with inline styles rather
+    than those classes, so none are in use today, but a build.py change could start
+    emitting them and a keel- filter would silently stop covering them.
+
+    Membership of anything keel is known to define settles it exactly — the inventory when
+    present, the stylesheet always. Scoping on the inventory alone would mean a class going
+    MISSING from the inventory also drops out of scope, which is the one case that most
+    needs catching. It cannot over-reach either:
+    the page has classes defined nowhere in CSS at all (`anno-line` is a selector the
+    scroll handler queries, never a styled rule), and a "must be defined somewhere" rule
+    would wrongly flag those.
+    """
     with open(PAGE, encoding="utf-8") as handle:
         html = handle.read()
     used = set()
     for attr in re.findall(r'class="([^"]*)"', html):
-        used.update(token for token in attr.split() if token.startswith("keel-"))
-    return used
+        used.update(attr.split())
+
+    return {name for name in used if name.startswith("keel-")} | (used & known)
 
 
 def main():
@@ -70,13 +94,17 @@ def main():
             print(f"error: {path} is missing; run update-keel.sh and build.py first", file=sys.stderr)
             return 2
 
-    used = used_classes() - PAGE_OWNED
     bundle = classes_in_bundle()
     inventory = classes_in_inventory()
+    known = bundle | (inventory or set())
+    used = used_classes(known) - PAGE_OWNED
 
     if inventory is None:
         print(f"checked against the vendored bundle only: {len(bundle)} classes defined")
     else:
+        # Compare like with like. The local parse only sees keel-* names, so counting the
+        # whole inventory against it would show a difference that is a namespace artefact
+        # rather than a disagreement.
         print(f"checked against keel's classes.json ({len(inventory)}) "
               f"corroborated by the bundle ({len(bundle)})")
         # Only the classes the page depends on matter here.
