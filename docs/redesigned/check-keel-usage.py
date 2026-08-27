@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail the build if the page uses a keel class the resolved keel version does not define.
+"""Fail the build if the page uses a keel class or token the resolved keel version lacks.
 
 keel ships no aliases: a renamed class stops existing, and a CSS class that does not exist
 is not an error, it is simply no rule. So a rename reaches a CSS-only consumer as an
@@ -88,6 +88,53 @@ def used_classes(known):
     return {name for name in used if name.startswith("keel-")} | (used & known)
 
 
+def tokens_in_bundle():
+    with open(BUNDLE, encoding="utf-8") as handle:
+        css = re.sub(r"/\*.*?\*/", "", handle.read(), flags=re.S)
+    # Custom properties are declared, not selected, so a "--name:" is unambiguous in a way
+    # a class selector is not. No corroborating inventory is needed for this half.
+    return set(re.findall(r"(--[A-Za-z0-9-]+)\s*:", css))
+
+
+def page_tokens():
+    """(tokens the page uses, tokens the page defines for itself)."""
+    with open(PAGE, encoding="utf-8") as handle:
+        html = handle.read()
+    used = set(re.findall(r"var\((--[A-Za-z0-9-]+)", html))
+    style = re.search(r"<style>(.*?)</style>", html, re.S)
+    declared = set()
+    if style:
+        declared = set(re.findall(r"(--[A-Za-z0-9-]+)\s*:",
+                                  re.sub(r"/\*.*?\*/", "", style.group(1), flags=re.S)))
+    return used, declared
+
+
+def check_tokens():
+    """A renamed TOKEN is as silent as a renamed class, and has bitten this page more often.
+
+    --code-* meant something different from what the markup assumed, keel ramps were read
+    where semantic aliases were needed, and --surface-footer was removed outright in 0.2.0.
+    Each was found by hand. An unresolved var() falls back to nothing and the declaration is
+    simply dropped, so the page renders with the property unset and nothing reports it.
+    """
+    used, declared = page_tokens()
+    defined = tokens_in_bundle() | declared
+    missing = sorted(used - defined)
+
+    print(f"tokens: page uses {len(used)}, keel defines {len(tokens_in_bundle())}, "
+          f"page defines {len(declared)}")
+    if not missing:
+        print("every custom property the page uses resolves")
+        return 0
+
+    print(f"\n{len(missing)} custom propert(ies) the page uses are defined nowhere:", file=sys.stderr)
+    for name in missing:
+        print(f"  var({name})", file=sys.stderr)
+    print("\nAn unresolved var() drops the declaration silently. Check keel's CHANGELOG for "
+          "a rename and update the markup in the same commit as the version bump.", file=sys.stderr)
+    return 1
+
+
 def main():
     for path in (PAGE, BUNDLE):
         if not os.path.exists(path):
@@ -124,7 +171,7 @@ def main():
     missing = sorted(used - bundle)
     if not missing:
         print("every keel class the page uses resolves")
-        return 0
+        return check_tokens()
 
     print(f"\n{len(missing)} keel class(es) used by the page are not defined by this keel version:", file=sys.stderr)
     for name in missing:
