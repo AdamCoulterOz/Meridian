@@ -582,19 +582,42 @@
 <script>
 // keel carries open state on the elements themselves, not a document-level
 // attribute, so two drawers on one page cannot fight over one flag.
+//
+// keel hides the scrim with visibility, but the drawer only with a transform, so a
+// CLOSED drawer is still rendered and still in the tab order: 11 focusable links sitting
+// 300px off-screen, inside aria-hidden=true. Tabbing sent focus somewhere invisible and
+// unannounced. `inert` is what actually removes it from both the tab order and the
+// accessibility tree; aria-hidden alone only ever did half the job.
 function setNav(open){
   var d=document.getElementById('nav-drawer'), c=document.getElementById('nav-scrim'),
       b=document.getElementById('nav-burger');
-  if(d){ d.classList.toggle('keel-drawer--open', open); d.setAttribute('aria-hidden', open?'false':'true'); }
+  var wasOpen = navOpen();
+  if(d){ d.classList.toggle('keel-drawer--open', open);
+         d.toggleAttribute('inert', !open);
+         d.setAttribute('aria-hidden', open?'false':'true'); }
   if(c) c.classList.toggle('keel-scrim--open', open);
   if(b) b.setAttribute('aria-expanded', open?'true':'false');
+  // An open drawer is modal, so the page behind it leaves the tab order too. That is the
+  // focus trap: no keyboard user can tab out of the drawer into content the scrim covers.
+  for(var i=0;i<document.body.children.length;i++){
+    var el=document.body.children[i];
+    if(el===d || el===c || el.tagName==='SCRIPT') continue;
+    el.toggleAttribute('inert', open);
+  }
   document.body.style.overflow = open ? 'hidden' : '';
+  // Move focus in on open and hand it back on close, or the keyboard user is left where
+  // the drawer no longer is. Only on an actual transition, never on the initial setup.
+  if(open && !wasOpen){ var close=d && d.querySelector('.keel-drawer__close'); if(close) close.focus(); }
+  else if(!open && wasOpen && b){ b.focus(); }
 }
 function openNav(){ setNav(true); }
 function closeNav(){ setNav(false); }
 function navOpen(){ var d=document.getElementById('nav-drawer');
   return !!d && d.classList.contains('keel-drawer--open'); }
 function toggleNav(){ navOpen() ? closeNav() : openNav(); }
+// Start closed-and-inert. setNav is not used here: it would move focus on page load.
+(function(){ var d=document.getElementById('nav-drawer');
+  if(d && !d.classList.contains('keel-drawer--open')) d.setAttribute('inert',''); })();
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeNav(); });
 // The bar collapses on its OWN width now, so there is no viewport breakpoint to
 // listen for. Watch the burger instead: when it stops being displayed the wide
