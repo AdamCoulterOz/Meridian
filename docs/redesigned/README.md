@@ -201,12 +201,13 @@ Everything else is static content + CSS hover/focus states.
 
 ## Design Tokens (Keel)
 
-> **The token layer now comes from keel itself.** `docs/keel.bundle.css` is a
-> vendored copy of `AdamCoulterOz/keel`, refreshed with `./update-keel.sh` (which
-> resolves the latest tag, fetches at that tag, and stamps the version into the
-> file). **Do not hand-edit the vendored file** — the next refresh overwrites it.
-> It is linked *before* the page's own `<style>` block so page rules win where the
-> two overlap.
+> **The token layer now comes from keel itself.** keel is a dependency, not a copy:
+> `@adamcoulteroz/keel` is published to GitHub Packages and pinned in
+> `docs/package-lock.json`. `./update-keel.sh` installs the locked version and puts
+> the stylesheet at `docs/keel.bundle.css`, which is a **build output** — gitignored,
+> never hand-edited, never committed. Pass a version (`./update-keel.sh 0.2.3`) to
+> move the pin. It is linked *before* the page's own `<style>` block so page rules
+> win where the two overlap.
 >
 > The tables below describe the palette Meridian was designed at, which keel was
 > extracted from and still matches. The page holds exactly one token override, in
@@ -330,8 +331,9 @@ equivalents): **Button** (primary/secondary/outline/ghost, `pill`), **Badge**
 ## Files
 - `build.py` — generates `docs/index.html` from `Meridian.dc.html`. **`index.html`
   is generated: never hand-edit it**, or the next build silently drops the change.
-- `update-keel.sh` — refreshes the vendored `docs/keel.bundle.css` from keel.
-  Run it to take a new keel version; commit the result.
+- `update-keel.sh` — installs keel at the version locked in `docs/package-lock.json`
+  and stages `docs/keel.bundle.css`. Pass a version to move the pin; commit the
+  lockfile change, never the stylesheet.
 - `Meridian.dc.html` — the full design (all sections, inline styles, theme logic).
   Open it to read exact markup, copy, and per-element styles. **Reference only** —
   the `.dc.html`/`<x-import>`/`support.js` runtime is prototyping scaffolding, not

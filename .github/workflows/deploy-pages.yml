@@ -1,8 +1,9 @@
 name: Deploy GitHub Pages
 
 # The site is BUILT here rather than served straight from docs/. That is what lets
-# keel stay out of this repository: the stylesheet is fetched at the pinned version
-# during the build instead of being committed as a vendored artifact.
+# keel stay out of this repository: the stylesheet is resolved from GitHub Packages at
+# the version locked in docs/package-lock.json instead of being committed as a vendored
+# artifact.
 
 on:
   push:
@@ -48,28 +49,38 @@ jobs:
       - name: Install build dependencies
         run: pip install --disable-pip-version-check beautifulsoup4==4.15.0
 
-      # keel is a private repository, so the job-scoped GITHUB_TOKEN cannot read it.
-      # KEEL_READ_TOKEN must be a token with read access to AdamCoulterOz/keel.
-      - name: Fetch keel at the pinned version
-        env:
-          GH_TOKEN: ${{ secrets.KEEL_READ_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -z "${GH_TOKEN:-}" ]; then
-            echo "::error::KEEL_READ_TOKEN is not set. It needs read access to the private AdamCoulterOz/keel repository." >&2
-            exit 1
-          fi
-          ./docs/redesigned/update-keel.sh
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          registry-url: https://npm.pkg.github.com
+          scope: "@adamcoulteroz"
 
-      # The bundle is fetched, not reviewed, so prove it is the version this repo pinned
-      # rather than trusting that the fetch did the right thing.
-      - name: Verify the fetched bundle matches the pin
+      # keel is published to GitHub Packages. Unlike releases or repository contents,
+      # Packages supports cross-repository Actions access, so the job-scoped GITHUB_TOKEN
+      # is enough once the package grants this repository read access — no PAT to create,
+      # scope or rotate. If this 404s, that grant is missing.
+      - name: Install keel at the locked version
+        working-directory: docs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm ci --no-audit --no-fund
+
+      - name: Stage keel's stylesheet
         run: |
           set -euo pipefail
-          pinned="$(tr -d '[:space:]' < docs/redesigned/keel.version)"
-          stamped="$(head -1 docs/keel.bundle.css | grep -o 'keel v[^ ]*' | sed 's/^keel //; s/\.$//')"
-          echo "pinned=$pinned stamped=$stamped"
-          [ "$pinned" = "$stamped" ] || { echo "::error::keel.bundle.css is $stamped but keel.version pins $pinned." >&2; exit 1; }
+          cp docs/node_modules/@adamcoulteroz/keel/dist/keel.css docs/keel.bundle.css
+          echo "keel $(node -p "require('./docs/node_modules/@adamcoulteroz/keel/package.json').version")"
+
+      # The bundle is resolved, not reviewed, so prove it is the version the lockfile pins
+      # rather than trusting the install did the right thing.
+      - name: Verify the stylesheet matches the lockfile
+        run: |
+          set -euo pipefail
+          locked="$(node -p "require('./docs/node_modules/@adamcoulteroz/keel/package.json').version")"
+          stamped="$(head -1 docs/keel.bundle.css | grep -o 'keel v[^ ]*' | sed 's/^keel v//; s/\.$//')"
+          echo "locked=$locked stamped=$stamped"
+          [ "$locked" = "$stamped" ] || { echo "::error::keel.bundle.css is stamped $stamped but the lockfile resolved $locked." >&2; exit 1; }
 
       - name: Build the site
         run: python3 docs/redesigned/build.py
