@@ -2,3 +2,10 @@ bin/
 obj/
 artifacts/
 .claude/
+
+# IDE / OS / test output
+.vs/
+.idea/
+*.user
+.DS_Store
+TestResults/

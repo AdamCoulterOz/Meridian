@@ -60,11 +60,11 @@ public sealed class IdentityAssigner
 
         foreach (var field in schema.GlobalDiscriminatorFields)
             if (node.Fields.TryGetValue(field, out var value) && !string.IsNullOrEmpty(value))
-                return new ResolvedKey(field + "=" + value);
+                return Pair(field, value);
 
         if (node.Fields.TryGetValue(MappedTokenFields.SemanticKey, out var semanticKey) &&
                             !string.IsNullOrEmpty(semanticKey))
-            return new ResolvedKey(MappedTokenFields.SemanticKey + "=" + semanticKey);
+            return Pair(MappedTokenFields.SemanticKey, semanticKey);
 
         return new ResolvedKey("path");
     }
@@ -73,31 +73,31 @@ public sealed class IdentityAssigner
     {
         DiscriminatorKey.Field field => ResolveField(node, field.Name),
         DiscriminatorKey.PathValue pathValue => ResolvePathValue(node, pathValue.Path),
-        DiscriminatorKey.Text => new ResolvedKey("text=" + (node.Value ?? string.Empty)),
+        DiscriminatorKey.Text => new ResolvedKey("text=" + Encode(node.Value ?? string.Empty)),
         DiscriminatorKey.Structural { Strategy: StructuralDiscriminator.OrderedSlot } => new ResolvedKey("slot=" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-        DiscriminatorKey.Composite composite => ResolveComposite(node, composite),
+        DiscriminatorKey.Composite composite => ResolveComposite(node, composite, ordinal),
         _ => new ResolvedKey("path")
     };
 
     private static ResolvedKey ResolveField(TreeNode node, string field) => node.Fields.TryGetValue(field, out var value) && !string.IsNullOrEmpty(value)
-            ? new ResolvedKey(field + "=" + value)
+            ? Pair(field, value)
             : new ResolvedKey("missing:" + field);
 
     private static ResolvedKey ResolvePathValue(TreeNode node, string path)
     {
         var value = TreePath.ReadValue(node, path);
         return !string.IsNullOrEmpty(value)
-            ? new ResolvedKey(path + "=" + value)
+            ? Pair(path, value)
             : new ResolvedKey("missing:" + path);
     }
 
-    private static ResolvedKey ResolveComposite(TreeNode node, DiscriminatorKey.Composite composite)
+    private static ResolvedKey ResolveComposite(TreeNode node, DiscriminatorKey.Composite composite, int ordinal)
     {
         var parts = new List<string>(composite.Parts.Count);
 
         foreach (var part in composite.Parts)
         {
-            var resolved = ResolveExplicitKey(node, part.Key, ordinal: 0).Value;
+            var resolved = ResolveExplicitKey(node, part.Key, ordinal).Value;
             if (!resolved.StartsWith("missing:", StringComparison.Ordinal) && !string.IsNullOrEmpty(resolved))
             {
                 parts.Add(resolved);
@@ -110,6 +110,20 @@ public sealed class IdentityAssigner
 
         return new ResolvedKey(string.Join("+", parts));
     }
+
+    // Composite keys join "field=value" parts with '+'. Field/path names come from the (trusted)
+    // schema, but values are attacker-controlled content, so percent-encode the separator characters
+    // in the value: no attribute value (base64, query strings, formulas) can then forge another
+    // node's identity by containing a literal '+', '=', '[', ']' or '/'.
+    private static ResolvedKey Pair(string field, string value) => new(field + "=" + Encode(value));
+
+    private static string Encode(string value) => value
+        .Replace("%", "%25", StringComparison.Ordinal)
+        .Replace("+", "%2B", StringComparison.Ordinal)
+        .Replace("=", "%3D", StringComparison.Ordinal)
+        .Replace("[", "%5B", StringComparison.Ordinal)
+        .Replace("]", "%5D", StringComparison.Ordinal)
+        .Replace("/", "%2F", StringComparison.Ordinal);
 
     private sealed record ResolvedKey(string Value);
 }

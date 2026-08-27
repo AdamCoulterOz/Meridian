@@ -31,16 +31,52 @@ public sealed class XmlAdapter : IFormatAdapter, IMappedHost
             throw new InvalidOperationException("XML document has no root element.");
 
         var root = ParseElement(document.Root);
+        var extraFields = new Dictionary<string, string>(root.Fields, StringComparer.Ordinal);
         if (document.Declaration is not null)
-        {
-            var fields = new Dictionary<string, string>(root.Fields, StringComparer.Ordinal)
-            {
-                ["$xmlDeclaration"] = document.Declaration.ToString()
-            };
-            root = root.WithFields(fields);
-        }
+            extraFields["$xmlDeclaration"] = document.Declaration.ToString();
 
+        // Comments (license headers), the DOCTYPE, and processing instructions that sit before or
+        // after the root element are part of the document; capture them so a merge does not delete
+        // them. Whitespace-only text nodes are left to the declaration/root formatting below.
+        var prolog = string.Concat(document.Nodes()
+            .TakeWhile(node => node is not XElement)
+            .Where(IsProlog)
+            .Select(node => RenderPrologNode(node) + Environment.NewLine));
+        if (prolog.Length > 0)
+            extraFields["$xmlProlog"] = prolog;
+
+        var epilog = string.Concat(document.Nodes()
+            .SkipWhile(node => node is not XElement)
+            .Skip(1)
+            .Where(IsProlog)
+            .Select(node => Environment.NewLine + RenderPrologNode(node)));
+        if (epilog.Length > 0)
+            extraFields["$xmlEpilog"] = epilog;
+
+        root = root.WithFields(extraFields);
         return new DocumentTree(Format, root, sourcePath, sourceText);
+    }
+
+    private static bool IsProlog(XNode node) => node is XComment or XProcessingInstruction or XDocumentType;
+
+    // XDocumentType.ToString() always injects an empty internal subset "[]" that was never in the
+    // source, so reconstruct the DOCTYPE by hand and emit "[...]" only when there really is one.
+    private static string RenderPrologNode(XNode node) => node is XDocumentType doctype
+        ? RenderDoctype(doctype)
+        : node.ToString();
+
+    private static string RenderDoctype(XDocumentType doctype)
+    {
+        var builder = new StringBuilder("<!DOCTYPE ").Append(doctype.Name);
+        if (!string.IsNullOrEmpty(doctype.PublicId))
+            builder.Append(" PUBLIC \"").Append(doctype.PublicId).Append("\" \"").Append(doctype.SystemId).Append('"');
+        else if (!string.IsNullOrEmpty(doctype.SystemId))
+            builder.Append(" SYSTEM \"").Append(doctype.SystemId).Append('"');
+
+        if (!string.IsNullOrEmpty(doctype.InternalSubset))
+            builder.Append(" [").Append(doctype.InternalSubset).Append(']');
+
+        return builder.Append('>').ToString();
     }
 
     public string RenderDocument(DocumentTree document)
@@ -48,8 +84,13 @@ public sealed class XmlAdapter : IFormatAdapter, IMappedHost
         var builder = new StringBuilder();
         if (document.Root.Fields.TryGetValue("$xmlDeclaration", out var declaration))
             builder.AppendLine(declaration);
+        if (document.Root.Fields.TryGetValue("$xmlProlog", out var prolog))
+            builder.Append(prolog);
 
         builder.Append(RenderNode(document.Root));
+
+        if (document.Root.Fields.TryGetValue("$xmlEpilog", out var epilog))
+            builder.Append(epilog);
         builder.AppendLine();
         return builder.ToString();
     }
@@ -362,7 +403,7 @@ public sealed class XmlAdapter : IFormatAdapter, IMappedHost
             fields[FieldOrderField] = string.Join("\n", fieldOrder);
 
         return new TreeNode(
-                            element.Name.LocalName,
+                            QualifiedName(element),
                             fields,
                             children: fieldValueChildren.Concat(element.Nodes().Select(ParseMappedNode)).ToArray(),
                             sourceText: element.ToString(SaveOptions.DisableFormatting));

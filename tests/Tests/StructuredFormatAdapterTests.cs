@@ -220,7 +220,10 @@ actions:
         var document = adapter.Parse(source, "script.js", MergeSchema.Empty);
 
         Assert.Equal("javascript", document.Format);
-        Assert.Equal("esprima", document.Root.Fields["parser"]);
+        Assert.Equal("script", document.Root.Fields["$type"]);
+        // Derived counts (bodyCount/sourceType) must not be stored as mergeable fields, or
+        // differing statement counts on the two sides would force a false whole-file conflict.
+        Assert.False(document.Root.Fields.ContainsKey("bodyCount"));
         Assert.Equal(source, adapter.RenderDocument(document));
     }
 

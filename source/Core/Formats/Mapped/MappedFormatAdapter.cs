@@ -65,6 +65,12 @@ public sealed class MappedFormatAdapter : IFormatAdapter
         if (node.Conflict is not null)
             return ConflictMarkers.Create(node.Conflict.OursText, node.Conflict.BaseText, node.Conflict.TheirsText);
 
+        // The merge engine renders arbitrary inner nodes (host elements, wrappers) when it builds
+        // conflict text. Those are not mapped-format roots, so delegate them to the host renderer
+        // rather than assuming the "$host"/"$mappedTokens" root shape (which would throw).
+        if (!node.Fields.ContainsKey(MappedTokenFields.Mode))
+            return RenderInnerHostNode(node);
+
         var mode = node.Fields.TryGetValue(MappedTokenFields.Mode, out var modeValue)
                             ? modeValue
                             : "safe";
@@ -85,10 +91,35 @@ public sealed class MappedFormatAdapter : IFormatAdapter
             .Children
             .ToDictionary(
                 child => child.Fields[MappedTokenFields.TokenId],
-                child => child.Value ?? string.Empty,
+                // A conflicted token must project its conflict markers, never render as an empty
+                // string, which would silently delete the token's content from the merged file.
+                child => child.Conflict is not null
+                    ? ConflictMarkers.Create(child.Conflict.OursText, child.Conflict.BaseText, child.Conflict.TheirsText)
+                    : child.Value ?? string.Empty,
                 StringComparer.Ordinal);
 
         return _host.RenderHostWithMappedTokens(new DocumentTree(_host.HostFormat, hostRoot), mappedSources);
+    }
+
+    private string RenderInnerHostNode(TreeNode node)
+    {
+        // A "$host" wrapper carries the real host root as its single child.
+        var hostNode = string.Equals(node.Kind, "$host", StringComparison.Ordinal) && node.Children.Count == 1
+            ? node.Children[0]
+            : node;
+
+        try
+        {
+            return _host.RenderHostWithMappedTokens(
+                new DocumentTree(_host.HostFormat, hostNode),
+                new Dictionary<string, string>(StringComparer.Ordinal));
+        }
+        catch (Exception)
+        {
+            // Best-effort text for conflict display; the driver's whole-file safety net guarantees
+            // no data is lost even when an inner node cannot be rendered precisely.
+            return hostNode.Value ?? node.Value ?? string.Empty;
+        }
     }
 
     private StitchedHost Stitch(IReadOnlyList<TreeNode> mappedNodes, string markerNonce)

@@ -22,7 +22,6 @@
     <AssemblyName>MeridianGit.Formats.Markup</AssemblyName>
     <RootNamespace>MeridianGit.Formats.Markup</RootNamespace>
     <PackageId>MeridianGit.Formats.Markup</PackageId>
-    <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
     <Description>XML, JSON, JSON5, and YAML format providers for MeridianGit structural merge and diff.</Description>
     <PackageTags>git;merge;diff;xml;json;json5;yaml;meridiangit-format</PackageTags>

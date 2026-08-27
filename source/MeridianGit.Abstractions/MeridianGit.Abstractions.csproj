@@ -9,7 +9,6 @@
     <AssemblyName>MeridianGit.Abstractions</AssemblyName>
     <RootNamespace>MeridianGit.Abstractions</RootNamespace>
     <PackageId>MeridianGit.Abstractions</PackageId>
-    <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
     <Description>Provider registration abstractions for MeridianGit format support.</Description>
     <PackageTags>git;merge;diff;structural-merge;providers;abstractions</PackageTags>

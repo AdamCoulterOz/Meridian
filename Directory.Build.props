@@ -1,6 +1,9 @@
 <Project>
 
   <PropertyGroup>
+    <!-- Single source of truth for the package/assembly version across all projects and the
+         runtime trusted-provider catalog (which reads it from the assembly informational version). -->
+    <Version>0.1.0</Version>
     <Copyright>Copyright 2026 Adam Coulter</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

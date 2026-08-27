@@ -2,8 +2,99 @@ using System.Diagnostics;
 
 namespace Meridian.Tests;
 
-public sealed class GitIntegrationCommandTests
+public sealed class GitIntegrationCommandTests : IDisposable
 {
+    private readonly List<string> _createdRepositories = [];
+
+    public void Dispose()
+    {
+        foreach (var repository in _createdRepositories)
+        {
+            try
+            {
+                if (Directory.Exists(repository))
+                    Directory.Delete(repository, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup; a locked temp file must not fail the test run.
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ConflictingTextMergeWritesMarkersAndExitsOne()
+    {
+        var repository = CreateTemporaryRepository();
+        WriteCatalogSchema(repository);
+        var basePath = Path.Combine(repository, "base.xml");
+        var oursPath = Path.Combine(repository, "ours.xml");
+        var theirsPath = Path.Combine(repository, "theirs.xml");
+
+        await File.WriteAllTextAsync(basePath, """<root><item id="1">Base</item></root>""");
+        await File.WriteAllTextAsync(oursPath, """<root><item id="1">Ours</item></root>""");
+        await File.WriteAllTextAsync(theirsPath, """<root><item id="1">Theirs</item></root>""");
+
+        var result = await RunGitMergeAsync(
+            repository, "merge", "--base", basePath, "--ours", oursPath, "--theirs", theirsPath, "--path", "catalog.xml");
+
+        Assert.Equal(1, result.ExitCode);
+        var merged = await File.ReadAllTextAsync(oursPath);
+        Assert.Contains("<<<<<<< ours", merged);
+        Assert.Contains(">>>>>>> theirs", merged);
+    }
+
+    [Fact]
+    public async Task AddAddMergeWithEmptyBaseDoesNotCrash()
+    {
+        var repository = CreateTemporaryRepository();
+        var basePath = Path.Combine(repository, "base.json");
+        var oursPath = Path.Combine(repository, "ours.json");
+        var theirsPath = Path.Combine(repository, "theirs.json");
+
+        await File.WriteAllTextAsync(basePath, string.Empty);
+        await File.WriteAllTextAsync(oursPath, "{\"x\":1}\n");
+        await File.WriteAllTextAsync(theirsPath, "{\"y\":2}\n");
+
+        var result = await RunGitMergeAsync(
+            repository, "merge", "--base", basePath, "--ours", oursPath, "--theirs", theirsPath, "--path", "config.json");
+
+        Assert.Equal(1, result.ExitCode);
+        var merged = await File.ReadAllTextAsync(oursPath);
+        Assert.Contains("<<<<<<< ours", merged);
+    }
+
+    [Fact]
+    public async Task ExternalDiffOfAddedFileExitsZero()
+    {
+        var repository = CreateTemporaryRepository();
+        var newPath = Path.Combine(repository, "new.json");
+        await File.WriteAllTextAsync(newPath, "{\"a\":1}\n");
+
+        // Git passes /dev/null for the missing side of an added file.
+        var result = await RunGitMergeAsync(
+            repository, "diff", "config.json", "/dev/null", "0000000", "100644", newPath, "1111111", "100644");
+
+        Assert.Equal(0, result.ExitCode);
+    }
+
+    [Fact]
+    public async Task UnknownExtensionExitsTwo()
+    {
+        var repository = CreateTemporaryRepository();
+        var basePath = Path.Combine(repository, "base.txt");
+        var oursPath = Path.Combine(repository, "ours.txt");
+        var theirsPath = Path.Combine(repository, "theirs.txt");
+        await File.WriteAllTextAsync(basePath, "a");
+        await File.WriteAllTextAsync(oursPath, "b");
+        await File.WriteAllTextAsync(theirsPath, "c");
+
+        var result = await RunGitMergeAsync(
+            repository, "merge", "--base", basePath, "--ours", oursPath, "--theirs", theirsPath, "--path", "notes.txt");
+
+        Assert.Equal(2, result.ExitCode);
+    }
+
     [Fact]
     public async Task MergeCommandUsesGitMergeDriverArgumentsAndWritesOurs()
     {
@@ -204,11 +295,12 @@ public sealed class GitIntegrationCommandTests
         Assert.Equal(oursBytes, await File.ReadAllBytesAsync(oursPath));
     }
 
-    private static string CreateTemporaryRepository()
+    private string CreateTemporaryRepository()
     {
         var root = Path.Combine(Path.GetTempPath(), "meridiangit-integration-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         Directory.CreateDirectory(Path.Combine(root, ".git"));
+        _createdRepositories.Add(root);
         return root;
     }
 

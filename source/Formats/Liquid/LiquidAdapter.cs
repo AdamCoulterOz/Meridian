@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Meridian.Core.Tree;
 using Meridian.Core.Formats.Mapped;
 using Meridian.Core.Merging;
@@ -88,9 +89,25 @@ public class LiquidAdapter : IMappedSourceAdapter
 
             if (next == nextOutput)
             {
+                // A literal "{{" that never closes (e.g. documentation showing template syntax) is
+                // text, not a token — emit it verbatim instead of throwing.
+                if (source.IndexOf("}}", next + 2, StringComparison.Ordinal) < 0)
+                {
+                    AddText(tokens, source[next..(next + 2)], ref ordinal);
+                    position = next + 2;
+                    continue;
+                }
+
                 var token = ReadDelimitedToken(source, next, "{{", "}}");
                 tokens.Add(CreateToken("$output", "output", token, ref ordinal));
                 position = token.After;
+                continue;
+            }
+
+            if (source.IndexOf("%}", next + 2, StringComparison.Ordinal) < 0)
+            {
+                AddText(tokens, source[next..(next + 2)], ref ordinal);
+                position = next + 2;
                 continue;
             }
 
@@ -163,21 +180,17 @@ public class LiquidAdapter : IMappedSourceAdapter
 
     private static DelimitedToken FindEndTag(string source, int position, string endTagName)
     {
-        var current = position;
-        while (current < source.Length)
-        {
-            var next = source.IndexOf("{%", current, StringComparison.Ordinal);
-            if (next < 0)
-                break;
+        // The body of a raw/comment block is literal: it may legitimately contain "{%" that is not a
+        // tag. Search for the literal end tag rather than tokenizing every intermediate "{%".
+        var endTagPattern = new Regex(
+            @"\{%-?\s*" + Regex.Escape(endTagName) + @"\s*-?%\}",
+            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-            var candidate = ReadDelimitedToken(source, next, "{%", "%}");
-            if (string.Equals(ReadTagName(candidate.Inner), endTagName, StringComparison.OrdinalIgnoreCase))
-                return candidate;
+        var match = endTagPattern.Match(source, position);
+        if (!match.Success)
+            throw new InvalidOperationException($"Liquid block is missing required '{endTagName}' tag.");
 
-            current = candidate.After;
-        }
-
-        throw new InvalidOperationException($"Liquid block is missing required '{endTagName}' tag.");
+        return ReadDelimitedToken(source, match.Index, "{%", "%}");
     }
 
     private static DelimitedToken ReadDelimitedToken(string source, int start, string openMarker, string closeMarker)

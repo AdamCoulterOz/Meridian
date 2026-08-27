@@ -16,6 +16,19 @@ public sealed record MergeSchema
     public static MergeSchema Empty { get; } = new();
 }
 
+internal static class GlobPattern
+{
+    // Translates a '*'/'**' glob into an anchored regex with standard semantics: '*' matches within
+    // one path segment, '**/' and '/**' match zero or more segments (so '**/*.xml' matches a
+    // repo-root file and 'forms/**/labels' matches 'forms/labels').
+    public static string ToRegex(string glob) =>
+        "^" + System.Text.RegularExpressions.Regex.Escape(glob)
+            .Replace("\\*\\*/", "(?:.*/)?", StringComparison.Ordinal)
+            .Replace("/\\*\\*", "(?:/.*)?", StringComparison.Ordinal)
+            .Replace("\\*\\*", ".*", StringComparison.Ordinal)
+            .Replace("\\*", "[^/]*", StringComparison.Ordinal) + "$";
+}
+
 public sealed record NodeIdentityRule(PathSelector Path, DiscriminatorKey Key, string? Note = null);
 public sealed record ContentRule(PathSelector Path, string Format, string? SchemaRef = null, string? Note = null);
 

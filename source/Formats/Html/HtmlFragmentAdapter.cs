@@ -14,11 +14,29 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
         "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"
     };
 
+    // Elements whose content the HTML spec treats as raw text (or escapable raw text):
+    // their character data must be emitted verbatim, never HTML-entity-encoded, or the
+    // embedded script/style/text is corrupted.
+    private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "script", "style", "textarea", "title", "xmp", "iframe", "noembed", "noframes", "noscript", "plaintext"
+    };
+
     public string Format => "html:fragment";
 
     public DocumentTree Parse(string sourceText, string? sourcePath, MergeSchema schema)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
+
+        // A full HTML document (doctype / <html> / <head>) is not a body fragment; parsing it
+        // in body context would foster-parent the head, drop the doctype, and destroy structure.
+        // Preserve it as an exact-round-trip opaque document instead of silently mangling it.
+        if (IsFullDocument(sourceText))
+            return new DocumentTree(
+                Format,
+                new TreeNode("$document", NodeMetadata.Create("raw"), sourceText),
+                sourcePath,
+                sourceText);
 
         var parser = new HtmlParser();
         var document = parser.ParseDocument($"<body>{sourceText}</body>");
@@ -28,6 +46,37 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
 
         return new DocumentTree(Format, new TreeNode("$fragment", NodeMetadata.Create("fragment"), children: children), sourcePath, sourceText);
     }
+
+    private static bool IsFullDocument(string sourceText)
+    {
+        var trimmed = sourceText.TrimStart();
+        // Match a real <html> root or a doctype only — not fragments that merely start with a tag
+        // whose name shares a prefix (e.g. <header>, which must still merge structurally).
+        return trimmed.StartsWith("<!doctype", StringComparison.OrdinalIgnoreCase)
+            || StartsWithTag(trimmed, "html");
+    }
+
+    private static bool StartsWithTag(string text, string tag)
+    {
+        if (!text.StartsWith("<" + tag, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var afterIndex = tag.Length + 1;
+        if (afterIndex >= text.Length)
+            return true;
+
+        var after = text[afterIndex];
+        return after == '>' || after == '/' || char.IsWhiteSpace(after);
+    }
+
+    // HTML attribute names may begin with '$', which would collide with the $type/$name metadata
+    // sentinels. Escape a name starting with '$' (or with the '=' escape char itself, so the
+    // mapping stays reversible) by prefixing '='; decoding strips exactly that one prefix. Ordinary
+    // names (id, class, ...) are untouched so identity rules keep matching them.
+    private static string EncodeAttributeName(string name) =>
+        name.StartsWith('$') || name.StartsWith('=') ? "=" + name : name;
+
+    private static string DecodeAttributeName(string key) => key.StartsWith('=') ? key[1..] : key;
 
     public string RenderDocument(DocumentTree document) => RenderNode(document.Root);
 
@@ -60,7 +109,7 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
     {
         var fields = NodeMetadata.Create("element", element.LocalName);
         foreach (var attribute in element.Attributes)
-            fields[attribute.Name] = attribute.Value;
+            fields[EncodeAttributeName(attribute.Name)] = attribute.Value;
 
         var children = element.ChildNodes
                             .Select((child, childIndex) => ParseNode(child, childIndex))
@@ -69,7 +118,9 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
         return new TreeNode($"{NodeMetadata.EncodeKind(element.LocalName)}{index:D6}", fields, children: children);
     }
 
-    private static string RenderHtmlNode(TreeNode node)
+    private static string RenderHtmlNode(TreeNode node) => RenderHtmlNode(node, rawTextParent: false);
+
+    private static string RenderHtmlNode(TreeNode node, bool rawTextParent)
     {
         var type = node.TryGetMetadataType(out var nodeType)
             ? nodeType
@@ -77,12 +128,12 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
 
         return type switch
         {
-            "fragment" => string.Concat(node.Children.Select(RenderHtmlNode)),
-            "text" => WebUtility.HtmlEncode(node.Value ?? string.Empty),
+            "fragment" => string.Concat(node.Children.Select(child => RenderHtmlNode(child, rawTextParent: false))),
+            "text" => rawTextParent ? node.Value ?? string.Empty : WebUtility.HtmlEncode(node.Value ?? string.Empty),
             "comment" => $"<!--{node.Value ?? string.Empty}-->",
             "element" => RenderElement(node),
             "raw" => node.Value ?? string.Empty,
-            _ => string.Concat(node.Children.Select(RenderHtmlNode))
+            _ => string.Concat(node.Children.Select(child => RenderHtmlNode(child, rawTextParent: false)))
         };
     }
 
@@ -91,12 +142,13 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
         var tag = node.GetMetadataName();
         var attributes = node.VisibleFields()
             .OrderBy(field => field.Key, StringComparer.Ordinal)
-            .Select(field => $" {field.Key}=\"{WebUtility.HtmlEncode(field.Value)}\"");
+            .Select(field => $" {DecodeAttributeName(field.Key)}=\"{WebUtility.HtmlEncode(field.Value)}\"");
         var start = $"<{tag}{string.Concat(attributes)}>";
 
         if (VoidElements.Contains(tag))
             return start;
 
-        return start + string.Concat(node.Children.Select(RenderHtmlNode)) + $"</{tag}>";
+        var rawText = RawTextElements.Contains(tag);
+        return start + string.Concat(node.Children.Select(child => RenderHtmlNode(child, rawText))) + $"</{tag}>";
     }
 }

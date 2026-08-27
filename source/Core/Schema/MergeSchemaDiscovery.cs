@@ -10,20 +10,20 @@ public static class MergeSchemaDiscovery
         ArgumentException.ThrowIfNullOrWhiteSpace(currentDirectory);
 
         var current = Path.GetFullPath(currentDirectory);
-        var repositoryRoot = FindRepositoryRoot(current) ??
-            throw new InvalidOperationException($"No Git repository root was found from '{current}'.");
-
         var targetPath = Path.IsPathRooted(repoPath)
             ? Path.GetFullPath(repoPath)
-            : Path.GetFullPath(Path.Combine(repositoryRoot, repoPath));
+            : Path.GetFullPath(Path.Combine(current, repoPath));
         var targetDirectory = Directory.Exists(targetPath)
             ? targetPath
-            : Path.GetDirectoryName(targetPath) ?? repositoryRoot;
-        targetDirectory = NearestExistingDirectory(targetDirectory, repositoryRoot);
+            : Path.GetDirectoryName(targetPath) ?? current;
 
-        if (!IsSameOrChildPath(targetDirectory, repositoryRoot))
-            throw new InvalidOperationException(
-                $"Path '{repoPath}' resolved outside the Git repository root '{repositoryRoot}'.");
+        // Anchor discovery at the target file's directory rather than the process cwd, and treat
+        // "no repository found" the same as "no schema files found": fall back to the target
+        // directory as the search boundary instead of throwing. This keeps `meridian diff/merge`
+        // usable outside a repo and stops an unrelated ancestor repo (e.g. a $HOME dotfiles repo)
+        // from anchoring discovery on files it does not own.
+        var repositoryRoot = FindRepositoryRoot(targetDirectory) ?? targetDirectory;
+        targetDirectory = NearestExistingDirectory(targetDirectory, repositoryRoot);
 
         var directories = DirectoriesFromRoot(repositoryRoot, targetDirectory);
         var schemaFiles = directories
@@ -80,23 +80,10 @@ public static class MergeSchemaDiscovery
         return directories;
     }
 
-    private static bool IsSameOrChildPath(string path, string parent)
-    {
-        var fullPath = EnsureTrailingSeparator(Path.GetFullPath(path));
-        var fullParent = EnsureTrailingSeparator(Path.GetFullPath(parent));
-        return fullPath.StartsWith(fullParent, PathComparison);
-    }
-
     private static bool PathEquals(string left, string right) => string.Equals(
         Path.GetFullPath(left).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
         Path.GetFullPath(right).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
         PathComparison);
-
-    private static string EnsureTrailingSeparator(string path)
-    {
-        var trimmed = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        return trimmed + Path.DirectorySeparatorChar;
-    }
 
     private static StringComparison PathComparison => OperatingSystem.IsWindows()
         ? StringComparison.OrdinalIgnoreCase

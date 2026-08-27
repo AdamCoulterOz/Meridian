@@ -20,7 +20,6 @@
     <AssemblyName>Meridian.Tools.GitMerge</AssemblyName>
     <RootNamespace>Meridian.Tools.GitMerge</RootNamespace>
     <PackageId>MeridianGit</PackageId>
-    <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
     <Description>MeridianGit structural merge and diff command-line tool.</Description>
     <PackageTags>git;merge;diff;structural-merge;dotnet-tool</PackageTags>

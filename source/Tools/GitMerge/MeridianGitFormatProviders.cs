@@ -14,13 +14,21 @@ namespace Meridian.Tools.GitMerge;
 internal static class MeridianGitFormatProviders
 {
     private static readonly MeridianGitProviderRegistry Registry = CreateBundledRegistry();
+
+    // Derived from the tool's own package version (Directory.Build.props) so the runtime restore
+    // catalog can never desync from what was actually built and published.
+    private static readonly string ProviderVersion =
+        typeof(MeridianGitFormatProviders).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion?.Split('+')[0]
+        ?? "0.1.0";
+
     private static readonly TrustedProviderPackage[] TrustedPackages =
     [
-        new("MeridianGit.Formats.Markup", "0.1.0", "MeridianGit.Formats.Markup", "MeridianGit.Formats.Markup.MarkupMeridianGitProvider", [".xml", ".json", ".json5", ".yaml", ".yml"]),
-        new("MeridianGit.Formats.Web", "0.1.0", "MeridianGit.Formats.Web", "MeridianGit.Formats.Web.WebMeridianGitProvider", [".html", ".htm", ".css", ".js"]),
-        new("MeridianGit.Formats.Images", "0.1.0", "MeridianGit.Formats.Images", "MeridianGit.Formats.Images.ImagesMeridianGitProvider", [".png", ".jpg", ".jpeg", ".gif", ".ico"]),
-        new("MeridianGit.Formats.PowerPlatform", "0.1.0", "MeridianGit.Formats.PowerPlatform", "MeridianGit.Formats.PowerPlatform.PowerPlatformMeridianGitProvider", [".xap", ".liquid"]),
-        new("MeridianGit.Formats.Binary", "0.1.0", "MeridianGit.Formats.Binary", "MeridianGit.Formats.Binary.BinaryMeridianGitProvider", [".bin"])
+        new("MeridianGit.Formats.Markup", ProviderVersion, "MeridianGit.Formats.Markup", "MeridianGit.Formats.Markup.MarkupMeridianGitProvider", [".xml", ".json", ".json5", ".yaml", ".yml"]),
+        new("MeridianGit.Formats.Web", ProviderVersion, "MeridianGit.Formats.Web", "MeridianGit.Formats.Web.WebMeridianGitProvider", [".html", ".htm", ".css", ".js"]),
+        new("MeridianGit.Formats.Images", ProviderVersion, "MeridianGit.Formats.Images", "MeridianGit.Formats.Images.ImagesMeridianGitProvider", [".png", ".jpg", ".jpeg", ".gif", ".ico"]),
+        new("MeridianGit.Formats.PowerPlatform", ProviderVersion, "MeridianGit.Formats.PowerPlatform", "MeridianGit.Formats.PowerPlatform.PowerPlatformMeridianGitProvider", [".xap", ".liquid"]),
+        new("MeridianGit.Formats.Binary", ProviderVersion, "MeridianGit.Formats.Binary", "MeridianGit.Formats.Binary.BinaryMeridianGitProvider", [".bin"])
     ];
 
     public static async Task<IFormatAdapter?> CreateAdapterAsync(string repoPath, CancellationToken cancellationToken)

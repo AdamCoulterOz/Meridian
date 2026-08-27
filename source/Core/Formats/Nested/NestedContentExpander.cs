@@ -36,22 +36,39 @@ public sealed class NestedContentExpander
             .ToList();
         var contentRule = schema.ContentRules.LastOrDefault(rule => rule.Path.IsMatch(path));
 
-        if (contentRule is not null &&
-            node.Value is not null &&
-            registry.TryParse(contentRule.Format, node.Value, path, ResolveNestedSchema(schema, schemaCatalog, contentRule), out var nestedDocument))
+        if (contentRule is not null && node.Value is not null)
         {
             var nestedSchema = ResolveNestedSchema(schema, schemaCatalog, contentRule);
-            var expandedNestedDocument = Expand(nestedDocument, nestedSchema, registry, schemaCatalog);
-            var contentFields = new Dictionary<string, string> { ["format"] = contentRule.Format };
-            if (!string.IsNullOrWhiteSpace(contentRule.SchemaRef))
-                contentFields["schemaRef"] = contentRule.SchemaRef;
 
-            children.Add(new TreeNode(
-                                        "$content",
-                                        contentFields,
-                                        children: [expandedNestedDocument.Root]));
+            // Only the parse is wrapped: content that does not actually parse as the declared format
+            // stays an opaque scalar rather than crashing the merge. The recursive Expand runs OUTSIDE
+            // the catch so a deeper unknown-schemaRef (or a genuine programming error) still surfaces
+            // loudly instead of being silently swallowed.
+            DocumentTree? nestedDocument = null;
+            try
+            {
+                if (registry.TryParse(contentRule.Format, node.Value, path, nestedSchema, out var parsed))
+                    nestedDocument = parsed;
+            }
+            catch (Exception)
+            {
+                nestedDocument = null;
+            }
 
-            return node.WithValue(null).WithChildren(children);
+            if (nestedDocument is not null)
+            {
+                var expandedNestedDocument = Expand(nestedDocument, nestedSchema, registry, schemaCatalog);
+                var contentFields = new Dictionary<string, string> { ["format"] = contentRule.Format };
+                if (!string.IsNullOrWhiteSpace(contentRule.SchemaRef))
+                    contentFields["schemaRef"] = contentRule.SchemaRef;
+
+                children.Add(new TreeNode(
+                                            "$content",
+                                            contentFields,
+                                            children: [expandedNestedDocument.Root]));
+
+                return node.WithValue(null).WithChildren(children);
+            }
         }
 
         return node.WithChildren(children);

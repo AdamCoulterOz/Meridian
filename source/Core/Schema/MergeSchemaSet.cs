@@ -29,13 +29,19 @@ public sealed record MergeSchemaSet(
         var contentRules = defaults.ContentRules.Concat(matchingFiles.SelectMany(file => file.ContentRules ?? [])).ToArray();
         var companionRules = defaults.CompanionRules.Concat(matchingFiles.SelectMany(file => file.CompanionRules ?? [])).ToArray();
 
+        // The set-level nestedSchemas and any declared inside defaults (astSchema.nestedSchemas) are
+        // both valid; combine them so a schemaRef against either resolves instead of throwing.
+        var mergedNestedSchemas = new Dictionary<string, MergeSchema>(nestedSchemas, StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in defaults.NestedSchemas)
+            mergedNestedSchemas[pair.Key] = pair.Value;
+
         return defaults with
         {
             IdentityRules = identityRules,
             OrderedChildren = orderedChildren,
             ContentRules = contentRules,
             CompanionRules = companionRules,
-            NestedSchemas = nestedSchemas
+            NestedSchemas = mergedNestedSchemas
         };
     }
 }
@@ -53,9 +59,8 @@ public sealed record FileSchemaRule(
 {
     private readonly Lazy<System.Text.RegularExpressions.Regex> _matchRegex = new(() =>
         new System.Text.RegularExpressions.Regex(
-            "^" + System.Text.RegularExpressions.Regex.Escape(Match)
-                .Replace("\\*\\*", ".*", StringComparison.Ordinal)
-                .Replace("\\*", "[^/]*", StringComparison.Ordinal) + "$",
+            GlobPattern.ToRegex(Match ??
+                throw new InvalidOperationException("A file schema rule is missing its required 'match' pattern.")),
             System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.IgnoreCase));
 
     public bool IsMatch(string path) => _matchRegex.Value.IsMatch(path.Replace('\\', '/'));

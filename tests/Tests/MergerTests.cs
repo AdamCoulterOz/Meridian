@@ -65,8 +65,13 @@ public sealed class MergerTests
         var result = new IdentityAssigner().Assign(document, MergeSchema.Empty);
 
         Assert.False(result.HasErrors);
-        Assert.Contains(MappedTokenFields.SemanticKey + "=field:class/mapped:0", result.Document.Root.Children[0].Identity);
-        Assert.Contains(MappedTokenFields.SemanticKey + "=field:title/mapped:0", result.Document.Root.Children[1].Identity);
+        var firstIdentity = result.Document.Root.Children[0].Identity;
+        var secondIdentity = result.Document.Root.Children[1].Identity;
+        // Separator characters in discriminator values are percent-encoded to prevent identity
+        // collisions, so match the distinguishing prefix rather than the raw value.
+        Assert.Contains(MappedTokenFields.SemanticKey + "=field:class", firstIdentity);
+        Assert.Contains(MappedTokenFields.SemanticKey + "=field:title", secondIdentity);
+        Assert.NotEqual(firstIdentity, secondIdentity);
     }
 
     [Fact]

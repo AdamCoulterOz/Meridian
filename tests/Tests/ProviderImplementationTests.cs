@@ -127,7 +127,7 @@ public sealed class ProviderImplementationTests
         var document = adapter.Parse(source, "script.js", EmptySchema);
 
         Assert.Equal(source, adapter.RenderDocument(document));
-        Assert.Equal("esprima", document.Root.Fields["parser"]);
+        Assert.Equal("script", document.Root.Fields["$type"]);
     }
 
     [Fact]

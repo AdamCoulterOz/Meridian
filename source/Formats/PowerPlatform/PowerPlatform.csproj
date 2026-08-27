@@ -15,7 +15,6 @@
     <AssemblyName>MeridianGit.Formats.PowerPlatform</AssemblyName>
     <RootNamespace>MeridianGit.Formats.PowerPlatform</RootNamespace>
     <PackageId>MeridianGit.Formats.PowerPlatform</PackageId>
-    <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
     <Description>Power Platform-oriented XAP and Liquid format providers for MeridianGit structural merge and diff.</Description>
     <PackageTags>git;merge;diff;powerplatform;xap;liquid;meridiangit-format</PackageTags>

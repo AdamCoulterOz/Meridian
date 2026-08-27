@@ -71,10 +71,11 @@ public sealed class JavaScriptAdapter : IFormatAdapter
             ordinal++;
         }
 
+        // Only the metadata type and trailing trivia belong on the root. Derived, content-dependent
+        // values (statement count, module/script mode) must NOT be stored as mergeable fields: the
+        // three-way field merge would treat differing counts as a whole-file conflict and defeat the
+        // per-declaration merge this adapter exists to provide. They are recomputed from source on parse.
         var rootFields = NodeMetadata.Create("script");
-        rootFields["parser"] = "esprima";
-        rootFields["sourceType"] = program.SourceType.ToString();
-        rootFields["bodyCount"] = program.Body.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
         rootFields[TrailingTriviaField] = sourceText[cursor..];
 
         return new DocumentTree(

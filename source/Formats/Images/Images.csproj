@@ -17,7 +17,6 @@
     <AssemblyName>MeridianGit.Formats.Images</AssemblyName>
     <RootNamespace>MeridianGit.Formats.Images</RootNamespace>
     <PackageId>MeridianGit.Formats.Images</PackageId>
-    <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
     <Description>Byte-safe image format providers for MeridianGit structural merge and diff.</Description>
     <PackageTags>git;merge;diff;png;jpeg;jpg;gif;ico;binary;meridiangit-format</PackageTags>

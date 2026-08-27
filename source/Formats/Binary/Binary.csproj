@@ -10,7 +10,6 @@
     <AssemblyName>MeridianGit.Formats.Binary</AssemblyName>
     <RootNamespace>MeridianGit.Formats.Binary</RootNamespace>
     <PackageId>MeridianGit.Formats.Binary</PackageId>
-    <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
     <Description>Generic byte-safe binary format provider for MeridianGit structural merge and diff.</Description>
     <PackageTags>git;merge;diff;bin;binary;meridiangit-format</PackageTags>

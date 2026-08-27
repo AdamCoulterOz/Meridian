@@ -21,7 +21,6 @@
     <AssemblyName>MeridianGit.Formats.Web</AssemblyName>
     <RootNamespace>MeridianGit.Formats.Web</RootNamespace>
     <PackageId>MeridianGit.Formats.Web</PackageId>
-    <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
     <Description>HTML, CSS, and JavaScript format providers for MeridianGit structural merge and diff.</Description>
     <PackageTags>git;merge;diff;html;css;javascript;meridiangit-format</PackageTags>

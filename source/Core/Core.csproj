@@ -5,7 +5,6 @@
     <AssemblyName>Meridian.Core</AssemblyName>
     <RootNamespace>Meridian.Core</RootNamespace>
     <PackageId>Meridian.Core</PackageId>
-    <Version>0.1.0</Version>
     <Authors>Adam Coulter</Authors>
     <Description>Core structural merge, diff, schema, and adapter contracts for Meridian.</Description>
     <PackageTags>merge;diff;structural-merge;schema;adapters</PackageTags>

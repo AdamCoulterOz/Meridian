@@ -1,3 +1,4 @@
+using System.Text;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
 using Meridian.Core.Schema;
@@ -86,6 +87,14 @@ internal sealed class DiffSettings : CommandSettings
     [CommandArgument(6, "[new-mode]")]
     public string? NewMode { get; init; }
 
+    // Git appends two extra arguments (rename/copy destination path and a transform message)
+    // to the external-diff invocation when it detects a rename or copy.
+    [CommandArgument(7, "[rename-path]")]
+    public string? RenamePath { get; init; }
+
+    [CommandArgument(8, "[rename-message]")]
+    public string? RenameMessage { get; init; }
+
     [CommandOption("--old <PATH>")]
     public string? OldPath { get; init; }
 
@@ -105,8 +114,13 @@ internal sealed class DiffSettings : CommandSettings
             !string.IsNullOrWhiteSpace(PositionalRepoPath) &&
             !string.IsNullOrWhiteSpace(PositionalOldPath) &&
             !string.IsNullOrWhiteSpace(PositionalNewPath);
+        // Git calls the external diff with a single argument (the path) for unmerged entries.
+        var gitUnmergedPath =
+            !string.IsNullOrWhiteSpace(PositionalRepoPath) &&
+            string.IsNullOrWhiteSpace(PositionalOldPath) &&
+            string.IsNullOrWhiteSpace(PositionalNewPath);
 
-        if (!explicitPaths && !gitExternalDiffPaths)
+        if (!explicitPaths && !gitExternalDiffPaths && !gitUnmergedPath)
             return ValidationResult.Error("Missing required diff arguments. Use --old <path> --new <path> --path <repo-path>, or Git external-diff positional arguments.");
 
         return ValidationResult.Success();
@@ -133,12 +147,62 @@ internal sealed class MergeCommand : AsyncCommand<MergeSettings>
         if (adapter is IBinaryFormatAdapter binaryAdapter)
             return await MergeBinaryAsync(binaryAdapter, basePath, oursPath, theirsPath, schema, cancellationToken);
 
-        var baseDocument = adapter.Parse(await File.ReadAllTextAsync(basePath, cancellationToken), basePath, schema);
-        var oursDocument = adapter.Parse(await File.ReadAllTextAsync(oursPath, cancellationToken), oursPath, schema);
-        var theirsDocument = adapter.Parse(await File.ReadAllTextAsync(theirsPath, cancellationToken), theirsPath, schema);
+        // Read raw bytes so we can preserve the ours-side encoding/BOM on write instead of
+        // silently transcoding to BOM-less UTF-8 (which corrupts UTF-16 and Power Platform exports).
+        var baseBytes = await File.ReadAllBytesAsync(basePath, cancellationToken);
+        var oursBytes = await File.ReadAllBytesAsync(oursPath, cancellationToken);
+        var theirsBytes = await File.ReadAllBytesAsync(theirsPath, cancellationToken);
 
-        var result = new Merger().Merge(baseDocument, oursDocument, theirsDocument, schema, adapter);
-        await File.WriteAllTextAsync(oursPath, adapter.RenderDocument(result.Document), cancellationToken);
+        var oursEncoding = TextEncoding.Detect(oursBytes);
+        var baseText = TextEncoding.Decode(baseBytes);
+        var oursText = TextEncoding.Decode(oursBytes);
+        var theirsText = TextEncoding.Decode(theirsBytes);
+
+        // Add/add: Git supplies an empty base when a file was created on both branches. There is no
+        // common ancestor to merge against, so resolve at the text level: keep ours when the sides
+        // agree, otherwise emit a whole-file conflict rather than crashing the structured parser.
+        if (baseBytes.Length == 0)
+        {
+            if (string.Equals(oursText, theirsText, StringComparison.Ordinal))
+                return 0;
+
+            await TextEncoding.WriteAsync(oursPath, ConflictMarkers.Create(oursText, baseText, theirsText) + Environment.NewLine, oursEncoding, cancellationToken);
+            Console.Error.WriteLine($"Conflict: {repoPath}: file added on both sides with differing content.");
+            return 1;
+        }
+
+        MergeResult result;
+        string rendered;
+        try
+        {
+            var baseDocument = adapter.Parse(baseText, basePath, schema);
+            var oursDocument = adapter.Parse(oursText, oursPath, schema);
+            var theirsDocument = adapter.Parse(theirsText, theirsPath, schema);
+
+            result = new Merger().Merge(baseDocument, oursDocument, theirsDocument, schema, adapter);
+            rendered = adapter.RenderDocument(result.Document);
+
+            // Safety net: a conflicted merge must never write a resolved-looking file. If the
+            // structural render did not embed conflict markers (some adapters cannot project a
+            // nested conflict inline), fall back to a whole-file three-way conflict so no side's
+            // content is silently discarded.
+            if (result.HasConflicts && !ConflictMarkers.ContainsMarker(rendered))
+                rendered = ConflictMarkers.CreateDiff3(oursText, baseText, theirsText) + Environment.NewLine;
+        }
+        catch (Exception error)
+        {
+            // A file the structured adapter cannot parse (empty, comment-only, duplicate keys,
+            // syntactically invalid mid-edit) must degrade to a plain text three-way merge rather
+            // than crash the driver and leave Git with a half-merged tree.
+            Console.Error.WriteLine($"Warning: structural merge unavailable for '{repoPath}' ({error.Message}); using text merge.");
+            var textMerge = TextMerge(baseText, oursText, theirsText);
+            await TextEncoding.WriteAsync(oursPath, textMerge.Text, oursEncoding, cancellationToken);
+            if (textMerge.HasConflict)
+                Console.Error.WriteLine($"Conflict: {repoPath}: content changed on both sides.");
+            return textMerge.HasConflict ? 1 : 0;
+        }
+
+        await TextEncoding.WriteAsync(oursPath, rendered, oursEncoding, cancellationToken);
 
         GitIntegration.WriteDiagnostics(result.IdentityDiagnostics);
 
@@ -146,6 +210,19 @@ internal sealed class MergeCommand : AsyncCommand<MergeSettings>
             Console.Error.WriteLine($"Conflict: {conflict.Path}: {conflict.Message}");
 
         return result.HasConflicts ? 1 : 0;
+    }
+
+    // Plain text three-way resolution used as a fallback when structural parsing is not possible.
+    private static (string Text, bool HasConflict) TextMerge(string baseText, string oursText, string theirsText)
+    {
+        if (string.Equals(oursText, theirsText, StringComparison.Ordinal))
+            return (oursText, false);
+        if (string.Equals(baseText, oursText, StringComparison.Ordinal))
+            return (theirsText, false);
+        if (string.Equals(baseText, theirsText, StringComparison.Ordinal))
+            return (oursText, false);
+
+        return (ConflictMarkers.CreateDiff3(oursText, baseText, theirsText) + Environment.NewLine, true);
     }
 
     private static async Task<int> MergeBinaryAsync(
@@ -181,41 +258,132 @@ internal sealed class DiffCommand : AsyncCommand<DiffSettings>
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, DiffSettings settings, CancellationToken cancellationToken)
     {
-        var oldPath = settings.OldPath ?? settings.PositionalOldPath!;
-        var newPath = settings.NewPath ?? settings.PositionalNewPath!;
-        var repoPath = settings.RepoPath ?? settings.PositionalRepoPath ?? newPath;
-        var adapter = await GitIntegration.CreateAdapterAsync(repoPath, cancellationToken);
-        if (adapter is null)
+        // Was this invoked by Git as an external diff (positional args) or by a human (--old/--new)?
+        // Git treats ANY non-zero exit from an external diff as fatal and aborts the whole
+        // diff/log/show, so the positional form must always exit 0 and degrade gracefully.
+        var gitInvocation = string.IsNullOrWhiteSpace(settings.OldPath) && string.IsNullOrWhiteSpace(settings.NewPath);
+
+        // Unmerged path: Git calls the external diff with only the path.
+        if (gitInvocation
+            && !string.IsNullOrWhiteSpace(settings.PositionalRepoPath)
+            && string.IsNullOrWhiteSpace(settings.PositionalOldPath)
+            && string.IsNullOrWhiteSpace(settings.PositionalNewPath))
         {
-            Console.Error.WriteLine($"No Meridian adapter is registered for '{repoPath}'.");
-            return 2;
-        }
-
-        var schema = GitIntegration.LoadSchema(settings.SchemaPath, repoPath);
-
-        if (adapter is IBinaryFormatAdapter)
-        {
-            var oldBytes = await File.ReadAllBytesAsync(oldPath, cancellationToken);
-            var newBytes = await File.ReadAllBytesAsync(newPath, cancellationToken);
-            if (!oldBytes.AsSpan().SequenceEqual(newBytes))
-                Console.WriteLine($"Binary files a/{repoPath} and b/{repoPath} differ");
-
+            Console.WriteLine($"* Unmerged path {settings.PositionalRepoPath}");
             return 0;
         }
 
-        var oldDocument = adapter.Parse(await File.ReadAllTextAsync(oldPath, cancellationToken), oldPath, schema);
-        var newDocument = adapter.Parse(await File.ReadAllTextAsync(newPath, cancellationToken), newPath, schema);
-        var result = new StructuralDiffer().Diff(oldDocument, newDocument, schema, adapter);
+        var oldPath = settings.OldPath ?? settings.PositionalOldPath!;
+        var newPath = settings.NewPath ?? settings.PositionalNewPath!;
+        // For a rename/copy, Git passes the destination path as the 8th argument; use it as the
+        // repo-relative path (and hence for adapter/extension selection) when present.
+        var repoPath = settings.RepoPath ?? settings.RenamePath ?? settings.PositionalRepoPath ?? newPath;
 
-        GitIntegration.WriteDiagnostics(result.IdentityDiagnostics);
-        if (result.HasIdentityErrors)
-            return 2;
+        try
+        {
+            var adapter = await GitIntegration.CreateAdapterAsync(repoPath, cancellationToken);
+            if (adapter is null)
+            {
+                Console.Error.WriteLine($"No Meridian adapter is registered for '{repoPath}'.");
+                return gitInvocation ? 0 : 2;
+            }
 
-        if (result.HasDifferences)
-            GitIntegration.WriteDiff(repoPath, result.Entries);
+            var schema = GitIntegration.LoadSchema(settings.SchemaPath, repoPath);
 
-        return 0;
+            // Added/deleted files: Git passes /dev/null for the missing side. Emit a one-side
+            // pseudo-diff instead of parsing an empty file (which would throw and abort Git).
+            var oldMissing = IsMissingSide(oldPath);
+            var newMissing = IsMissingSide(newPath);
+            if (oldMissing || newMissing)
+            {
+                if (oldMissing && newMissing)
+                    return 0;
+
+                Console.WriteLine($"diff --meridian a/{repoPath} b/{repoPath}");
+                Console.WriteLine(oldMissing ? $"new file a/{repoPath}" : $"deleted file a/{repoPath}");
+                return 0;
+            }
+
+            if (adapter is IBinaryFormatAdapter)
+            {
+                var oldBytes = await File.ReadAllBytesAsync(oldPath, cancellationToken);
+                var newBytes = await File.ReadAllBytesAsync(newPath, cancellationToken);
+                if (!oldBytes.AsSpan().SequenceEqual(newBytes))
+                    Console.WriteLine($"Binary files a/{repoPath} and b/{repoPath} differ");
+
+                return 0;
+            }
+
+            var oldDocument = adapter.Parse(await File.ReadAllTextAsync(oldPath, cancellationToken), oldPath, schema);
+            var newDocument = adapter.Parse(await File.ReadAllTextAsync(newPath, cancellationToken), newPath, schema);
+            var result = new StructuralDiffer().Diff(oldDocument, newDocument, schema, adapter);
+
+            GitIntegration.WriteDiagnostics(result.IdentityDiagnostics);
+            if (result.HasIdentityErrors)
+            {
+                // Ambiguous identity is not a reason to abort the user's entire git diff/log.
+                if (gitInvocation)
+                {
+                    Console.WriteLine($"diff --meridian a/{repoPath} b/{repoPath}");
+                    Console.WriteLine($"* {repoPath}: files differ (structural comparison unavailable: ambiguous node identity)");
+                    return 0;
+                }
+
+                return 2;
+            }
+
+            if (result.HasDifferences)
+                GitIntegration.WriteDiff(repoPath, result.Entries);
+
+            return 0;
+        }
+        catch (Exception error) when (gitInvocation)
+        {
+            // Never let a Git external-diff invocation exit non-zero: that aborts the whole
+            // git diff/log/show. Degrade to a plain "files differ" notice.
+            Console.WriteLine($"diff --meridian a/{repoPath} b/{repoPath}");
+            Console.WriteLine($"* {repoPath}: files differ (structural comparison unavailable: {error.Message})");
+            return 0;
+        }
     }
+
+    private static bool IsMissingSide(string? path) =>
+        string.IsNullOrEmpty(path)
+        || string.Equals(path, "/dev/null", StringComparison.Ordinal)
+        || string.Equals(Path.GetFileName(path), "nul", StringComparison.OrdinalIgnoreCase);
+}
+
+/// <summary>
+/// Preserves the byte-level encoding of the file being written back. Git-tracked files (notably
+/// Power Platform / Visual Studio XML exports) are commonly UTF-8-with-BOM or UTF-16; writing plain
+/// BOM-less UTF-8 would silently corrupt them, so the merge writer reuses the ours-side encoding.
+/// </summary>
+internal static class TextEncoding
+{
+    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
+    private static readonly UTF8Encoding Utf8Bom = new(encoderShouldEmitUTF8Identifier: true, throwOnInvalidBytes: false);
+
+    public static Encoding Detect(byte[] bytes)
+    {
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+            return Utf8Bom;
+        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
+            return Encoding.Unicode;              // UTF-16 LE (writes the BOM back)
+        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
+            return Encoding.BigEndianUnicode;     // UTF-16 BE (writes the BOM back)
+        return Utf8NoBom;
+    }
+
+    public static string Decode(byte[] bytes)
+    {
+        // detectEncodingFromByteOrderMarks strips a UTF-8/UTF-16 BOM and decodes with that encoding,
+        // falling back to UTF-8 when none is present.
+        using var reader = new StreamReader(new MemoryStream(bytes), Utf8NoBom, detectEncodingFromByteOrderMarks: true);
+        return reader.ReadToEnd();
+    }
+
+    public static Task WriteAsync(string path, string text, Encoding encoding, CancellationToken cancellationToken) =>
+        File.WriteAllTextAsync(path, text, encoding, cancellationToken);
 }
 
 internal static class GitIntegration
@@ -223,11 +391,15 @@ internal static class GitIntegration
     public static Task<IFormatAdapter?> CreateAdapterAsync(string repoPath, CancellationToken cancellationToken) =>
         MeridianGitFormatProviders.CreateAdapterAsync(repoPath, cancellationToken);
 
+    private static bool RemoteSchemasEnabled() =>
+        string.Equals(Environment.GetEnvironmentVariable("MERIDIANGIT_ALLOW_REMOTE_SCHEMAS"), "1", StringComparison.Ordinal);
+
     public static MergeSchema LoadSchema(string? schemaPath, string repoPath)
     {
         if (!string.IsNullOrWhiteSpace(schemaPath))
         {
-            var loadResult = MergeSchemaYamlLoader.LoadFileWithDiagnostics(schemaPath);
+            var explicitOptions = new MergeSchemaLoadOptions { AllowRemoteSchemas = RemoteSchemasEnabled() };
+            var loadResult = MergeSchemaYamlLoader.LoadFileWithDiagnostics(schemaPath, explicitOptions);
             WriteRemoteSchemaDiagnostics(loadResult.RemoteSchemas);
             return loadResult.SchemaSet.CompileForFile(repoPath);
         }
@@ -235,7 +407,12 @@ internal static class GitIntegration
         var discovery = MergeSchemaDiscovery.DiscoverForFile(repoPath, Environment.CurrentDirectory);
         if (discovery.SchemaFiles.Count > 0)
         {
-            var loadResult = MergeSchemaYamlLoader.LoadFilesWithDiagnostics(discovery.SchemaFiles);
+            var discoveryOptions = new MergeSchemaLoadOptions
+            {
+                AllowRemoteSchemas = RemoteSchemasEnabled(),
+                RepositoryRoot = discovery.RepositoryRoot
+            };
+            var loadResult = MergeSchemaYamlLoader.LoadFilesWithDiagnostics(discovery.SchemaFiles, discoveryOptions);
             WriteRemoteSchemaDiagnostics(loadResult.RemoteSchemas);
             return loadResult.SchemaSet.CompileForFile(repoPath);
         }

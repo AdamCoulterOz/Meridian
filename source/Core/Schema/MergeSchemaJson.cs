@@ -14,8 +14,25 @@ public static class MergeSchemaJson
         options.Converters.Add(new NodeIdentityRuleJsonConverter());
         options.Converters.Add(new PathSelectorJsonConverter());
         options.Converters.Add(new FormatFromRuleJsonConverter());
+        options.Converters.Add(new LenientBooleanConverter());
         return options;
     }
+}
+
+// YAML scalars deserialize to strings, so a boolean authored as `optional: true` arrives as the JSON
+// string "true". Accept both real JSON booleans and "true"/"false" strings so documented boolean
+// schema forms bind correctly instead of throwing or silently coercing to false.
+internal sealed class LenientBooleanConverter : JsonConverter<bool>
+{
+    public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => reader.TokenType switch
+    {
+        JsonTokenType.True => true,
+        JsonTokenType.False => false,
+        JsonTokenType.String when bool.TryParse(reader.GetString(), out var value) => value,
+        _ => throw new JsonException("Expected a boolean (true/false).")
+    };
+
+    public override void Write(Utf8JsonWriter writer, bool value, JsonSerializerOptions options) => writer.WriteBooleanValue(value);
 }
 
 internal sealed class NodeIdentityRuleJsonConverter : JsonConverter<NodeIdentityRule>
@@ -113,7 +130,7 @@ internal sealed class PathSelectorJsonConverter : JsonConverter<PathSelector>
             var pattern = root.TryGetProperty("pattern", out var patternProperty)
                 ? patternProperty.GetString() ?? string.Empty
                 : string.Empty;
-            var isRegex = root.TryGetProperty("isRegex", out var isRegexProperty) && isRegexProperty.GetBoolean();
+            var isRegex = root.TryGetProperty("isRegex", out var isRegexProperty) && ReadBool(isRegexProperty);
             return new PathSelector(pattern, isRegex);
         }
 
@@ -122,18 +139,17 @@ internal sealed class PathSelectorJsonConverter : JsonConverter<PathSelector>
 
     public override void Write(Utf8JsonWriter writer, PathSelector value, JsonSerializerOptions options) => JsonSerializer.Serialize(writer, new { value.Pattern, value.IsRegex }, options);
 
-    private static PathSelector Parse(string value)
+    private static bool ReadBool(JsonElement element) => element.ValueKind switch
     {
-        if (value.Contains('*', StringComparison.Ordinal))
-        {
-            var regex = "^" + System.Text.RegularExpressions.Regex.Escape(value)
-                .Replace("\\*\\*", ".*", StringComparison.Ordinal)
-                .Replace("\\*", "[^/]*", StringComparison.Ordinal) + "$";
-            return PathSelector.Regex(regex);
-        }
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        JsonValueKind.String => bool.TryParse(element.GetString(), out var value) && value,
+        _ => false
+    };
 
-        return PathSelector.Exact(value);
-    }
+    private static PathSelector Parse(string value) => value.Contains('*', StringComparison.Ordinal)
+        ? PathSelector.Regex(GlobPattern.ToRegex(value))
+        : PathSelector.Exact(value);
 }
 
 internal sealed class FormatFromRuleJsonConverter : JsonConverter<FormatFromRule>
@@ -176,7 +192,15 @@ internal static class JsonObjectExtensions
             ? text
             : null;
 
-    public static bool? ReadBoolean(this JsonObject node, string key) => node[key] is JsonValue value && value.TryGetValue<bool>(out var boolean)
-            ? boolean
-            : null;
+    public static bool? ReadBoolean(this JsonObject node, string key)
+    {
+        if (node[key] is not JsonValue value)
+            return null;
+        if (value.TryGetValue<bool>(out var boolean))
+            return boolean;
+        // YAML booleans arrive as strings ("true"/"false") after the YAML->JSON round-trip.
+        if (value.TryGetValue<string>(out var text) && bool.TryParse(text, out var parsed))
+            return parsed;
+        return null;
+    }
 }

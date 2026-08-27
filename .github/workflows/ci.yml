@@ -11,7 +11,13 @@ permissions:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Meridian ships as a client-side Git merge/diff driver; its primary audience
+        # (Power Platform) is Windows-heavy, so path/CRLF behavior is exercised on both OSes.
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,5 +34,41 @@ jobs:
       - name: Build
         run: dotnet build Meridian.slnx -c Release --no-restore
 
-      - name: Test
-        run: dotnet test Meridian.slnx -c Release --no-build --verbosity normal
+      - name: Test (with coverage)
+        run: dotnet test Meridian.slnx -c Release --no-build --verbosity normal --collect "XPlat Code Coverage"
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}
+          path: '**/TestResults/**/coverage.cobertura.xml'
+          if-no-files-found: ignore
+
+  pack:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 11 SDK (preview)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0'
+          dotnet-quality: 'preview'
+
+      - name: Pack
+        run: dotnet pack Meridian.slnx -c Release
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkgs
+          path: artifacts/packages/*.nupkg
+
+      - name: Smoke test the packed tool
+        run: |
+          dotnet tool install --global --add-source ./artifacts/packages MeridianGit
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          meridian --help

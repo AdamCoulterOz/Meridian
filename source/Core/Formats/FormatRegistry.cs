@@ -72,11 +72,27 @@ public sealed class FormatRegistry : IFormatRegistry
         if (TryResolveAdapterFormat(format, out var adapterFormat) &&
             _adapters.TryGetValue(adapterFormat, out var adapter))
         {
-            sourceText = adapter.RenderNode(document.Root);
+            // Render at the document level so declarations (e.g. the XML <?xml ...?> prolog) are
+            // preserved. Some adapters' RenderDocument appends a document-level trailing newline
+            // that RenderNode omits (JSON/XML); strip only that artifact — never a trailing newline
+            // that is part of the rendered content (YAML/CSS/HTML/JS/Liquid round-trip it exactly).
+            var rendered = adapter.RenderDocument(document);
+            if (!adapter.RenderNode(document.Root).EndsWith("\n", StringComparison.Ordinal))
+                rendered = StripTrailingNewline(rendered);
+            sourceText = rendered;
             return true;
         }
 
         sourceText = null!;
         return false;
+    }
+
+    private static string StripTrailingNewline(string text)
+    {
+        if (text.EndsWith("\r\n", StringComparison.Ordinal))
+            return text[..^2];
+        if (text.EndsWith("\n", StringComparison.Ordinal))
+            return text[..^1];
+        return text;
     }
 }
