@@ -312,6 +312,123 @@ public sealed class ProviderImplementationTests
         Assert.Equal(source, twice);
     }
 
+    // ---- HTML source fidelity -----------------------------------------------
+
+    // A page written the way people write HTML: attributes in a chosen order and mixed quoting, a
+    // valueless attribute, self-closing void elements, named entities, non-ASCII prose, a script
+    // body full of characters that must not be encoded, and whitespace between the wrappers. None
+    // of it survives a re-serialisation from the parsed tree, so all of it has to come from source.
+    private const string RealisticPage =
+        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset='utf-8' />\n" +
+        "<title>Café &amp; Co — résumé</title>\n" +
+        "<script defer src=\"a.js\"></script>\n<style>a > b { color: red }</style>\n</head>\n" +
+        "<body class=\"page\" id=\"top\">\n<p ID=\"P1\" data-flag>2 &lt; 3 &amp;&amp; 4 &gt; 1</p>\n" +
+        "<hr/>\n<script>if (a < b && c) { go(); }</script>\n</body>\n</html>\n";
+
+    [Fact]
+    public void HtmlRoundTripsARealisticPageExactly()
+    {
+        var adapter = new HtmlFragmentAdapter();
+
+        var rendered = adapter.RenderDocument(adapter.Parse(RealisticPage, "page.html", EmptySchema));
+
+        Assert.Equal(RealisticPage, rendered);
+    }
+
+    [Fact]
+    public void HtmlRoundTripsAFragmentExactly()
+    {
+        var adapter = new HtmlFragmentAdapter();
+        const string fragment = "<section class='hero' data-open>\n<p>café &mdash; 2 &lt; 3</p>\n<img src=\"a.png\" />\n</section>";
+
+        Assert.Equal(fragment, adapter.RenderDocument(adapter.Parse(fragment, "fragment.html", EmptySchema)));
+    }
+
+    // A merge must rewrite only what it changed. Everything else keeps the spelling it had, so the
+    // diff a reviewer sees is the edit rather than the whole file.
+    [Fact]
+    public void HtmlMergeReSerialisesOnlyTheElementItChanged()
+    {
+        var adapter = new HtmlFragmentAdapter();
+
+        var result = Merge(
+            adapter,
+            RealisticPage,
+            RealisticPage.Replace("<body class=\"page\" id=\"top\">", "<body class=\"page dark\" id=\"top\">", StringComparison.Ordinal),
+            RealisticPage.Replace("2 &lt; 3 &amp;&amp; 4 &gt; 1", "2 &lt; 3", StringComparison.Ordinal));
+
+        Assert.False(result.HasConflicts);
+        var rendered = adapter.RenderDocument(result.Document);
+
+        // The edits landed.
+        Assert.Contains("<body class=\"page dark\" id=\"top\">", rendered);
+        Assert.Contains("<p ID=\"P1\" data-flag>2 &lt; 3</p>", rendered);
+        // Everything the merge did not touch is byte-for-byte what it was.
+        Assert.Contains("<meta charset='utf-8' />", rendered);
+        Assert.Contains("<script defer src=\"a.js\"></script>", rendered);
+        Assert.Contains("<title>Café &amp; Co — résumé</title>", rendered);
+        Assert.Contains("<hr/>", rendered);
+        Assert.Contains("if (a < b && c) { go(); }", rendered);
+    }
+
+    // Text that cannot be taken from source verbatim is encoded minimally: only the three characters
+    // that cannot stand for themselves. A literal '<' in body text is one such case — it is text to
+    // the tokenizer but ends the source run — and encoding everything non-ASCII (what
+    // WebUtility.HtmlEncode does) would turn the prose around it into a wall of numeric entities.
+    [Fact]
+    public void HtmlEncodesTextItCannotTakeFromSourceMinimally()
+    {
+        var adapter = new HtmlFragmentAdapter();
+
+        var rendered = adapter.RenderDocument(adapter.Parse("<p>a < b — café</p>", "page.html", EmptySchema));
+
+        Assert.Equal("<p>a &lt; b — café</p>", rendered);
+        Assert.DoesNotContain("&#", rendered);
+        // Re-parsing gets the same text back, which is what makes the encoding safe as well as small.
+        Assert.Equal(
+            rendered,
+            adapter.RenderDocument(adapter.Parse(rendered, "page.html", EmptySchema)));
+    }
+
+    // A self-closing tag means something different in foreign content: <path/> really is closed, so
+    // emitting it verbatim and then adding </path> would leave a stray end tag. Those elements fall
+    // back to explicit serialisation rather than guessing.
+    [Fact]
+    public void HtmlSerialisesSelfClosingForeignElementsExplicitly()
+    {
+        var adapter = new HtmlFragmentAdapter();
+
+        var rendered = adapter.RenderDocument(
+            adapter.Parse("<svg viewBox=\"0 0 8 8\"><path d=\"M0 0\"/></svg>", "icon.html", EmptySchema));
+
+        Assert.Contains("<path d=\"M0 0\"></path>", rendered);
+        Assert.DoesNotContain("/></path>", rendered);
+    }
+
+    // <title> and <textarea> hold ESCAPABLE raw text: the parser decodes character references in
+    // them, so their content has to be encoded on the way back out. Emitting it verbatim (which the
+    // renderer used to do, treating them like <script>) turns "&amp;copy;" into "&copy;", and the
+    // next parse of that file reads it as ©.
+    [Fact]
+    public void HtmlEscapableRawTextIsEncodedOnTheWayOut()
+    {
+        var adapter = new HtmlFragmentAdapter();
+        const string source = "<title>&amp;copy; me</title><textarea>a &lt; b</textarea>";
+
+        Assert.Equal(source, adapter.RenderDocument(adapter.Parse(source, "page.html", EmptySchema)));
+
+        // ... and text the merge rewrites is encoded rather than passed through raw.
+        var result = Merge(
+            adapter,
+            source,
+            source.Replace("&amp;copy; me", "&amp;copy; you", StringComparison.Ordinal),
+            source);
+
+        Assert.False(result.HasConflicts);
+        var rendered = adapter.RenderDocument(result.Document);
+        Assert.Contains("<title>&amp;copy; you</title>", rendered);
+    }
+
     // ---- Binary -------------------------------------------------------------
 
     private static readonly byte[] BaseBytes = [0x89, 0x50, 0x4E, 0x47, 0x00, 0xFF, 0xFE, 0x01];

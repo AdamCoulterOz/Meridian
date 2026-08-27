@@ -445,6 +445,8 @@ Common schema format names:
 | `yaml` | YAML documents and nested content. |
 | `html:fragment` | HTML fragments: markup in body context, not a whole page. |
 | `html:document` | Complete HTML pages: doctype plus `<html>`/`<head>`/`<body>`. Chosen automatically for `.html`/`.htm` content that is a full document. |
+
+HTML renders from the source each node was parsed from, so a clean merge leaves the rest of the page — attribute order and quoting, character references, self-closing void elements, indentation — exactly as it was written.
 | `javascript` | JavaScript source, merged by top-level declaration. |
 | `css` | CSS, merged by rule selector and declaration property. |
 | `liquid:xml` | Liquid mapped over XML when using composed adapters. |

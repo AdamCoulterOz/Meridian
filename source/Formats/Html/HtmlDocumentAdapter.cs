@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using AngleSharp.Html.Parser;
 using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
@@ -30,16 +29,15 @@ namespace MeridianGit.Formats.Html;
 /// trailing comments to the document, so the folded part is lifted back out of the tree to keep the
 /// merged file ending the way it started.</item>
 /// </list>
-/// Whitespace at the head/body boundaries is still relocated by the parser (moved between wrappers,
-/// never dropped), and markup is re-serialised the way <see cref="HtmlNodes"/> renders every HTML
-/// node: attributes sorted, void elements unclosed, non-ASCII text as numeric entities. Content is
-/// preserved exactly; layout of a pretty-printed page is not.
+/// Everything else round-trips because <see cref="HtmlNodes"/> renders each node from the source it
+/// was parsed from; a merge rewrites only the nodes it changed.
 /// </remarks>
 public sealed class HtmlDocumentAdapter : IFormatAdapter
 {
     public const string RootKind = "$document";
     private const string PrologueKind = "$prologue";
     private const string EpilogueKind = "$epilogue";
+    private const string InterludeKind = "$interlude";
 
     // A comment after </html> is attached to the document, not folded into the body like the
     // whitespace around it, so it is not part of what has to be lifted back out of the tree.
@@ -66,14 +64,13 @@ public sealed class HtmlDocumentAdapter : IFormatAdapter
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
-        var parser = new HtmlParser();
-        var parsed = parser.ParseDocument(sourceText);
+        var parsed = HtmlNodes.CreateParser().ParseDocument(sourceText);
         var documentElement = parsed.DocumentElement
             ?? throw new InvalidOperationException("HTML source has no document element.");
 
         // Index 0 keeps the document element's identity stable whether or not a prologue precedes
         // it, so adding a doctype on one side does not read as a replacement of the whole page.
-        var root = HtmlNodes.ParseElement(documentElement, 0);
+        var root = HtmlNodes.ParseElement(documentElement, 0, sourceText);
         var children = new List<TreeNode>(3);
 
         var prologue = ReadPrologue(sourceText);
@@ -96,6 +93,13 @@ public sealed class HtmlDocumentAdapter : IFormatAdapter
             else if (string.IsNullOrWhiteSpace(epilogue))
                 epilogue = string.Empty;
         }
+
+        // The whitespace between </body> and </html> is folded into the body as well. Lift it out
+        // to where the source had it: after the body, still inside the document element.
+        var interlude = ReadInterlude(sourceText).Replace("\r\n", "\n", StringComparison.Ordinal);
+        if (interlude.Length > 0 && TryTrimTrailingText(root, interlude, out var lifted))
+            root = lifted.WithChildren(
+                [.. lifted.Children, new TreeNode(InterludeKind, NodeMetadata.Create("raw"), interlude)]);
 
         children.Add(root);
 
@@ -156,6 +160,26 @@ public sealed class HtmlDocumentAdapter : IFormatAdapter
     // Index of the tag's start tag, or -1. A name is only a match when the character after it ends
     // the name, so <header> never counts as <head> — a fragment starting with one must keep merging
     // structurally rather than being read as a page.
+    // The whitespace the source wrote between </body> and </html>, which the parser moves into the
+    // body. Only whitespace is lifted: anything else is content the parser placed deliberately.
+    private static string ReadInterlude(string sourceText)
+    {
+        var htmlEnd = sourceText.LastIndexOf("</html", StringComparison.OrdinalIgnoreCase);
+        if (htmlEnd < 0)
+            return string.Empty;
+
+        var bodyEnd = sourceText.LastIndexOf("</body", htmlEnd, StringComparison.OrdinalIgnoreCase);
+        if (bodyEnd < 0)
+            return string.Empty;
+
+        var close = sourceText.IndexOf('>', bodyEnd);
+        if (close < 0 || close > htmlEnd)
+            return string.Empty;
+
+        var between = sourceText[(close + 1)..htmlEnd];
+        return between.Length > 0 && string.IsNullOrWhiteSpace(between) ? between : string.Empty;
+    }
+
     private static int IndexOfStartTag(string text, string tag)
     {
         var index = 0;

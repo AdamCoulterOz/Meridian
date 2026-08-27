@@ -1,4 +1,3 @@
-using AngleSharp.Html.Parser;
 using Meridian.Core.Tree;
 using Meridian.Core.Formats;
 using Meridian.Core.Merging;
@@ -19,6 +18,8 @@ namespace MeridianGit.Formats.Html;
 /// </remarks>
 public sealed class HtmlFragmentAdapter : IFormatAdapter
 {
+    private const string BodyTag = "<body>";
+
     private readonly HtmlDocumentAdapter _documentAdapter = new();
 
     public const string RootKind = "$fragment";
@@ -32,11 +33,13 @@ public sealed class HtmlFragmentAdapter : IFormatAdapter
         if (HtmlDocumentAdapter.IsFullDocument(sourceText))
             return _documentAdapter.Parse(sourceText, sourcePath, schema);
 
-        var parser = new HtmlParser();
-        var document = parser.ParseDocument($"<body>{sourceText}</body>");
-        var children = document.Body?.ChildNodes
-            .Select((node, index) => HtmlNodes.ParseNode(node, index))
-            .ToArray() ?? [];
+        // Body context is what makes a snippet parse as a snippet. The wrapper only shifts offsets,
+        // so the source the nodes are read back from is the wrapped text.
+        var wrapped = $"<body>{sourceText}</body>";
+        var document = HtmlNodes.CreateParser().ParseDocument(wrapped);
+        var children = document.Body is { } body
+            ? HtmlNodes.ParseChildren(body, wrapped, BodyTag.Length)
+            : [];
 
         return new DocumentTree(Format, new TreeNode(RootKind, NodeMetadata.Create("fragment"), children: children), sourcePath, sourceText);
     }
