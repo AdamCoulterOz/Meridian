@@ -644,7 +644,9 @@ BASE_CSS = """
   /* the paired merge-model carousel is built for narrow only; hidden on desktop */
   .model-steps{display:none}
   /* model number tile — soft accent chip (both themes) */
-  .step-num{background:var(--accent-subtle);color:var(--accent)}
+  /* --accent-text, not --accent: the fill measures 3.35:1 on its own subtle ground in
+     dark. The ink member is 6.43:1 light and 5.55-6.13 dark. */
+  .step-num{background:var(--accent-subtle);color:var(--accent-text)}
 
   @media (max-width:880px){
     /* tighter vertical rhythm between sections on small screens */
