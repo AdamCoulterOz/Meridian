@@ -7,10 +7,21 @@ unstyled page in a browser, with nothing failing anywhere. Blazor consumers get 
 break at compile time with the symbol named. This check is the missing half of that: it
 turns a silent visual regression into a red build.
 
-Source of truth, in order of preference:
-  1. dist/classes.json shipped by keel - a flat list of every class the bundle defines.
-  2. Parsing the vendored bundle. Works, but it is a grep against a format that was never
-     a contract, so it is the fallback rather than the design.
+Two descriptions of the same bundle, and neither is trusted alone:
+
+  1. dist/classes.json shipped by keel - a flat, generated list of every class it defines.
+  2. Parsing the vendored bundle here.
+
+The stylesheet the browser loads is the only ground truth; both of these merely describe
+it. A wrong description is worse than none, because it is believed: a phantom entry in the
+inventory (keel's comments name classes, so a comment mentioning a removed one could add
+it) makes this check pass while the page is broken in exactly the way it exists to catch.
+A gap in the local parse does the opposite and fails a good build.
+
+So when both are available they must AGREE about every class the page actually uses. If
+they disagree, one of them is wrong and this cannot tell which, which is itself the
+failure. Disagreement about classes the page does not use is keel's business, not a reason
+to block a deploy.
 """
 import json
 import os
@@ -28,16 +39,20 @@ INVENTORY = os.path.join(DOCS, "node_modules", "@adamcoulteroz", "keel", "dist",
 PAGE_OWNED = set()
 
 
-def defined_classes():
-    if os.path.exists(INVENTORY):
-        with open(INVENTORY, encoding="utf-8") as handle:
-            return set(json.load(handle)), "keel's classes.json"
-
+def classes_in_bundle():
     with open(BUNDLE, encoding="utf-8") as handle:
         css = handle.read()
-    # Strip comments so a class named only in prose does not count as defined.
+    # Strip comments so a class named only in prose does not count as defined. keel's
+    # stylesheets explain why rules exist and name classes routinely while doing it.
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
-    return set(re.findall(r"\.(keel-[A-Za-z0-9_-]+)", css)), "the vendored bundle"
+    return set(re.findall(r"\.(keel-[A-Za-z0-9_-]+)", css))
+
+
+def classes_in_inventory():
+    if not os.path.exists(INVENTORY):
+        return None
+    with open(INVENTORY, encoding="utf-8") as handle:
+        return set(json.load(handle))
 
 
 def used_classes():
@@ -55,10 +70,30 @@ def main():
             print(f"error: {path} is missing; run update-keel.sh and build.py first", file=sys.stderr)
             return 2
 
-    defined, source = defined_classes()
-    missing = sorted(used_classes() - defined - PAGE_OWNED)
+    used = used_classes() - PAGE_OWNED
+    bundle = classes_in_bundle()
+    inventory = classes_in_inventory()
 
-    print(f"checked against {source}: {len(defined)} classes defined")
+    if inventory is None:
+        print(f"checked against the vendored bundle only: {len(bundle)} classes defined")
+    else:
+        print(f"checked against keel's classes.json ({len(inventory)}) "
+              f"corroborated by the bundle ({len(bundle)})")
+        # Only the classes the page depends on matter here.
+        disputed = sorted(name for name in used if (name in inventory) != (name in bundle))
+        if disputed:
+            print(f"\n{len(disputed)} class(es) the page uses are described inconsistently by "
+                  f"keel's own artifacts:", file=sys.stderr)
+            for name in disputed:
+                where = "classes.json but NOT the stylesheet" if name in inventory \
+                    else "the stylesheet but NOT classes.json"
+                print(f"  {name}: in {where}", file=sys.stderr)
+            print("\nOne of those two is wrong and this cannot tell which, so it is not safe to "
+                  "deploy on either. Report it to keel.", file=sys.stderr)
+            return 1
+
+    # The stylesheet is what the browser loads, so it decides whether the page renders.
+    missing = sorted(used - bundle)
     if not missing:
         print("every keel class the page uses resolves")
         return 0
