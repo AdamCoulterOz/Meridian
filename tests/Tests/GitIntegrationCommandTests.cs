@@ -12,10 +12,18 @@ public sealed class GitIntegrationCommandTests : IDisposable
         {
             try
             {
-                if (Directory.Exists(repository))
-                    Directory.Delete(repository, recursive: true);
+                if (!Directory.Exists(repository))
+                    continue;
+
+                // Git marks everything under .git/objects read-only. On Windows that makes
+                // Directory.Delete throw UnauthorizedAccessException (which is NOT an
+                // IOException, so it escaped the catch below and failed the whole test class).
+                foreach (var file in Directory.EnumerateFiles(repository, "*", SearchOption.AllDirectories))
+                    File.SetAttributes(file, FileAttributes.Normal);
+
+                Directory.Delete(repository, recursive: true);
             }
-            catch (IOException)
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
             {
                 // Best-effort cleanup; a locked temp file must not fail the test run.
             }

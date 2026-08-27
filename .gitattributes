@@ -1,0 +1,18 @@
+# Line endings are normalised to LF in the working tree on every platform.
+#
+# Meridian's own tests embed fixtures as raw string literals in .cs files and compare
+# adapter output against them. With platform-native checkout those literals arrive as
+# CRLF on Windows and LF elsewhere, so the same assertion means two different things
+# depending on who checked out the repo. Pinning the working tree makes the tests
+# deterministic; git still detects binary content and leaves it alone.
+* text=auto eol=lf
+
+# Never touch binary fixtures.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.msapp binary
