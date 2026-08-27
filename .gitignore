@@ -2,3 +2,7 @@ bin/
 obj/
 artifacts/
 .claude/
+
+# Fetched at build time from the pinned version in docs/redesigned/keel.version.
+# Never commit it: keel is its own repository and its releases are not reviewed here.
+docs/keel.bundle.css
