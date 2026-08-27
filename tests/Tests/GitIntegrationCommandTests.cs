@@ -354,6 +354,81 @@ public sealed class GitIntegrationCommandTests : IDisposable
         Assert.Equal(oursBytes, await File.ReadAllBytesAsync(oursPath));
     }
 
+    // A complete HTML page merges structurally through the real driver: disjoint edits to the head
+    // and the body both land, and the doctype and html/head/body wrappers survive. Before the
+    // full-document adapter the whole file was one opaque scalar, so this exited 1 with neither
+    // edit applied.
+    [Fact]
+    public async Task MergeCommandMergesDisjointEditsInAFullHtmlDocument()
+    {
+        var repository = CreateTemporaryRepository();
+        var basePath = Path.Combine(repository, "base.html");
+        var oursPath = Path.Combine(repository, "ours.html");
+        var theirsPath = Path.Combine(repository, "theirs.html");
+
+        const string page = "<!doctype html>\n<html><head><title>{0}</title></head><body><p id=\"x\">base</p><p id=\"y\">{1}</p></body></html>\n";
+        await File.WriteAllTextAsync(basePath, string.Format(page, "Base", "keep"));
+        await File.WriteAllTextAsync(oursPath, string.Format(page, "OURS", "keep"));
+        await File.WriteAllTextAsync(theirsPath, string.Format(page, "Base", "THEIRS"));
+
+        var result = await RunGitMergeAsync(
+            repository, "merge", "--base", basePath, "--ours", oursPath, "--theirs", theirsPath, "--path", "page.html");
+
+        Assert.Equal(0, result.ExitCode);
+        var merged = await File.ReadAllTextAsync(oursPath);
+        Assert.Equal(string.Format(page, "OURS", "THEIRS").ReplaceLineEndings(), merged.ReplaceLineEndings());
+    }
+
+    [Fact]
+    public async Task MergeCommandConflictsWhenBothSidesEditTheSameHtmlElement()
+    {
+        var repository = CreateTemporaryRepository();
+        var basePath = Path.Combine(repository, "base.html");
+        var oursPath = Path.Combine(repository, "ours.html");
+        var theirsPath = Path.Combine(repository, "theirs.html");
+
+        const string page = "<!doctype html>\n<html><head><title>T</title></head><body><p id=\"x\">{0}</p></body></html>\n";
+        await File.WriteAllTextAsync(basePath, string.Format(page, "base"));
+        await File.WriteAllTextAsync(oursPath, string.Format(page, "OURS"));
+        await File.WriteAllTextAsync(theirsPath, string.Format(page, "THEIRS"));
+
+        var result = await RunGitMergeAsync(
+            repository, "merge", "--base", basePath, "--ours", oursPath, "--theirs", theirsPath, "--path", "page.html");
+
+        Assert.Equal(1, result.ExitCode);
+        var merged = await File.ReadAllTextAsync(oursPath);
+        Assert.Contains("<<<<<<< ours", merged);
+        Assert.Contains(">>>>>>> theirs", merged);
+        Assert.Contains("OURS", merged);
+        Assert.Contains("THEIRS", merged);
+    }
+
+    // The parser rewrites CRLF to LF, so the trailing-newline slice has to be matched in LF terms
+    // or a CRLF page comes back with no newline at end of file.
+    [Fact]
+    public async Task MergeCommandKeepsTheTrailingNewlineOfACrlfHtmlDocument()
+    {
+        var repository = CreateTemporaryRepository();
+        var basePath = Path.Combine(repository, "base.html");
+        var oursPath = Path.Combine(repository, "ours.html");
+        var theirsPath = Path.Combine(repository, "theirs.html");
+
+        const string page = "<!doctype html>\r\n<html><head><title>{0}</title></head><body>\r\n<p id=\"x\">{1}</p>\r\n</body>\r\n</html>\r\n";
+        await File.WriteAllTextAsync(basePath, string.Format(page, "Base", "base"));
+        await File.WriteAllTextAsync(oursPath, string.Format(page, "OURS", "base"));
+        await File.WriteAllTextAsync(theirsPath, string.Format(page, "Base", "THEIRS"));
+
+        var result = await RunGitMergeAsync(
+            repository, "merge", "--base", basePath, "--ours", oursPath, "--theirs", theirsPath, "--path", "page.html");
+
+        Assert.Equal(0, result.ExitCode);
+        var merged = await File.ReadAllTextAsync(oursPath);
+        Assert.Contains("<title>OURS</title>", merged);
+        Assert.Contains("THEIRS", merged);
+        Assert.EndsWith("</html>\r\n", merged, StringComparison.Ordinal);
+        Assert.DoesNotMatch("(?<!\\r)\\n", merged);   // no bare LF: the file must not end up mixed
+    }
+
     private string CreateTemporaryRepository()
     {
         var root = Path.Combine(Path.GetTempPath(), "meridiangit-integration-tests", Guid.NewGuid().ToString("N"));

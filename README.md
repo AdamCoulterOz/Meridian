@@ -54,7 +54,7 @@ Today it includes:
 - a `meridian diff` command suitable for Git external-diff integration;
 - provider package contracts in `MeridianGit.Abstractions`;
 - grouped provider packages: `MeridianGit.Formats.Markup`, `MeridianGit.Formats.Web`, `MeridianGit.Formats.Images`, `MeridianGit.Formats.PowerPlatform`, and `MeridianGit.Formats.Binary`;
-- structural adapters for XML, JSON, JSON5, YAML, HTML fragment, JavaScript, CSS, and Liquid;
+- structural adapters for XML, JSON, JSON5, YAML, HTML (fragments and full documents), JavaScript, CSS, and Liquid;
 - byte-safe providers for binary image (PNG, JPEG, GIF, ICO) and XAP payloads;
 - schema-driven identity and ordered-child rules in the Git merge path;
 - schema-driven identity and ordered-child rules in the Git diff path;
@@ -443,7 +443,10 @@ Common schema format names:
 | `json` | Strict JSON. |
 | `json5` | JSON5 with comments/trailing commas. |
 | `yaml` | YAML documents and nested content. |
-| `html:fragment` | HTML fragments, not necessarily full documents. |
+| `html:fragment` | HTML fragments: markup in body context, not a whole page. |
+| `html:document` | Complete HTML pages: doctype plus `<html>`/`<head>`/`<body>`. Chosen automatically for `.html`/`.htm` content that is a full document. |
+
+HTML renders from the source each node was parsed from, so a clean merge leaves the rest of the page — attribute order and quoting, character references, self-closing void elements, indentation — exactly as it was written.
 | `javascript` | JavaScript source, merged by top-level declaration. |
 | `css` | CSS, merged by rule selector and declaration property. |
 | `liquid:xml` | Liquid mapped over XML when using composed adapters. |
