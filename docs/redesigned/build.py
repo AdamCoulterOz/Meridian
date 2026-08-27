@@ -131,25 +131,47 @@ def build_button(tag):
     return f'<a class="{cls}" href="{href}"{style_attr}>{inner}</a>'
 
 
+# keel's callout leads with a stroked 20px glyph per tone. The CSS bundle colours
+# the icon cell but cannot carry the mark itself, so the shapes live here.
+CALLOUT_ICON = {
+    "info":    '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/>',
+    "success": '<path d="M21 11.1V12a9 9 0 1 1-5.3-8.2"/><path d="m9 11.5 3 3 9-9"/>',
+    "warning": '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3l-8.5-14.1a2 2 0 0 0-3.4 0z"/>'
+               '<path d="M12 9v4M12 17h.01"/>',
+    "danger":  '<circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/>',
+}
+
+
 def build_callout(tag):
     tone = tag.get("tone", "info")
     title = tag.get("title")
     inner = tag.decode_contents()
     title_html = f'<div class="keel-callout__title">{title}</div>' if title else ""
-    return f'<div class="keel-callout keel-callout--{tone}">{title_html}<div class="keel-callout__body">{inner}</div></div>'
+    icon = (
+        '<span class="keel-callout__icon">'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+        ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        f'{CALLOUT_ICON.get(tone, CALLOUT_ICON["info"])}</svg></span>'
+    )
+    # title INSIDE the body: as siblings they lay out side by side under keel's flex.
+    return (f'<div class="keel-callout keel-callout--{tone}">{icon}'
+            f'<div class="keel-callout__body">{title_html}{inner}</div></div>')
 
 
 def build_card(tag):
     variant = tag.get("variant", "outlined")
     interactive = tag.get("interactive") in ("true", "")
-    padding = tag.get("padding")
     style = tag.get("style", "")
     inner = tag.decode_contents()
     cls = f"keel-card keel-card--{variant}"
     if interactive:
         cls += " keel-card--interactive"
-    if padding == "lg":
-        cls += " keel-card--lg"
+    # Every card takes keel's card default. The page used to run 20px by default and
+    # 24px for padding="lg"; 20 was a step keel has no name for, and inventing one
+    # locally steps outside the system. Both now resolve to --pad-md (24px), which
+    # is what padding="lg" already meant, so the page is internally consistent.
+    # `padding` is therefore vestigial and deliberately ignored.
+    cls += " keel-card--pad-md"
     style_attr = f' style="{style}"' if style else ""
     return f'<div class="{cls}"{style_attr}>{inner}</div>'
 
@@ -157,7 +179,8 @@ def build_card(tag):
 def build_tooltip(tag):
     label = tag.get("label", "")
     inner = tag.decode_contents()
-    return f'<span class="keel-tip">{inner}<span class="keel-tip__pop">{label}</span></span>'
+    return (f'<span class="keel-tip keel-tip--top">{inner}'
+            f'<span class="keel-tip__pop keel-tip__pop--wrap">{label}</span></span>')
 
 
 def transform_import(tag):
@@ -250,9 +273,20 @@ def main():
         child_divs = inner.find_all("div", recursive=False)
         if len(child_divs) >= 2:
             links_div, right_div = child_divs[0], child_divs[1]
-            add_class(links_div, "nav-links")
+            # The bar is the query container: keel collapses on the BAR's width, not
+            # the viewport's. Its content box is min(1200px, vw) - 64px of gutter, so
+            # the --collapse-lg threshold (880px container) fires at ~944px viewport.
+            add_class(inner, "keel-nav")
+            add_class(inner, "keel-nav--collapse-lg")
+            add_class(links_div, "keel-nav__links")
+            # keel hides the link row with `display:none` at the breakpoint, and an
+            # inline `display:flex` would outrank it. Hand layout to keel; keep the
+            # values the page was tuned at (26px gap) inline, where they still win.
+            links_div["style"] = "gap:26px;margin-left:6px"
+            for a in links_div.find_all("a"):
+                add_class(a, "keel-nav__link")
             burger = BeautifulSoup(
-                '<button id="nav-burger" class="nav-burger" aria-label="Open navigation menu"'
+                '<button id="nav-burger" class="keel-nav__burger" aria-label="Open navigation menu"'
                 ' aria-expanded="false" aria-controls="nav-drawer" onclick="toggleNav()">'
                 '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
                 ' stroke-width="2" stroke-linecap="round" aria-hidden="true">'
@@ -260,7 +294,7 @@ def main():
             right_div.append(burger.find())
             # the delegated click handler closes the drawer, so no per-link onclick needed
             drawer_links = "".join(
-                f'<a href="{a.get("href", "#")}">{a.decode_contents()}</a>'
+                f'<a class="keel-drawer__link" href="{a.get("href", "#")}">{a.decode_contents()}</a>'
                 for a in links_div.find_all("a"))
             # short single-word doc names for the menu + a desktop "Docs" dropdown
             short = {"Read the README": "README", "Architecture notes": "Architecture",
@@ -270,24 +304,27 @@ def main():
             if start_sec is not None:
                 docs = [a for a in start_sec.find_all("a") if a.get("href", "").startswith("http")]
                 if docs:
-                    items = "".join(
-                        f'<a href="{a.get("href")}" target="_blank" rel="noopener">'
-                        f'{short.get(a.get_text(strip=True), a.get_text(strip=True))}</a>'
-                        for a in docs)
-                    doc_html = '<div class="nav-drawer__sep"></div>' + items
+                    def doc_links(cls):
+                        return "".join(
+                            f'<a class="{cls}" href="{a.get("href")}" target="_blank" rel="noopener">'
+                            f'{short.get(a.get_text(strip=True), a.get_text(strip=True))}</a>'
+                            for a in docs)
+                    items = doc_links("keel-menu__item")
+                    drawer_items = doc_links("keel-drawer__link")
+                    doc_html = '<hr class="keel-drawer__sep" />' + drawer_items
                     dropdown = (
-                        '<div class="nav-docs"><button class="nav-docs__btn" aria-haspopup="true">Docs'
+                        '<div class="keel-menu"><button class="keel-menu__btn" aria-haspopup="true">Docs'
                         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
                         'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
                         '<path d="m6 9 6 6 6-6"/></svg></button>'
-                        f'<div class="nav-docs__menu">{items}</div></div>')
+                        f'<div class="keel-menu__panel">{items}</div></div>')
                     links_div.append(BeautifulSoup(dropdown, "html.parser").find())
             overlay = (
-                '<div id="nav-scrim" class="nav-scrim" onclick="closeNav()" aria-hidden="true"></div>'
-                '<aside id="nav-drawer" class="nav-drawer" aria-hidden="true" aria-label="Site navigation">'
-                '<div class="nav-drawer__head">'
+                '<div id="nav-scrim" class="keel-scrim" onclick="closeNav()" aria-hidden="true"></div>'
+                '<aside id="nav-drawer" class="keel-drawer" aria-hidden="true" aria-label="Site navigation">'
+                '<div class="keel-drawer__head">'
                 '<span style="font-weight:700;font-size:16px;letter-spacing:-.01em">Meridian</span>'
-                '<button class="nav-close" aria-label="Close navigation menu" onclick="closeNav()">'
+                '<button class="keel-drawer__close" aria-label="Close navigation menu" onclick="closeNav()">'
                 '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
                 ' stroke-width="2" stroke-linecap="round" aria-hidden="true">'
                 '<path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'
@@ -529,7 +566,7 @@ def main():
                 f'<span class="keel-cb__lead">{TERMINAL_ICON}</span>'
                 '<span class="keel-cb__title">install</span></div>'
                 '<div class="keel-cb__scroll"><pre class="keel-cb__pre"><code>'
-                '<span style="display:block"><span style="color:var(--code-keyword)">dotnet</span>'
+                '<span style="display:block"><span style="color:var(--cb-k)">dotnet</span>'
                 ' tool install --global MeridianGit</span>'
                 '</code></pre></div></div>')
             chip.replace_with(BeautifulSoup(term, "html.parser").find())
@@ -538,7 +575,7 @@ def main():
     # footer keeps the midnight band in both themes (tiles/tooltip use neutral --surface-midnight)
     content = content.replace(
         'background:var(--surface-midnight);color:rgba(255,255,255,.7)',
-        'background:var(--surface-footer);color:rgba(255,255,255,.7)')
+        'background:var(--surface-midnight);color:rgba(255,255,255,.7)')
     # GitHub stars: honest static fallback (the repo's real count); a runtime fetch keeps it live
     content = content.replace('keel-ghb__count">128<', 'keel-ghb__count">0<')
     content = content.replace('128 stars', '0 stars')
@@ -560,49 +597,13 @@ def main():
 FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ffffff'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23111820' stroke-width='2'/%3E%3Cpath d='M16 5v22M7 16h18' stroke='%23335fd0' stroke-width='2' stroke-linecap='round'/%3E%3Cellipse cx='16' cy='16' rx='5' ry='10' fill='none' stroke='%2319736a' stroke-width='1.7'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%23335fd0'/%3E%3C/svg%3E"
 
 LIGHT_VARS = """
-  --font-sans:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-  --font-mono:'Fira Code',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --fw-medium:500;--fw-semibold:600;
-  --dur-fast:.14s;--ease-out:cubic-bezier(.22,1,.36,1);
-  --radius-md:10px;--radius-lg:12px;--radius-xl:18px;
-  --ring:0 0 0 3px var(--accent-subtle);
-  --hairline-top:inset 0 1px 0 rgba(255,255,255,.06);
-  --shadow-sm:0 1px 2px rgba(11,11,12,.05);
-  --shadow-md:0 8px 24px rgba(11,11,12,.10),0 2px 6px rgba(11,11,12,.04);
-  --surface-base:#FFFFFF;--surface-subtle:#F5F5F7;--surface-sunken:#EBEBEF;--surface-card:#FFFFFF;
-  --surface-overlay:rgba(255,255,255,.72);--surface-midnight:#0A1430;--surface-footer:#0A1430;
-  --text-primary:#1D1D1F;--text-secondary:#6E6E73;--text-tertiary:#86868B;
-  --border-subtle:#DEDEDF;--border-default:#C8C8CE;--border-strong:#B0B0B8;
-  --accent:#0B5FFF;--accent-hover:#094AD1;--accent-subtle:#ECF2FF;
-  --success:#1FA855;--success-subtle:#E9F9EE;
-  --signal:#C6F23C;--signal-500:#C6F23C;--signal-300:rgba(198,242,60,.55);--signal-subtle:rgba(198,242,60,.18);
-  --signal-text:#7FAE00;--signal-700:#5E8A00;--signal-on:#0A1430;
-  --warning:#C0863B;
-  --code-bg:#0B0B0C;--code-fg:#E6E6EA;
-  --code-keyword:#1D4ED8;--code-string:#15803D;--code-type:#0E7490;--code-number:#B45309;--code-comment:#6E7781;
-  --gray-400:#9CA3AF;--blue-300:#9DBBFF;--blue-400:#7AA2FF;--blue-700:#1D4ED8;--blue-800:#1E40AF;
-  --green-600:#1FA855;--green-700:#15803D;--amber-700:#B45309;
+  /* keel supplies the whole token layer. Nothing is restated here: the page holds
+     no overrides, and a keel value that looks wrong is a bug report, not a fork. */
 """
 
 DARK_VARS = """
-  --surface-base:#181A1B;--surface-subtle:#1C1E1F;--surface-sunken:#232628;--surface-card:#1E2021;
-  --surface-overlay:rgba(24,26,27,.72);--surface-midnight:#141617;
-  --text-primary:#D5D1CC;--text-secondary:#A2998D;--text-tertiary:#7E776C;
-  --border-subtle:#393E40;--border-default:#4A4F51;--border-strong:#5C6164;
-  --accent:#3B78FF;--accent-hover:#5E92FF;--accent-subtle:rgba(59,120,255,.18);
-  --success:#30D158;--success-subtle:rgba(48,209,88,.16);
-  --signal-text:#C6F23C;--signal-700:#C6F23C;--signal-subtle:rgba(198,242,60,.16);--signal-300:rgba(198,242,60,.40);
-  --code-bg:#121415;--code-fg:#E3DFD9;--code-keyword:#84A9FF;--code-string:#5FD49A;--code-type:#6FD4E0;--code-number:#E5A66A;--code-comment:#7E776B;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
-  --shadow-md:0 10px 30px rgba(0,0,0,.5),0 3px 8px rgba(0,0,0,.4);
-"""
-
-CB_DARK = """
-  --cb-bg:var(--code-bg);--cb-fg:var(--code-fg);
-  --cb-tabbar-bg:rgba(255,255,255,.035);--cb-line:rgba(255,255,255,.08);--cb-tab-active-bg:var(--code-bg);
-  --cb-meta:#8A8279;--cb-ln:var(--code-comment);
-  --cb-shadow:var(--hairline-top),var(--shadow-md),inset 0 0 0 1px rgba(255,255,255,.07);
-  --cb-c:var(--code-comment);--cb-k:var(--code-keyword);--cb-s:var(--code-string);--cb-n:var(--code-number);--cb-t:var(--code-type);--cb-f:#d2a8ff;
+  /* Meridian's dark palette IS keel's canonical dark: keel took it from here.
+     Nothing to restate. */
 """
 
 BASE_CSS = """
@@ -623,41 +624,10 @@ BASE_CSS = """
   }
   /* the paired merge-model carousel is built for narrow only; hidden on desktop */
   .model-steps{display:none}
-  /* --- responsive nav: hamburger + frosted flyout drawer --- */
-  .nav-burger{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
-  .nav-burger:hover{background:var(--surface-sunken);color:var(--text-primary)}
-  .nav-scrim{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.38);opacity:0;visibility:hidden;transition:opacity .22s var(--ease-out),visibility .22s var(--ease-out)}
-  .nav-drawer{position:fixed;top:0;right:0;bottom:0;z-index:51;width:min(82vw,300px);display:flex;flex-direction:column;gap:2px;padding:16px;
-    background:var(--surface-overlay);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
-    border-left:1px solid var(--border-subtle);box-shadow:var(--shadow-md);
-    transform:translateX(100%);transition:transform .26s var(--ease-out)}
-  .nav-drawer__head{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 12px;margin-bottom:6px;border-bottom:1px solid var(--border-subtle)}
-  .nav-drawer a{display:block;padding:12px;border-radius:10px;font-size:16px;font-weight:var(--fw-medium);color:var(--text-secondary);text-decoration:none;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
-  .nav-drawer a:hover{background:var(--surface-sunken);color:var(--text-primary)}
-  .nav-drawer__sep{height:1px;background:var(--border-subtle);margin:8px 6px}
-
   /* model number tile — soft accent chip (both themes) */
   .step-num{background:var(--accent-subtle);color:var(--accent)}
 
-  /* desktop "Docs" dropdown in the top nav */
-  .nav-docs{position:relative;display:inline-flex}
-  .nav-docs__btn{display:inline-flex;align-items:center;gap:4px;font:500 15px/1 var(--font-sans);color:var(--text-secondary);background:none;border:none;padding:0;cursor:pointer;transition:color var(--dur-fast) var(--ease-out)}
-  .nav-docs:hover .nav-docs__btn,.nav-docs:focus-within .nav-docs__btn{color:var(--text-primary)}
-  .nav-docs__menu{position:absolute;top:calc(100% + 12px);left:0;min-width:180px;display:flex;flex-direction:column;gap:2px;padding:6px;
-    background:var(--surface-overlay);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
-    border:1px solid var(--border-subtle);border-radius:12px;box-shadow:var(--shadow-md);z-index:50;
-    opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .16s var(--ease-out),transform .16s var(--ease-out),visibility .16s}
-  .nav-docs__menu::before{content:"";position:absolute;top:-12px;left:0;right:0;height:12px}
-  .nav-docs:hover .nav-docs__menu,.nav-docs:focus-within .nav-docs__menu{opacity:1;visibility:visible;transform:translateY(0)}
-  .nav-docs__menu a{display:block;padding:8px 12px;border-radius:8px;font:500 14px/1.3 var(--font-sans);color:var(--text-secondary);text-decoration:none;white-space:nowrap;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
-  .nav-docs__menu a:hover{background:var(--surface-sunken);color:var(--text-primary)}
-  .nav-close{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:none;background:transparent;color:var(--text-secondary);cursor:pointer}
-  .nav-close:hover{background:var(--surface-sunken);color:var(--text-primary)}
   @media (max-width:880px){
-    .nav-links{display:none!important}
-    .nav-burger{display:inline-flex}
-    :root[data-nav-open] .nav-scrim{opacity:1;visibility:visible}
-    :root[data-nav-open] .nav-drawer{transform:translateX(0)}
     /* tighter vertical rhythm between sections on small screens */
     section[id]{padding-top:48px!important;padding-bottom:48px!important}
     header[id]{padding-top:48px!important}
@@ -698,76 +668,9 @@ BASE_CSS = """
 """
 
 COMPONENT_CSS = """
-  /* ---- CodeBlock (ported from components/CodeBlock.jsx) ---- */
-  .keel-cb{font-family:var(--font-mono);font-size:13px;line-height:1.65;border-radius:var(--radius-lg);overflow:hidden;font-feature-settings:"liga" 1,"calt" 1;
-    --cb-bg:var(--surface-base);--cb-fg:var(--text-primary);
-    --cb-tabbar-bg:var(--surface-sunken);--cb-line:var(--border-default);--cb-tab-active-bg:var(--surface-base);
-    --cb-meta:var(--text-tertiary);--cb-ln:var(--gray-400);
-    --cb-shadow:inset 0 0 0 1px var(--border-subtle),var(--shadow-sm);
-    --cb-c:#6e7781;--cb-k:var(--blue-700);--cb-s:var(--green-700);--cb-n:var(--amber-700);--cb-t:var(--blue-800);--cb-f:#8250df;
-    background:var(--cb-bg);color:var(--cb-fg);box-shadow:var(--cb-shadow)}
-  .keel-cb--dark{__CBDARK__}
-  @media (prefers-color-scheme:dark){.keel-cb--auto{__CBDARK__}}
-  .keel-cb__tabs{display:flex;align-items:stretch;font-family:var(--font-sans);font-size:12.5px;font-weight:var(--fw-medium);background:var(--cb-tabbar-bg);border-bottom:1px solid var(--cb-line)}
-  .keel-cb__lead{display:inline-flex;align-items:center;justify-content:center;flex:none;width:40px;align-self:stretch;color:var(--cb-meta);border-right:1px solid var(--cb-line)}
-  .keel-cb__tab{display:flex;align-items:center;gap:8px;padding:9px 15px;border-right:1px solid var(--cb-line);color:inherit;opacity:.55;white-space:nowrap}
-  .keel-cb__tab--active{opacity:1;background:var(--cb-tab-active-bg);box-shadow:inset 0 2px 0 var(--accent)}
-  .keel-cb__dot{width:9px;height:9px;border-radius:2px;flex:none}
-  .keel-cb__lang{margin-left:auto;display:flex;align-items:center;padding:0 15px;font-family:var(--font-sans);font-size:11px;font-weight:var(--fw-semibold);letter-spacing:.04em;text-transform:uppercase;color:var(--cb-meta)}
-  .keel-cb__bar{display:flex;align-items:stretch;background:var(--cb-tabbar-bg);border-bottom:1px solid var(--cb-line)}
-  .keel-cb__title{display:inline-flex;align-items:center;padding:9px 15px;font-family:var(--font-mono);font-size:11.5px;color:var(--cb-meta)}
-  .keel-cb__scroll{overflow:auto}
-  .keel-cb__pre{margin:0;padding:16px 18px;white-space:pre}
-  .keel-cb__pre code{display:block;min-width:max-content}
-  .keel-cb .c{color:var(--cb-c)}.keel-cb .k{color:var(--cb-k)}.keel-cb .s{color:var(--cb-s)}.keel-cb .n{color:var(--cb-n)}.keel-cb .t{color:var(--cb-t)}.keel-cb .f{color:var(--cb-f)}
-
-  /* ---- GitHubStars ---- */
-  .keel-ghb{font-family:var(--font-sans);font-weight:var(--fw-semibold);display:inline-flex;align-items:center;text-decoration:none;color:var(--text-primary);letter-spacing:-.01em;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
-  .keel-ghb:focus-visible{outline:none;box-shadow:var(--ring);border-radius:var(--radius-md)}
-  .keel-ghb__ico{flex:none;display:inline-flex}
-  .keel-ghb__count{font-variant-numeric:tabular-nums}
-  .keel-ghb--md{font-size:14px}
-  .keel-ghb--minimal{gap:7px;color:var(--text-secondary);transition:color var(--dur-fast) var(--ease-out)}
-  .keel-ghb--minimal:hover{color:var(--text-primary)}
-
-  /* ---- Badge ---- */
-  .keel-badge{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-sans);font-weight:var(--fw-semibold);font-size:12px;line-height:1;padding:6px 11px;border-radius:980px;letter-spacing:.01em}
-  .keel-badge__dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
-  .keel-badge--accent{background:var(--accent-subtle);color:var(--accent)}
-  .keel-badge--success{background:var(--success-subtle);color:var(--success)}
-  .keel-badge--signal{background:var(--signal-subtle);color:var(--signal-text)}
-
-  /* ---- Button ---- */
-  .keel-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-sans);font-weight:var(--fw-semibold);text-decoration:none;cursor:pointer;border:none;
-    transition:background var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out)}
-  .keel-btn:active{transform:scale(.97)}
-  .keel-btn--lg{height:48px;padding:0 22px;font-size:16px}
-  .keel-btn--pill{border-radius:980px}
-  .keel-btn--primary{background:var(--accent);color:#fff}
-  .keel-btn--primary:hover{background:var(--accent-hover)}
-  .keel-btn--outline{background:transparent;color:var(--text-primary);box-shadow:inset 0 0 0 1px var(--border-default)}
-  .keel-btn--outline:hover{background:var(--surface-sunken)}
-
-  /* ---- Callout ---- */
-  .keel-callout{border-radius:var(--radius-md);padding:16px 18px;font-size:15px;line-height:1.55;color:var(--text-secondary);background:var(--accent-subtle);box-shadow:inset 0 0 0 1px rgba(11,95,255,.14)}
-  .keel-callout__title{font-weight:700;color:var(--text-primary);margin-bottom:5px}
-
-  /* ---- Card ---- */
-  .keel-card{background:var(--surface-card);border-radius:var(--radius-xl);padding:20px;transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}
-  .keel-card--outlined{box-shadow:inset 0 0 0 1px var(--border-subtle)}
-  .keel-card--flat{box-shadow:none}
-  .keel-card--lg{padding:24px}
-  .keel-card--interactive:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
-  .keel-card--outlined.keel-card--interactive:hover{box-shadow:inset 0 0 0 1px var(--border-default),var(--shadow-md)}
-
-  /* ---- Tooltip ---- */
-  .keel-tip{position:relative;display:inline-flex}
-  .keel-tip__pop{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px);
-    background:var(--surface-midnight);color:#fff;font-family:var(--font-sans);font-size:12px;font-weight:500;line-height:1.4;
-    padding:7px 10px;border-radius:8px;box-shadow:var(--shadow-md);opacity:0;pointer-events:none;
-    transition:opacity var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out);
-    white-space:normal;width:max-content;max-width:215px;text-align:center;z-index:50}
-  .keel-tip:hover .keel-tip__pop,.keel-tip:focus-within .keel-tip__pop{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* Meridian's own layer. Every keel component (CodeBlock, GitHubStars, Badge,
+     Button, Callout, Card, Tooltip) now comes from the vendored keel bundle,
+     which is linked ahead of this block so these rules win where they overlap. */
 
   /* ---- Hero stat accordion (4-up grid on desktop; horizontal accordion on narrow) ---- */
   .stat-accordion{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border-subtle);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;margin:40px 0 0}
@@ -781,7 +684,7 @@ COMPONENT_CSS = """
   .schema-figure__code{position:relative}
   .schema-band{position:absolute;left:0;right:0;z-index:4;background:rgba(59,120,255,.18);border-radius:2px;opacity:0;pointer-events:none}
   .walk-panel{position:absolute;left:10px;right:10px;top:0;z-index:5;opacity:0;pointer-events:none;
-    background:var(--surface-card);border:1px solid var(--border-default);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-md)}
+    background:var(--surface-card);border:1px solid var(--border-default);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-lg)}
   .walk-panel::before{content:"";position:absolute;top:-7px;left:24px;width:12px;height:12px;
     background:var(--surface-card);border-top:1px solid var(--border-default);border-left:1px solid var(--border-default);transform:rotate(45deg)}
   /* non-narrow: float each tooltip into a rail to the RIGHT of the code so it never covers lines below */
@@ -794,47 +697,87 @@ COMPONENT_CSS = """
   }
 """
 
+JSONLD = """<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Meridian",
+  "url": "https://adamcoulteroz.github.io/Meridian/",
+  "description": "A domain-neutral structural merge and semantic diff toolkit for source formats Git can only see as text.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any platform supported by .NET and Git",
+  "softwareHelp": "https://github.com/AdamCoulterOz/Meridian#readme",
+  "codeRepository": "https://github.com/AdamCoulterOz/Meridian",
+  "license": "https://www.apache.org/licenses/LICENSE-2.0",
+  "author": {
+    "@type": "Person",
+    "name": "Adam Coulter",
+    "url": "https://adamcoulteroz.github.io/"
+  }
+}
+</script>
+"""
+
 HEAD = (
     "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n"
     "<meta charset=\"utf-8\" />\n"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
     "<title>Meridian | structural merge for source files</title>\n"
     "<meta name=\"description\" content=\"Meridian is a domain-neutral structural merge and semantic diff toolkit for source formats Git can only see as text.\" />\n"
+    "<meta name=\"keywords\" content=\"structural merge, semantic diff, Git merge driver, source code merge, XML merge, JSON merge, YAML merge, schema driven merge, .NET tool, Meridian\" />\n"
+    "<meta name=\"robots\" content=\"index, follow\" />\n"
     "<link rel=\"canonical\" href=\"https://adamcoulteroz.github.io/Meridian/\" />\n"
     "<meta property=\"og:type\" content=\"website\" />\n"
     "<meta property=\"og:title\" content=\"Meridian | structural merge for source files\" />\n"
     "<meta property=\"og:description\" content=\"Merge by structure, not by line order. A domain-neutral structural merge and semantic diff toolkit, wired in as a Git driver.\" />\n"
     "<meta property=\"og:url\" content=\"https://adamcoulteroz.github.io/Meridian/\" />\n"
     "<meta name=\"twitter:card\" content=\"summary\" />\n"
+    "<meta name=\"twitter:title\" content=\"Meridian | structural merge for source files\" />\n"
+    "<meta name=\"twitter:description\" content=\"Merge source files by structure, not by line order, with a schema-aware Git merge and semantic diff toolkit.\" />\n"
     f"<link rel=\"icon\" href=\"{FAVICON}\" />\n"
     "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n"
     "<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin />\n"
     "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600;700&display=swap\" />\n"
-    "<style>\n"
+    + JSONLD
+    # keel first: the page layer below is meant to win where the two overlap.
+    + "<link rel=\"stylesheet\" href=\"keel.bundle.css\" />\n"
+    + "<style>\n"
     ":root{" + LIGHT_VARS + "}\n"
     "@media (prefers-color-scheme:dark){:root{" + DARK_VARS + "}}\n"
     + BASE_CSS
-    + COMPONENT_CSS.replace("__CBDARK__", CB_DARK)
+    + COMPONENT_CSS
     + "\n/*__HOVER__*/\n</style>\n</head>\n<body>\n"
 )
 
 SCRIPT = (
     "<script>\n"
-    "function openNav(){\n"
-    "  document.documentElement.setAttribute('data-nav-open','');\n"
-    "  document.body.style.overflow='hidden';\n"
-    "  var b=document.getElementById('nav-burger'); if(b)b.setAttribute('aria-expanded','true');\n"
-    "  var d=document.getElementById('nav-drawer'); if(d)d.setAttribute('aria-hidden','false');\n"
+    "// keel carries open state on the elements themselves, not a document-level\n"
+    "// attribute, so two drawers on one page cannot fight over one flag.\n"
+    "function setNav(open){\n"
+    "  var d=document.getElementById('nav-drawer'), c=document.getElementById('nav-scrim'),\n"
+    "      b=document.getElementById('nav-burger');\n"
+    "  if(d){ d.classList.toggle('keel-drawer--open', open); d.setAttribute('aria-hidden', open?'false':'true'); }\n"
+    "  if(c) c.classList.toggle('keel-scrim--open', open);\n"
+    "  if(b) b.setAttribute('aria-expanded', open?'true':'false');\n"
+    "  document.body.style.overflow = open ? 'hidden' : '';\n"
     "}\n"
-    "function closeNav(){\n"
-    "  document.documentElement.removeAttribute('data-nav-open');\n"
-    "  document.body.style.overflow='';\n"
-    "  var b=document.getElementById('nav-burger'); if(b)b.setAttribute('aria-expanded','false');\n"
-    "  var d=document.getElementById('nav-drawer'); if(d)d.setAttribute('aria-hidden','true');\n"
-    "}\n"
-    "function toggleNav(){ document.documentElement.hasAttribute('data-nav-open') ? closeNav() : openNav(); }\n"
+    "function openNav(){ setNav(true); }\n"
+    "function closeNav(){ setNav(false); }\n"
+    "function navOpen(){ var d=document.getElementById('nav-drawer');\n"
+    "  return !!d && d.classList.contains('keel-drawer--open'); }\n"
+    "function toggleNav(){ navOpen() ? closeNav() : openNav(); }\n"
     "document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeNav(); });\n"
-    "if(window.matchMedia){ window.matchMedia('(min-width:881px)').addEventListener('change', function(e){ if(e.matches) closeNav(); }); }\n"
+    "// The bar collapses on its OWN width now, so there is no viewport breakpoint to\n"
+    "// listen for. Watch the burger instead: when it stops being displayed the wide\n"
+    "// layout is back and a drawer left open would be stranded offscreen.\n"
+    "(function(){\n"
+    "  var b=document.getElementById('nav-burger');\n"
+    "  if(!b || !window.ResizeObserver) return;\n"
+    "  var ro=new ResizeObserver(function(){\n"
+    "    if(navOpen() && getComputedStyle(b).display==='none') closeNav();\n"
+    "  });\n"
+    "  ro.observe(document.documentElement);\n"
+    "})();\n"
     "// in-page links: close the drawer first, then scroll on the next frame so the\n"
     "// scroll-lock release and drawer transition can't cancel the smooth scroll.\n"
     "document.addEventListener('click', function(e){\n"

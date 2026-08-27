@@ -1,0 +1,101 @@
+name: Deploy GitHub Pages
+
+# The site is BUILT here rather than served straight from docs/. That is what lets
+# keel stay out of this repository: the stylesheet is fetched at the pinned version
+# during the build instead of being committed as a vendored artifact.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - ".github/workflows/deploy-pages.yml"
+  schedule:
+    # Daily repair run so a transient Pages failure does not leave the site stale.
+    - cron: "23 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install build dependencies
+        run: pip install --disable-pip-version-check beautifulsoup4==4.15.0
+
+      # keel is a private repository, so the job-scoped GITHUB_TOKEN cannot read it.
+      # KEEL_READ_TOKEN must be a token with read access to AdamCoulterOz/keel.
+      - name: Fetch keel at the pinned version
+        env:
+          GH_TOKEN: ${{ secrets.KEEL_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::KEEL_READ_TOKEN is not set. It needs read access to the private AdamCoulterOz/keel repository." >&2
+            exit 1
+          fi
+          ./docs/redesigned/update-keel.sh
+
+      # The bundle is fetched, not reviewed, so prove it is the version this repo pinned
+      # rather than trusting that the fetch did the right thing.
+      - name: Verify the fetched bundle matches the pin
+        run: |
+          set -euo pipefail
+          pinned="$(tr -d '[:space:]' < docs/redesigned/keel.version)"
+          stamped="$(head -1 docs/keel.bundle.css | grep -o 'keel v[^ ]*' | sed 's/^keel //; s/\.$//')"
+          echo "pinned=$pinned stamped=$stamped"
+          [ "$pinned" = "$stamped" ] || { echo "::error::keel.bundle.css is $stamped but keel.version pins $pinned." >&2; exit 1; }
+
+      - name: Build the site
+        run: python3 docs/redesigned/build.py
+
+      # Fail rather than publish a page whose stylesheet is missing: the link is relative,
+      # so a missing bundle deploys an unstyled site instead of erroring.
+      - name: Verify the built page
+        run: |
+          set -euo pipefail
+          test -s docs/index.html
+          test -s docs/keel.bundle.css
+          grep -q 'href="keel.bundle.css"' docs/index.html
+          grep -q '<title>Meridian' docs/index.html
+
+      - name: Assemble site artifact
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp docs/index.html docs/keel.bundle.css docs/robots.txt docs/sitemap.xml docs/architecture.md _site/
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
