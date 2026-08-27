@@ -1,0 +1,126 @@
+{
+ "--accent": {
+  "dark": "#3b78ff",
+  "light": "#0b5fff"
+ },
+ "--accent-border": {
+  "dark": "rgba(91, 146, 255, 0.42)",
+  "light": "rgba(11, 95, 255, 0.28)"
+ },
+ "--accent-hover": {
+  "dark": "#5e92ff",
+  "light": "#094ad1"
+ },
+ "--accent-on-midnight": {
+  "dark": "#84a9ff",
+  "light": "#84a9ff"
+ },
+ "--accent-subtle": {
+  "dark": "rgba(59, 120, 255, 0.18)",
+  "light": "#ecf2ff"
+ },
+ "--border-default": {
+  "dark": "#4a4f51",
+  "light": "#c8c8ce"
+ },
+ "--border-subtle": {
+  "dark": "#393e40",
+  "light": "#dededf"
+ },
+ "--cb-k": {
+  "dark": "#84a9ff",
+  "light": "#094ad1"
+ },
+ "--cb-s": {
+  "dark": "#5fd49a",
+  "light": "#157f40"
+ },
+ "--cb-t": {
+  "dark": "#6fd4e0",
+  "light": "#0a3ea3"
+ },
+ "--ease-out": {
+  "dark": "cubic-bezier(0.22, 1, 0.36, 1)",
+  "light": "cubic-bezier(0.22, 1, 0.36, 1)"
+ },
+ "--font-mono": {
+  "dark": "'fira code', ui-monospace, sfmono-regular, 'sf mono', 'cascadia code', menlo, consolas, monospace",
+  "light": "'fira code', ui-monospace, sfmono-regular, 'sf mono', 'cascadia code', menlo, consolas, monospace"
+ },
+ "--font-sans": {
+  "dark": "'hanken grotesk', -apple-system, blinkmacsystemfont, 'segoe ui', system-ui, sans-serif",
+  "light": "'hanken grotesk', -apple-system, blinkmacsystemfont, 'segoe ui', system-ui, sans-serif"
+ },
+ "--shadow-lg": {
+  "dark": "0 16px 36px rgba(0, 0, 0, 0.60), 0 6px 14px rgba(0, 0, 0, 0.45)",
+  "light": "0 12px 32px rgba(11, 11, 12, 0.10), 0 4px 10px rgba(11, 11, 12, 0.05)"
+ },
+ "--signal": {
+  "dark": "#c6f23c",
+  "light": "#c6f23c"
+ },
+ "--signal-border": {
+  "dark": "rgba(198, 242, 60, 0.40)",
+  "light": "rgba(198, 242, 60, 0.55)"
+ },
+ "--signal-on": {
+  "dark": "#0a1430",
+  "light": "#0a1430"
+ },
+ "--signal-subtle": {
+  "dark": "rgba(198, 242, 60, 0.16)",
+  "light": "#f3fbd6"
+ },
+ "--signal-text": {
+  "dark": "#c6f23c",
+  "light": "#7fae00"
+ },
+ "--success": {
+  "dark": "#30d158",
+  "light": "#1fa855"
+ },
+ "--success-subtle": {
+  "dark": "rgba(48, 209, 88, 0.16)",
+  "light": "#e9f9ee"
+ },
+ "--surface-base": {
+  "dark": "#181a1b",
+  "light": "#ffffff"
+ },
+ "--surface-card": {
+  "dark": "#1e2021",
+  "light": "#ffffff"
+ },
+ "--surface-midnight": {
+  "dark": "#0a1430",
+  "light": "#0a1430"
+ },
+ "--surface-overlay": {
+  "dark": "rgba(24, 26, 27, 0.72)",
+  "light": "rgba(255, 255, 255, 0.72)"
+ },
+ "--surface-subtle": {
+  "dark": "#1c1e1f",
+  "light": "#f5f5f7"
+ },
+ "--surface-sunken": {
+  "dark": "#232628",
+  "light": "#ebebef"
+ },
+ "--text-primary": {
+  "dark": "#d5d1cc",
+  "light": "#1d1d1f"
+ },
+ "--text-secondary": {
+  "dark": "#a2998d",
+  "light": "#6e6e73"
+ },
+ "--text-tertiary": {
+  "dark": "#7e776c",
+  "light": "#86868b"
+ },
+ "--warning": {
+  "dark": "#e0a34a",
+  "light": "#e08600"
+ }
+}

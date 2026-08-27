@@ -28,10 +28,14 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from keel_tokens import resolve_used
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 DOCS = os.path.normpath(os.path.join(HERE, ".."))
 PAGE = os.path.join(DOCS, "index.html")
 BUNDLE = os.path.join(DOCS, "keel.bundle.css")
+SNAPSHOT = os.path.join(HERE, "keel-token-values.json")
 INVENTORY = os.path.join(DOCS, "node_modules", "@adamcoulteroz", "keel", "dist", "classes.json")
 
 # Classes the page layer defines itself. `.keel-cb{min-width:0}` is host-side grid
@@ -125,13 +129,49 @@ def check_tokens():
           f"page defines {len(declared)}")
     if not missing:
         print("every custom property the page uses resolves")
-        return 0
+        return check_token_values()
 
     print(f"\n{len(missing)} custom propert(ies) the page uses are defined nowhere:", file=sys.stderr)
     for name in missing:
         print(f"  var({name})", file=sys.stderr)
     print("\nAn unresolved var() drops the declaration silently. Check keel's CHANGELOG for "
           "a rename and update the markup in the same commit as the version bump.", file=sys.stderr)
+    return 1
+
+
+def check_token_values():
+    """Membership is the easy half. A token that keeps its name and changes its value passes
+    every check above while the page renders differently — which is what --accent-on-midnight
+    did, and what keel 0.5.0 does to three state tokens. So the resolved values are recorded
+    and a move has to arrive as a reviewed diff to that file rather than silently."""
+    if not os.path.exists(SNAPSHOT):
+        print("no recorded token values; run snapshot-keel-tokens.py", file=sys.stderr)
+        return 1
+
+    with open(SNAPSHOT, encoding="utf-8") as handle:
+        recorded = json.load(handle)
+    with open(BUNDLE, encoding="utf-8") as bundle_handle, open(PAGE, encoding="utf-8") as page_handle:
+        current = resolve_used(bundle_handle.read(), page_handle.read())
+
+    drifted = []
+    for name in sorted(set(recorded) | set(current)):
+        for scheme in ("light", "dark"):
+            was = (recorded.get(name) or {}).get(scheme)
+            now = (current.get(name) or {}).get(scheme)
+            if was != now:
+                drifted.append((name, scheme, was, now))
+
+    if not drifted:
+        print(f"all {len(current)} token values match what this repo recorded")
+        return 0
+
+    print(f"\n{len(drifted)} keel token value(s) moved without the recorded file changing:",
+          file=sys.stderr)
+    for name, scheme, was, now in drifted:
+        print(f"  {name} ({scheme}): {was} -> {now}", file=sys.stderr)
+    print("\nA token keeping its name while changing its value is silent everywhere else. If "
+          "this is intended, run snapshot-keel-tokens.py in the SAME commit as the keel bump "
+          "so the change is reviewed rather than absorbed.", file=sys.stderr)
     return 1
 
 

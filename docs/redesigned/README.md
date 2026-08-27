@@ -332,7 +332,13 @@ equivalents): **Button** (primary/secondary/outline/ghost, `pill`), **Badge**
 - `build.py` — generates `docs/index.html` from `Meridian.dc.html`. **`index.html`
   is generated: never hand-edit it**, or the next build silently drops the change.
 - `check-keel-usage.py` — fails the build if the page uses a keel class **or custom
-  property** the resolved keel version no longer defines. Tokens have caused more of this
+  property** the resolved keel version no longer defines, **or if a token keeps its name
+  and changes its value**. That last one is the quiet failure: membership checks pass while
+  the page renders differently, which is what `--accent-on-midnight` did.
+- `snapshot-keel-tokens.py` / `keel-token-values.json` — the resolved value of every keel
+  token the page uses, per theme. Run the snapshot ONLY when a value change is intended,
+  in the same commit as the keel bump, so it arrives as a reviewed diff. The resolver was
+  validated against the browser: 31 tokens, both schemes, 62 comparisons, zero mismatches. Tokens have caused more of this
   page's breakages than classes have (`--code-*` meaning something other than assumed,
   ramps read where semantic aliases were needed, `--surface-footer` removed outright), and
   an unresolved `var()` drops the declaration silently. keel ships no aliases, so a rename is otherwise silent:
