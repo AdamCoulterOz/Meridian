@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  packages: read   # keel comes from GitHub Packages; without this the token has no packages scope
   pages: write
   id-token: write
 
