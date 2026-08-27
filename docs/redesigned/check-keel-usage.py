@@ -35,6 +35,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DOCS = os.path.normpath(os.path.join(HERE, ".."))
 PAGE = os.path.join(DOCS, "index.html")
 BUNDLE = os.path.join(DOCS, "keel.bundle.css")
+LOCKFILE = os.path.join(DOCS, "package-lock.json")
 SNAPSHOT = os.path.join(HERE, "keel-token-values.json")
 INVENTORY = os.path.join(DOCS, "node_modules", "@adamcoulteroz", "keel", "dist", "classes.json")
 
@@ -175,11 +176,58 @@ def check_token_values():
     return 1
 
 
+def check_bundle_version():
+    """The bundle is a gitignored build output, so nothing keeps it current.
+
+    Being ignored stops it being committed AND stops it being maintained: a stale copy is
+    invisible to git status, survives every rebuild, and is read by every check here. Mine
+    sat two minor versions behind for weeks in the main checkout while all the real work
+    happened in worktrees, and it reported 42 contrast failures against a page that has 0.
+
+    keel stamps the version into line one of every published bundle, so this costs one
+    comparison. The deploy workflow already asserted it; nothing asserted it locally, which
+    is precisely where the stale copy lived.
+    """
+    with open(LOCKFILE, encoding="utf-8") as handle:
+        packages = json.load(handle).get("packages", {})
+    pinned = next((meta.get("version") for name, meta in packages.items() if "keel" in name), None)
+
+    with open(BUNDLE, encoding="utf-8") as handle:
+        first = handle.readline().strip()
+    # Anchor on the version characters themselves. Stamp formats have differed across
+    # releases -- "keel v0.4.3 - generated" now, "keel v0.2.1. Refresh with" when the
+    # bundle was fetched by script -- and a greedy match swallows the trailing period,
+    # which would then never equal the lockfile's version.
+    match = re.search(r"keel v([0-9][0-9A-Za-z.\-]*[0-9A-Za-z])", first)
+
+    if pinned is None:
+        print("no keel version pinned in package-lock.json", file=sys.stderr)
+        return 1
+    if match is None:
+        print(f"\nThe stylesheet carries no version stamp. Its first line is:\n  {first}\n\n"
+              "keel stamps every PUBLISHED bundle; a working copy taken from keel's source "
+              "tree says 'unversioned working copy' instead. Run update-keel.sh, which "
+              "installs the pinned release.", file=sys.stderr)
+        return 1
+    if match.group(1) != pinned:
+        print(f"\nStale stylesheet: measuring against keel v{match.group(1)} while the "
+              f"lockfile pins {pinned}.\n\nkeel.bundle.css is a gitignored build output, so "
+              "nothing updates it for you. Run update-keel.sh.", file=sys.stderr)
+        return 1
+
+    print(f"stylesheet is keel v{pinned}, matching the lockfile")
+    return 0
+
+
 def main():
     for path in (PAGE, BUNDLE):
         if not os.path.exists(path):
             print(f"error: {path} is missing; run update-keel.sh and build.py first", file=sys.stderr)
             return 2
+
+    stale = check_bundle_version()
+    if stale:
+        return stale
 
     bundle = classes_in_bundle()
     inventory = classes_in_inventory()

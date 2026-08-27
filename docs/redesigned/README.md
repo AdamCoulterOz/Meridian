@@ -331,8 +331,10 @@ equivalents): **Button** (primary/secondary/outline/ghost, `pill`), **Badge**
 ## Files
 - `build.py` — generates `docs/index.html` from `Meridian.dc.html`. **`index.html`
   is generated: never hand-edit it**, or the next build silently drops the change.
-- `check-keel-usage.py` — fails the build if the page uses a keel class **or custom
-  property** the resolved keel version no longer defines, **or if a token keeps its name
+- `check-keel-usage.py` — first asserts the vendored stylesheet is the version
+  `package-lock.json` pins, because it is a gitignored build output and nothing updates it
+  for you: a stale copy is invisible to `git status` and every other check here reads it.
+  Then fails the build if the page uses a keel class **or custom property** the resolved keel version no longer defines, **or if a token keeps its name
   and changes its value**. That last one is the quiet failure: membership checks pass while
   the page renders differently, which is what `--accent-on-midnight` did.
 - `snapshot-keel-tokens.py` / `keel-token-values.json` — the resolved value of every keel
