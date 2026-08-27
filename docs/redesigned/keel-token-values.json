@@ -7,10 +7,6 @@
   "dark": "rgba(91, 146, 255, 0.42)",
   "light": "rgba(11, 95, 255, 0.28)"
  },
- "--accent-hover": {
-  "dark": "#5e92ff",
-  "light": "#094ad1"
- },
  "--accent-on-midnight": {
   "dark": "#84a9ff",
   "light": "#84a9ff"
@@ -122,6 +118,10 @@
  "--surface-sunken": {
   "dark": "#232628",
   "light": "#ebebef"
+ },
+ "--text-link": {
+  "dark": "#84a9ff",
+  "light": "#094ad1"
  },
  "--text-primary": {
   "dark": "#d5d1cc",

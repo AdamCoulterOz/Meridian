@@ -384,7 +384,7 @@ def main():
             heading = BeautifulSoup(
                 '<div style="margin:0 0 11px">'
                 '<h3 style="margin:0 0 3px;font-size:15px;font-weight:700;letter-spacing:-.01em;'
-                f'color:var(--text-primary)"><span style="color:var(--accent)">{num}</span> · {head}</h3>'
+                f'color:var(--text-primary)"><span style="color:var(--accent-text)">{num}</span> · {head}</h3>'
                 '<p style="margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)">'
                 f'{desc}</p></div>', "html.parser").find()
             cb.insert_before(heading)
@@ -405,7 +405,7 @@ def main():
                                "letter-spacing:-.01em;color:var(--text-primary)")
                 h3.clear()
                 for node in list(BeautifulSoup(
-                        '<span style="color:var(--accent)">4</span> · Minimal schema shape',
+                        '<span style="color:var(--accent-text)">4</span> · Minimal schema shape',
                         "html.parser").contents):
                     h3.append(node)
             if p is not None:
@@ -447,7 +447,7 @@ def main():
                     .replace("border:1px solid rgba(11,95,255,.28)", "border:1px solid var(--border-default)")
                     .replace("background:var(--accent-subtle)", "background:var(--surface-card)")
                     .replace("rgba(11,95,255,.16)", "var(--border-subtle)")
-                    .replace("background:var(--accent);color:#fff", "background:var(--accent-subtle);color:var(--accent)")
+                    .replace("background:var(--accent);color:#fff", "background:var(--accent-subtle);color:var(--accent-text)")
                     .replace("rgba(11,95,255,.22)", "var(--border-subtle)")
                     .replace("var(--accent-hover)", "var(--text-secondary)"))
             inner.replace_with(BeautifulSoup(html, "html.parser").find())
@@ -632,7 +632,7 @@ BASE_CSS = """
   body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-sans);
     font-size:17px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
     transition:background-color .25s var(--ease-out)}
-  a{color:var(--accent)}
+  a{color:var(--text-link)}
   ::selection{background:rgba(11,95,255,.16)}
   ::-webkit-scrollbar{height:9px;width:9px}
   ::-webkit-scrollbar-thumb{background:rgba(127,127,140,.4);border-radius:9px}
