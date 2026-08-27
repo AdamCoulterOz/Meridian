@@ -109,14 +109,33 @@ def build_githubstars(tag):
     )
 
 
+# keel 0.4.0 merged Badge and Tag into one Chip on three axes, and collapsed the three
+# tone enums into one vocabulary of STATES. The design source still speaks the old
+# vocabulary, so translate rather than rewriting every tone= in the prototype. There are
+# deliberately no aliases in keel: an unmapped tone should fail loudly here, not render
+# unstyled in the browser.
+CHIP_TONE = {
+    "accent": "info", "info": "info", "solid": "info",   # solid was a fill, not a state
+    "success": "good",
+    "danger": "bad",
+    "warning": "warning",
+    "signal": "new",                                     # named a colour; the state is "new"
+    "neutral": "neutral",
+}
+
+
 def build_badge(tag):
     tone = tag.get("tone", "accent")
+    if tone not in CHIP_TONE:
+        raise ValueError(f"Unknown badge tone '{tone}'. Known: {', '.join(sorted(CHIP_TONE))}.")
     dot = tag.get("dot") in ("true", "", "dot")
     style = merge_style("", tag.get("style", ""))
     inner = tag.decode_contents()
-    dot_html = '<span class="keel-badge__dot"></span>' if dot else ""
+    dot_html = '<span class="keel-chip__dot"></span>' if dot else ""
     style_attr = f' style="{style}"' if style else ""
-    return f'<span class="keel-badge keel-badge--{tone}"{style_attr}>{dot_html}{inner}</span>'
+    # A badge is a chip with Emphasis.Filled; keel keeps the name as a preset.
+    cls = f"keel-chip keel-chip--filled keel-chip--{CHIP_TONE[tone]}"
+    return f'<span class="{cls}"{style_attr}>{dot_html}{inner}</span>'
 
 
 def build_button(tag):
