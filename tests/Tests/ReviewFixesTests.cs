@@ -16,6 +16,42 @@ public sealed class ReviewFixesTests
 {
     private static readonly MergeSchema Empty = MergeSchema.Empty;
 
+    // ---- Conflict-marker safety net -------------------------------------------------------------
+
+    // The driver decides whether a render projected its conflict by looking for markers. A bare
+    // substring search matches marker text that is ordinary CONTENT, which made a conflicted merge
+    // look resolved and reintroduced the silent-data-loss class the safety net exists to close.
+    [Fact]
+    public void MarkerTextInContentIsNotMistakenForAProjectedConflict()
+    {
+        const string ours = "{\"note\":\"conflict syntax is <<<<<<< ours\",\"a\":3}";
+        const string @base = "{\"note\":\"conflict syntax is <<<<<<< ours\",\"a\":1}";
+        const string theirs = "{\"note\":\"conflict syntax is <<<<<<< ours\",\"a\":2}";
+        // What a non-projecting adapter renders: the conflicted scalar blanked, marker text intact.
+        const string rendered = "{\"note\":\"conflict syntax is <<<<<<< ours\",\"a\":0}";
+
+        Assert.False(ConflictMarkers.ProjectedConflict(rendered, ours, @base, theirs));
+    }
+
+    [Fact]
+    public void RealProjectedConflictIsRecognised()
+    {
+        const string ours = "{\"a\":3}";
+        const string @base = "{\"a\":1}";
+        const string theirs = "{\"a\":2}";
+        var rendered = ConflictMarkers.CreateDiff3(ours, @base, theirs);
+
+        Assert.True(ConflictMarkers.ProjectedConflict(rendered, ours, @base, theirs));
+    }
+
+    // A marker only counts at the start of a line; mid-line marker text is content.
+    [Fact]
+    public void ContainsMarkerIgnoresMidLineMarkerText()
+    {
+        Assert.False(ConflictMarkers.ContainsMarker("value: has <<<<<<< ours inside"));
+        Assert.True(ConflictMarkers.ContainsMarker("<<<<<<< ours\nx\n=======\ny\n>>>>>>> theirs"));
+    }
+
     // ---- Text-adapter fidelity ------------------------------------------------------------------
 
     [Fact]

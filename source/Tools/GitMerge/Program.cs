@@ -186,10 +186,10 @@ internal sealed class MergeCommand : AsyncCommand<MergeSettings>
             // structural render did not embed conflict markers (some adapters cannot project a
             // nested conflict inline), fall back to a whole-file three-way conflict so no side's
             // content is silently discarded.
-            if (result.HasConflicts && !ConflictMarkers.ContainsMarker(rendered))
+            if (result.HasConflicts && !ConflictMarkers.ProjectedConflict(rendered, oursText, baseText, theirsText))
                 rendered = ConflictMarkers.CreateDiff3(oursText, baseText, theirsText) + Environment.NewLine;
         }
-        catch (Exception error)
+        catch (Exception error) when (error is not OperationCanceledException)
         {
             // A file the structured adapter cannot parse (empty, comment-only, duplicate keys,
             // syntactically invalid mid-edit) must degrade to a plain text three-way merge rather
@@ -398,7 +398,13 @@ internal static class GitIntegration
     {
         if (!string.IsNullOrWhiteSpace(schemaPath))
         {
-            var explicitOptions = new MergeSchemaLoadOptions { AllowRemoteSchemas = RemoteSchemasEnabled() };
+            // Containment applies here too: a repo can point the driver at a schema via git config,
+            // so an explicitly named schema is no more trusted than a discovered one.
+            var explicitOptions = new MergeSchemaLoadOptions
+            {
+                AllowRemoteSchemas = RemoteSchemasEnabled(),
+                RepositoryRoot = MergeSchemaDiscovery.DiscoverForFile(repoPath, Environment.CurrentDirectory).RepositoryRoot
+            };
             var loadResult = MergeSchemaYamlLoader.LoadFileWithDiagnostics(schemaPath, explicitOptions);
             WriteRemoteSchemaDiagnostics(loadResult.RemoteSchemas);
             return loadResult.SchemaSet.CompileForFile(repoPath);

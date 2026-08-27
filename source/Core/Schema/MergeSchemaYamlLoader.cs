@@ -368,13 +368,30 @@ public static class MergeSchemaYamlLoader
             var rootWithSeparator = root.EndsWith(Path.DirectorySeparatorChar)
                 ? root
                 : root + Path.DirectorySeparatorChar;
-            var full = Path.GetFullPath(local.Path);
+            // GetFullPath normalises ".." but does NOT resolve symlinks, and Git can commit a
+            // symlink. Resolve the final target first, or a committed link inside the repo passes
+            // containment and the read then follows it out of tree.
+            var full = ResolveFinalTarget(Path.GetFullPath(local.Path));
             var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
             if (!full.StartsWith(rootWithSeparator, comparison) &&
                 !string.Equals(full, root, comparison))
                 throw new InvalidOperationException(
                     $"Schema include '{local.Path}' resolves outside the repository root '{root}'.");
+        }
+
+        private static string ResolveFinalTarget(string path)
+        {
+            try
+            {
+                var resolved = File.ResolveLinkTarget(path, returnFinalTarget: true)
+                    ?? (FileSystemInfo?)Directory.ResolveLinkTarget(path, returnFinalTarget: true);
+                return resolved is null ? path : Path.GetFullPath(resolved.FullName);
+            }
+            catch (IOException)
+            {
+                return path;
+            }
         }
 
         private string ReadSchemaText(SchemaDocumentReference reference)
